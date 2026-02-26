@@ -1,0 +1,22 @@
+get:
+  tags:
+  - Dashboard
+  summary: ダッシュボード概要取得
+  responses:
+    '200':
+      description: Dashboard summary
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/DashboardSummary"
+          example:
+            pnlToday: 1.0
+            pnlTotal: 1.0
+            maxDrawdown: 1.0
+            runtimeState: RUNNING
+            killSwitchEnabled: true
+            latestSignalAt: '2026-01-15T09:00:00Z'
+    '401':
+      "$ref": "../components/responses/index.yaml#/Unauthorized"
+    '503':
+      "$ref": "../components/responses/index.yaml#/ServiceUnavailable"

@@ -1,0 +1,5 @@
+publish:
+  summary: BFFが仮説再検証要求を発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/HypothesisRetestRequestedEvent"

@@ -1,0 +1,6 @@
+sendSampleEvent:
+  action: send
+  channel:
+    $ref: '../channels/index.yaml#/sampleChannel'
+  messages:
+    - $ref: '../components/messages/index.yaml#/SampleMessage'

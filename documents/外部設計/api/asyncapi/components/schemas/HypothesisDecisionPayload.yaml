@@ -1,0 +1,17 @@
+type: object
+required:
+- identifier
+- decision
+properties:
+  identifier:
+    type: string
+  decision:
+    type: string
+    enum:
+    - promoted
+    - rejected
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+example:
+  identifier: id-001
+  decision: promoted

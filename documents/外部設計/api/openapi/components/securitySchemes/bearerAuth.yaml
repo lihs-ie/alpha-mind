@@ -1,0 +1,6 @@
+type: http
+scheme: bearer
+bearerFormat: JWT
+description: |
+  OIDC準拠JWTを使用する。
+  必須クレーム: iss, aud, sub, email, role, permissions, iat, exp, jti

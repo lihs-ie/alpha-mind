@@ -1,0 +1,222 @@
+{
+  "version": "2026-02-24",
+  "provider": "google-cloud-monitoring",
+  "window": "30d",
+  "slos": [
+    {
+      "id": "SLO-001",
+      "name": "BFF availability",
+      "objective": 0.995,
+      "numerator": {
+        "metricType": "run.googleapis.com/request_count",
+        "resourceType": "cloud_run_revision",
+        "filter": "resource.labels.service_name=\"svc-bff\" AND metric.labels.response_code_class=monitoring.regex.full_match(\"2xx|3xx\")"
+      },
+      "denominator": {
+        "metricType": "run.googleapis.com/request_count",
+        "resourceType": "cloud_run_revision",
+        "filter": "resource.labels.service_name=\"svc-bff\""
+      },
+      "exclusions": [
+        "/health"
+      ]
+    },
+    {
+      "id": "SLO-002",
+      "name": "Daily data collection completion by deadline",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/data_collection/runs_on_time_total",
+        "resourceType": "global",
+        "filter": "metric.labels.schedule=\"daily\""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/data_collection/runs_total",
+        "resourceType": "global",
+        "filter": "metric.labels.schedule=\"daily\""
+      }
+    },
+    {
+      "id": "SLO-003",
+      "name": "Signal generation success within 15 minutes",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/signal/generated_within_15m_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/signal/features_generated_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-004",
+      "name": "Approved order send success",
+      "objective": 0.995,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/execution/orders_sent_success_total",
+        "resourceType": "global",
+        "filter": "metric.labels.kill_switch_state!=\"enabled\""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/execution/approved_orders_total",
+        "resourceType": "global",
+        "filter": "metric.labels.kill_switch_state!=\"enabled\""
+      }
+    },
+    {
+      "id": "SLO-005",
+      "name": "Kill switch propagation",
+      "objective": 0.999,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/risk/new_orders_blocked_within_30s_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/risk/kill_switch_enabled_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-006",
+      "name": "Insight evidence attachment ratio",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/insight/with_evidence_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/insight/collected_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-007",
+      "name": "Hypothesis validation completion within 7 days",
+      "objective": 0.95,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/hypothesis/validated_within_7d_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/hypothesis/proposed_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    }
+  ],
+  "burnRatePolicies": [
+    {
+      "id": "ALERT-CRITICAL",
+      "threshold": 14.4,
+      "shortWindow": "5m",
+      "longWindow": "1h",
+      "severity": "page"
+    },
+    {
+      "id": "ALERT-HIGH",
+      "threshold": 6,
+      "shortWindow": "30m",
+      "longWindow": "6h",
+      "severity": "page"
+    },
+    {
+      "id": "ALERT-TICKET",
+      "threshold": 1,
+      "shortWindow": "6h",
+      "longWindow": "3d",
+      "severity": "ticket"
+    }
+  ],
+  "supplementalMonitors": [
+    {
+      "id": "MON-001",
+      "name": "Model degradation block ratio",
+      "window": "7d",
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/model/degradation_blocked_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/model/evaluated_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "thresholds": {
+        "warning": 0.1,
+        "critical": 0.2
+      },
+      "runbook": "RB-AI-001"
+    },
+    {
+      "id": "MON-002",
+      "name": "Cost-adjusted sharpe deterioration",
+      "window": "1d",
+      "formula": "avg_7d - avg_30d",
+      "left": {
+        "metricType": "custom.googleapis.com/invest_ai/model/cost_adjusted_sharpe",
+        "resourceType": "global",
+        "alignmentWindow": "7d",
+        "filter": ""
+      },
+      "right": {
+        "metricType": "custom.googleapis.com/invest_ai/model/cost_adjusted_sharpe",
+        "resourceType": "global",
+        "alignmentWindow": "30d",
+        "filter": ""
+      },
+      "thresholds": {
+        "warning": -0.2,
+        "critical": -0.4
+      },
+      "runbook": "RB-AI-001"
+    },
+    {
+      "id": "MON-003",
+      "name": "Compliance review required events",
+      "window": "1d",
+      "metric": {
+        "metricType": "custom.googleapis.com/invest_ai/model/compliance_review_required_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "thresholds": {
+        "warning": 1,
+        "critical": 3
+      },
+      "runbook": "RB-AI-002"
+    },
+    {
+      "id": "MON-004",
+      "name": "Duplicate hypothesis ratio",
+      "window": "7d",
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/hypothesis/duplicate_blocked_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/hypothesis/proposed_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "thresholds": {
+        "warning": 0.1,
+        "critical": 0.2
+      },
+      "runbook": "RB-AI-004"
+    }
+  ],
+  "noDataPolicy": {
+    "treatAsBad": false,
+    "minimumDenominatorEventsPerWindow": 1
+  }
+}

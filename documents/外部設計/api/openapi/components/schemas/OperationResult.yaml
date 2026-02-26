@@ -1,0 +1,14 @@
+type: object
+required:
+- success
+- trace
+properties:
+  success:
+    type: boolean
+  trace:
+    type: string
+  message:
+    type: string
+example:
+  success: true
+  trace: id-001

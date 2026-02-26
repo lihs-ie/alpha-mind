@@ -1,0 +1,19 @@
+type: object
+required:
+- items
+properties:
+  items:
+    type: array
+    items:
+      "$ref": "./index.yaml#/OrderSummary"
+  nextCursor:
+    type: string
+    nullable: true
+example:
+  items:
+  - identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    symbol: AAPL
+    side: BUY
+    qty: 1.0
+    status: PROPOSED
+    createdAt: '2026-01-15T09:00:00Z'

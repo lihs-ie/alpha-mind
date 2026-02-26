@@ -1,0 +1,30 @@
+type: object
+required:
+- type
+- title
+- status
+- reasonCode
+properties:
+  type:
+    type: string
+    format: uri
+    default: about:blank
+  title:
+    type: string
+  status:
+    type: integer
+  detail:
+    type: string
+  instance:
+    type: string
+  trace:
+    type: string
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+  retryable:
+    type: boolean
+example:
+  type: about:blank
+  title: string
+  status: 1
+  reasonCode: AUTH_INVALID_CREDENTIALS

@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/signalGenerated.yaml"
+messages:
+- "$ref": "../channels/signalGenerated.yaml#/messages/signalGenerated"
+summary: svc-signal-generatorがシグナル生成完了イベントを発行する。

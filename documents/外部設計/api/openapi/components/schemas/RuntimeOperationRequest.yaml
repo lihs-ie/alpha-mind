@@ -1,0 +1,13 @@
+type: object
+required:
+- action
+properties:
+  action:
+    type: string
+    enum:
+    - START
+    - STOP
+  reason:
+    type: string
+example:
+  action: START

@@ -1,0 +1,17 @@
+name: AuditRecorded
+title: audit.recorded
+payload:
+  "$ref": "../schemas/index.yaml#/AuditRecordedEvent"
+examples:
+- name: default
+  summary: Default example
+  payload:
+    identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    eventType: audit.recorded
+    occurredAt: '2026-01-15T09:00:00Z'
+    trace: id-001
+    schemaVersion: 1.0.0
+    payload:
+      sourceEventType: string
+      sourceEvent: id-001
+      service: string

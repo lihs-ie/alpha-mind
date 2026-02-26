@@ -1,0 +1,10 @@
+publish:
+  summary: svc-agent-orchestratorが仮説提案を発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/HypothesisProposedEvent"
+subscribe:
+  summary: svc-hypothesis-labが仮説提案を購読する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/HypothesisProposedEvent"

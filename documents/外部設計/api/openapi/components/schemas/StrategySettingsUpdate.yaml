@@ -1,0 +1,10 @@
+allOf:
+- "$ref": "./index.yaml#/StrategySettings"
+example:
+  market: JP
+  rebalanceFrequency: daily
+  symbols:
+  - AAPL
+  dailyLossLimit: 0.0
+  positionConcentrationLimit: 0.0
+  dailyOrderLimit: 1

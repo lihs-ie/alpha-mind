@@ -1,0 +1,4 @@
+subscribe:
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/HypothesisProposalFailedEvent"

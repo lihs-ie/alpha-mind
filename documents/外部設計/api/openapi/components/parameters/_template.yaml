@@ -1,0 +1,6 @@
+Trace:
+  name: trace
+  in: query
+  required: false
+  schema:
+    type: string

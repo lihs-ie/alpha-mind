@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "updatedAt": "2026-02-24",
+  "services": [
+    {
+      "serviceId": "svc-bff",
+      "file": "内部設計/json/svc-bff.json"
+    },
+    {
+      "serviceId": "svc-data-collector",
+      "file": "内部設計/json/svc-data-collector.json"
+    },
+    {
+      "serviceId": "svc-feature-engineering",
+      "file": "内部設計/json/svc-feature-engineering.json"
+    },
+    {
+      "serviceId": "svc-signal-generator",
+      "file": "内部設計/json/svc-signal-generator.json"
+    },
+    {
+      "serviceId": "svc-portfolio-planner",
+      "file": "内部設計/json/svc-portfolio-planner.json"
+    },
+    {
+      "serviceId": "svc-risk-guard",
+      "file": "内部設計/json/svc-risk-guard.json"
+    },
+    {
+      "serviceId": "svc-execution",
+      "file": "内部設計/json/svc-execution.json"
+    },
+    {
+      "serviceId": "svc-audit-log",
+      "file": "内部設計/json/svc-audit-log.json"
+    },
+    {
+      "serviceId": "svc-insight-collector",
+      "file": "内部設計/json/svc-insight-collector.json"
+    },
+    {
+      "serviceId": "svc-agent-orchestrator",
+      "file": "内部設計/json/svc-agent-orchestrator.json"
+    },
+    {
+      "serviceId": "svc-hypothesis-lab",
+      "file": "内部設計/json/svc-hypothesis-lab.json"
+    }
+  ]
+}

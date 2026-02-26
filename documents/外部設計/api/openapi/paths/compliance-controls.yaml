@@ -1,0 +1,51 @@
+get:
+  tags:
+  - Compliance
+  summary: コンプライアンス制御設定取得
+  responses:
+    '200':
+      description: Compliance controls
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/ComplianceControls"
+          example:
+            restrictedSymbols:
+            - AAPL
+            blackoutWindows:
+            - symbol: AAPL
+              startAt: '2026-01-15T09:00:00Z'
+              endAt: '2026-01-15T09:00:00Z'
+              reasonCode: MANUAL
+            maxCommentLength: 120
+put:
+  tags:
+  - Compliance
+  summary: コンプライアンス制御設定更新
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/ComplianceControlsUpdate"
+        example:
+          restrictedSymbols:
+          - AAPL
+          blackoutWindows:
+          - symbol: AAPL
+            startAt: '2026-01-15T09:00:00Z'
+            endAt: '2026-01-15T09:00:00Z'
+            reasonCode: MANUAL
+          maxCommentLength: 120
+  responses:
+    '200':
+      description: Update result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: id-001
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

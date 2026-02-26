@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/ordersExecuted.yaml"
+messages:
+- "$ref": "../channels/ordersExecuted.yaml#/messages/ordersExecuted"
+summary: svc-audit-logは全イベント（market/features/signal/orders/operation）を購読する。

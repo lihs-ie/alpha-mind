@@ -1,0 +1,15 @@
+type: object
+required:
+- enabled
+x-compliance-guard:
+  mnpiDlpCheck: true
+  onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
+properties:
+  enabled:
+    type: boolean
+  reasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+  comment:
+    "$ref": "./index.yaml#/SafeComment"
+example:
+  enabled: true

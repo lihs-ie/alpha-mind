@@ -1,0 +1,19 @@
+type: object
+required:
+- reasonCode
+properties:
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+  detail:
+    type: string
+  complianceContext:
+    type: object
+    properties:
+      symbol:
+        type: string
+      policy:
+        type: string
+      requiresHumanReview:
+        type: boolean
+example:
+  reasonCode: AUTH_INVALID_CREDENTIALS

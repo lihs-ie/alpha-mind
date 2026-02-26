@@ -1,0 +1,23 @@
+type: object
+required:
+- identifier
+- title
+- sourceEvidence
+properties:
+  identifier:
+    type: string
+  title:
+    type: string
+  sourceEvidence:
+    type: array
+    items:
+      type: string
+  skillVersion:
+    type: string
+  instructionProfileVersion:
+    type: string
+example:
+  identifier: id-001
+  title: string
+  sourceEvidence:
+  - id-001

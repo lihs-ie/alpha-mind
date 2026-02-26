@@ -1,0 +1,11 @@
+in: query
+name: status
+schema:
+  type: string
+  enum:
+  - PROPOSED
+  - APPROVED
+  - REJECTED
+  - EXECUTED
+  - FAILED
+example: PROPOSED

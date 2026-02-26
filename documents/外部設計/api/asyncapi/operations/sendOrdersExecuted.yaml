@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/ordersExecuted.yaml"
+messages:
+- "$ref": "../channels/ordersExecuted.yaml#/messages/ordersExecuted"
+summary: svc-executionが執行結果イベントを発行する。

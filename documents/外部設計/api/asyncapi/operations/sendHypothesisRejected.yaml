@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisRejected.yaml"
+messages:
+- "$ref": "../channels/hypothesisRejected.yaml#/messages/hypothesisRejected"
+summary: svc-hypothesis-labが却下結果を発行する。

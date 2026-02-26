@@ -1,0 +1,35 @@
+export const ACTION_IDS = {
+  // SCR-000 認証
+  LOGIN: "A-0001",
+  LOGIN_ENTER: "A-0002",
+
+  // SCR-001 ダッシュボード
+  RUNTIME_START: "A-0011",
+  RUNTIME_STOP: "A-0012",
+  KILL_SWITCH_TOGGLE: "A-0013",
+  MANUAL_CYCLE_RUN: "A-0014",
+
+  // SCR-002 戦略設定
+  STRATEGY_SAVE: "A-0021",
+  STRATEGY_RESET: "A-0022",
+  SYMBOL_ADD: "A-0023",
+  SYMBOL_REMOVE: "A-0024",
+
+  // SCR-003 注文管理
+  ORDER_APPROVE: "A-0031",
+  ORDER_REJECT: "A-0032",
+  ORDER_RETRY: "A-0033",
+  ORDER_FILTER: "A-0034",
+
+  // SCR-004 監査ログ
+  AUDIT_SEARCH: "A-0041",
+  AUDIT_COPY_TRACE_ID: "A-0042",
+  AUDIT_CSV_DOWNLOAD: "A-0043",
+
+  // SCR-005 モデル検証
+  MODEL_APPROVE: "A-0051",
+  MODEL_REJECT: "A-0052",
+  MODEL_COMPARE: "A-0053",
+} as const;
+
+export type ActionId = typeof ACTION_IDS[keyof typeof ACTION_IDS];

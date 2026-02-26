@@ -1,0 +1,18 @@
+type: object
+required:
+- identifier
+- passed
+properties:
+  identifier:
+    type: string
+  passed:
+    type: boolean
+  costAdjustedReturn:
+    type: number
+  dsr:
+    type: number
+  pbo:
+    type: number
+example:
+  identifier: id-001
+  passed: true

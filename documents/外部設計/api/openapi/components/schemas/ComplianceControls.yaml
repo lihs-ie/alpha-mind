@@ -1,0 +1,33 @@
+type: object
+required:
+- restrictedSymbols
+- blackoutWindows
+- maxCommentLength
+properties:
+  restrictedSymbols:
+    type: array
+    items:
+      type: string
+  blackoutWindows:
+    type: array
+    items:
+      "$ref": "./index.yaml#/BlackoutWindow"
+  maxCommentLength:
+    type: integer
+    minimum: 32
+    maximum: 240
+    default: 120
+  mnpiKeywordVersion:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+example:
+  restrictedSymbols:
+  - AAPL
+  blackoutWindows:
+  - symbol: AAPL
+    startAt: '2026-01-15T09:00:00Z'
+    endAt: '2026-01-15T09:00:00Z'
+    reasonCode: MANUAL
+  maxCommentLength: 120

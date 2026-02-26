@@ -1,0 +1,19 @@
+allOf:
+- "$ref": "./index.yaml#/AuditSummary"
+- type: object
+  properties:
+    payload:
+      type: object
+      additionalProperties: true
+    reason:
+      type: string
+example:
+  identifier: id-001
+  occurredAt: '2026-01-15T09:00:00Z'
+  eventType: string
+  service: string
+  result: success
+  trace: id-001
+  payload:
+    key: value
+  reason: MANUAL

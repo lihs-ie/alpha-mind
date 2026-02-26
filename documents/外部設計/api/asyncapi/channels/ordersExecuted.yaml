@@ -1,0 +1,10 @@
+publish:
+  summary: svc-executionが執行結果イベントを発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/OrdersExecutedEvent"
+subscribe:
+  summary: svc-audit-logは全イベント（market/features/signal/orders/operation）を購読する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/OrdersExecutedEvent"

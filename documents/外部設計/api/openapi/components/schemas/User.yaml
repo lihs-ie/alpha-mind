@@ -1,0 +1,27 @@
+type: object
+required:
+- id
+- email
+- role
+- permissions
+properties:
+  id:
+    type: string
+  email:
+    type: string
+    format: email
+  role:
+    type: string
+    enum:
+    - admin
+    - viewer
+  permissions:
+    type: array
+    items:
+      type: string
+example:
+  id: id-001
+  email: user@example.com
+  role: admin
+  permissions:
+  - string

@@ -1,0 +1,18 @@
+type: object
+required:
+- accepted
+- identifier
+- trace
+properties:
+  accepted:
+    type: boolean
+    example: true
+  identifier:
+    type: string
+    format: uuid
+  trace:
+    type: string
+example:
+  accepted: true
+  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  trace: id-001

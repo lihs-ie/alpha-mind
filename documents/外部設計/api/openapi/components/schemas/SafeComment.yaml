@@ -1,0 +1,7 @@
+type: string
+maxLength: 120
+pattern: "^[^\\n\\r<>]{0,120}$"
+description: |
+  改行・タグ文字を禁止した短文コメント。
+  実装ではMNPI疑義フィルタを適用し、検知時は `COMPLIANCE_MNPI_SUSPECTED` を返す。
+example: string

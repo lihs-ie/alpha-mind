@@ -1,0 +1,32 @@
+type: object
+required:
+- identifier
+- occurredAt
+- eventType
+- service
+- result
+- trace
+properties:
+  identifier:
+    type: string
+  occurredAt:
+    type: string
+    format: date-time
+  eventType:
+    type: string
+  service:
+    type: string
+  result:
+    type: string
+    enum:
+    - success
+    - failed
+  trace:
+    type: string
+example:
+  identifier: id-001
+  occurredAt: '2026-01-15T09:00:00Z'
+  eventType: string
+  service: string
+  result: success
+  trace: id-001

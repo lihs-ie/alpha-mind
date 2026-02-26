@@ -1,0 +1,10 @@
+description: Conflict
+content:
+  application/problem+json:
+    schema:
+      "$ref": "../schemas/index.yaml#/Problem"
+    example:
+      type: about:blank
+      title: string
+      status: 1
+      reasonCode: AUTH_INVALID_CREDENTIALS

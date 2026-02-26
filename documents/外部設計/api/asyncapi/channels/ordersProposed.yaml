@@ -1,0 +1,10 @@
+publish:
+  summary: svc-portfolio-plannerが注文候補イベントを発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/OrdersProposedEvent"
+subscribe:
+  summary: svc-risk-guardが注文候補イベントを購読する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/OrdersProposedEvent"

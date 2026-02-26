@@ -1,0 +1,33 @@
+type: object
+required:
+- identifier
+- sourceType
+- summary
+- sourceUrl
+- collectedAt
+properties:
+  identifier:
+    type: string
+  sourceType:
+    type: string
+    enum:
+    - x
+    - youtube
+    - paper
+    - github
+  summary:
+    type: string
+  sourceUrl:
+    type: string
+    format: uri
+  skillVersion:
+    type: string
+  collectedAt:
+    type: string
+    format: date-time
+example:
+  identifier: id-001
+  sourceType: x
+  summary: string
+  sourceUrl: https://example.com/resource
+  collectedAt: '2026-01-15T09:00:00Z'

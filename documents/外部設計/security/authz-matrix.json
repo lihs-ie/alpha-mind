@@ -1,0 +1,68 @@
+{
+  "version": "1.2.0",
+  "updatedAt": "2026-02-24",
+  "roles": [
+    {
+      "role": "admin",
+      "description": "単一ユーザー運用の管理者",
+      "permissions": [
+        "dashboard:read",
+        "operations:write",
+        "commands:run",
+        "insights:read",
+        "hypotheses:read",
+        "hypotheses:retest",
+        "settings:read",
+        "settings:write",
+        "compliance:read",
+        "compliance:write",
+        "orders:read",
+        "orders:approve",
+        "orders:reject",
+        "orders:retry",
+        "audit:read",
+        "models:read",
+        "models:decide"
+      ]
+    },
+    {
+      "role": "viewer",
+      "description": "将来拡張用の参照専用ロール",
+      "permissions": [
+        "dashboard:read",
+        "settings:read",
+        "insights:read",
+        "hypotheses:read",
+        "compliance:read",
+        "orders:read",
+        "audit:read",
+        "models:read"
+      ]
+    }
+  ],
+  "endpointPolicy": [
+    {"method": "GET", "path": "/dashboard/summary", "permission": "dashboard:read"},
+    {"method": "POST", "path": "/operations/runtime", "permission": "operations:write"},
+    {"method": "POST", "path": "/operations/kill-switch", "permission": "operations:write"},
+    {"method": "POST", "path": "/commands/run-cycle", "permission": "commands:run"},
+    {"method": "POST", "path": "/commands/run-insight-cycle", "permission": "commands:run"},
+    {"method": "GET", "path": "/insights", "permission": "insights:read"},
+    {"method": "GET", "path": "/hypotheses", "permission": "hypotheses:read"},
+    {"method": "POST", "path": "/hypotheses/{hypothesisId}/retest", "permission": "hypotheses:retest"},
+    {"method": "GET", "path": "/settings/strategy", "permission": "settings:read"},
+    {"method": "PUT", "path": "/settings/strategy", "permission": "settings:write"},
+    {"method": "GET", "path": "/compliance/controls", "permission": "compliance:read"},
+    {"method": "PUT", "path": "/compliance/controls", "permission": "compliance:write"},
+    {"method": "GET", "path": "/orders", "permission": "orders:read"},
+    {"method": "GET", "path": "/orders/{orderId}", "permission": "orders:read"},
+    {"method": "POST", "path": "/orders/{orderId}/approve", "permission": "orders:approve"},
+    {"method": "POST", "path": "/orders/{orderId}/reject", "permission": "orders:reject"},
+    {"method": "POST", "path": "/orders/{orderId}/retry", "permission": "orders:retry"},
+    {"method": "GET", "path": "/audit", "permission": "audit:read"},
+    {"method": "GET", "path": "/audit/{logId}", "permission": "audit:read"},
+    {"method": "GET", "path": "/models/validation", "permission": "models:read"},
+    {"method": "GET", "path": "/models/validation/{modelVersion}", "permission": "models:read"},
+    {"method": "POST", "path": "/models/validation/{modelVersion}/approve", "permission": "models:decide"},
+    {"method": "POST", "path": "/models/validation/{modelVersion}/reject", "permission": "models:decide"}
+  ]
+}

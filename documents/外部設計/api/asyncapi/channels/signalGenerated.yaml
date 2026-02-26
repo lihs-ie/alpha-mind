@@ -1,0 +1,10 @@
+publish:
+  summary: svc-signal-generatorがシグナル生成完了イベントを発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/SignalGeneratedEvent"
+subscribe:
+  summary: svc-portfolio-plannerがシグナル生成完了イベントを購読する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/SignalGeneratedEvent"

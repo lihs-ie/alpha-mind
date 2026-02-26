@@ -1,0 +1,16 @@
+type: object
+required:
+- sourceEventType
+- sourceEvent
+- service
+properties:
+  sourceEventType:
+    type: string
+  sourceEvent:
+    type: string
+  service:
+    type: string
+example:
+  sourceEventType: string
+  sourceEvent: id-001
+  service: string

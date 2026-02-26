@@ -1,0 +1,25 @@
+allOf:
+- "$ref": "./index.yaml#/ModelValidationSummary"
+- type: object
+  required:
+  - metrics
+  properties:
+    metrics:
+      "$ref": "./index.yaml#/ModelMetrics"
+    requiresComplianceReview:
+      type: boolean
+      description: true の場合は運用者の追加確認完了まで昇格不可
+example:
+  modelVersion: string
+  status: candidate
+  degradationFlag: normal
+  createdAt: '2026-01-15T09:00:00Z'
+  metrics:
+    oosReturn: 1.0
+    sharpe: 1.0
+    maxDrawdown: 1.0
+    turnover: 1.0
+    pbo: 1.0
+    dsr: 1.0
+    costAdjustedReturn: 1.0
+    slippageAdjustedSharpe: 1.0

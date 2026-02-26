@@ -1,0 +1,30 @@
+type: object
+required:
+- targetDate
+- storagePath
+- sourceStatus
+properties:
+  targetDate:
+    type: string
+    format: date
+  storagePath:
+    type: string
+  sourceStatus:
+    type: object
+    properties:
+      jp:
+        type: string
+        enum:
+        - ok
+        - failed
+      us:
+        type: string
+        enum:
+        - ok
+        - failed
+example:
+  targetDate: '2026-01-15'
+  storagePath: string
+  sourceStatus:
+    jp: ok
+    us: ok

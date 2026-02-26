@@ -1,0 +1,5 @@
+publish:
+  summary: svc-hypothesis-labが昇格結果を発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/HypothesisPromotedEvent"

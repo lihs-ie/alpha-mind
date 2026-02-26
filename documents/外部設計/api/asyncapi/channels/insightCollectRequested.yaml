@@ -1,0 +1,10 @@
+publish:
+  summary: BFF/スケジューラがインサイト収集要求を発行する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/InsightCollectRequestedEvent"
+subscribe:
+  summary: svc-insight-collectorが収集要求を購読する。
+  message:
+    payload:
+      "$ref": "../components/schemas/index.yaml#/InsightCollectRequestedEvent"

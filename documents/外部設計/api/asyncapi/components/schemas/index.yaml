@@ -1,0 +1,90 @@
+EventEnvelope:
+  "$ref": "./EventEnvelope.yaml"
+MarketCollectRequestedEvent:
+  "$ref": "./MarketCollectRequestedEvent.yaml"
+MarketCollectRequestedPayload:
+  "$ref": "./MarketCollectRequestedPayload.yaml"
+MarketCollectedEvent:
+  "$ref": "./MarketCollectedEvent.yaml"
+MarketCollectedPayload:
+  "$ref": "./MarketCollectedPayload.yaml"
+MarketCollectFailedEvent:
+  "$ref": "./MarketCollectFailedEvent.yaml"
+FeaturesGeneratedEvent:
+  "$ref": "./FeaturesGeneratedEvent.yaml"
+FeaturesGeneratedPayload:
+  "$ref": "./FeaturesGeneratedPayload.yaml"
+FeaturesGenerationFailedEvent:
+  "$ref": "./FeaturesGenerationFailedEvent.yaml"
+SignalGeneratedEvent:
+  "$ref": "./SignalGeneratedEvent.yaml"
+SignalGeneratedPayload:
+  "$ref": "./SignalGeneratedPayload.yaml"
+SignalGenerationFailedEvent:
+  "$ref": "./SignalGenerationFailedEvent.yaml"
+OrdersProposedEvent:
+  "$ref": "./OrdersProposedEvent.yaml"
+OrdersProposedPayload:
+  "$ref": "./OrdersProposedPayload.yaml"
+OrdersProposalFailedEvent:
+  "$ref": "./OrdersProposalFailedEvent.yaml"
+OrdersApprovedEvent:
+  "$ref": "./OrdersApprovedEvent.yaml"
+OrdersRejectedEvent:
+  "$ref": "./OrdersRejectedEvent.yaml"
+OrdersExecutedEvent:
+  "$ref": "./OrdersExecutedEvent.yaml"
+OrdersExecutedPayload:
+  "$ref": "./OrdersExecutedPayload.yaml"
+OrdersExecutionFailedEvent:
+  "$ref": "./OrdersExecutionFailedEvent.yaml"
+OperationKillSwitchChangedEvent:
+  "$ref": "./OperationKillSwitchChangedEvent.yaml"
+KillSwitchChangedPayload:
+  "$ref": "./KillSwitchChangedPayload.yaml"
+AuditRecordedEvent:
+  "$ref": "./AuditRecordedEvent.yaml"
+AuditRecordedPayload:
+  "$ref": "./AuditRecordedPayload.yaml"
+InsightCollectRequestedEvent:
+  "$ref": "./InsightCollectRequestedEvent.yaml"
+InsightCollectRequestedPayload:
+  "$ref": "./InsightCollectRequestedPayload.yaml"
+InsightCollectedEvent:
+  "$ref": "./InsightCollectedEvent.yaml"
+InsightCollectedPayload:
+  "$ref": "./InsightCollectedPayload.yaml"
+InsightCollectFailedEvent:
+  "$ref": "./InsightCollectFailedEvent.yaml"
+HypothesisRetestRequestedEvent:
+  "$ref": "./HypothesisRetestRequestedEvent.yaml"
+HypothesisRetestRequestedPayload:
+  "$ref": "./HypothesisRetestRequestedPayload.yaml"
+HypothesisProposedEvent:
+  "$ref": "./HypothesisProposedEvent.yaml"
+HypothesisProposedPayload:
+  "$ref": "./HypothesisProposedPayload.yaml"
+HypothesisProposalFailedEvent:
+  "$ref": "./HypothesisProposalFailedEvent.yaml"
+HypothesisBacktestedEvent:
+  "$ref": "./HypothesisBacktestedEvent.yaml"
+HypothesisBacktestedPayload:
+  "$ref": "./HypothesisBacktestedPayload.yaml"
+HypothesisPromotedEvent:
+  "$ref": "./HypothesisPromotedEvent.yaml"
+HypothesisRejectedEvent:
+  "$ref": "./HypothesisRejectedEvent.yaml"
+HypothesisDecisionPayload:
+  "$ref": "./HypothesisDecisionPayload.yaml"
+OrdersDecisionPayload:
+  "$ref": "./OrdersDecisionPayload.yaml"
+OrderItem:
+  "$ref": "./OrderItem.yaml"
+FailedPayload:
+  "$ref": "./FailedPayload.yaml"
+ModelDiagnostics:
+  "$ref": "./ModelDiagnostics.yaml"
+DegradationFlag:
+  "$ref": "./DegradationFlag.yaml"
+ReasonCode:
+  "$ref": "./ReasonCode.yaml"

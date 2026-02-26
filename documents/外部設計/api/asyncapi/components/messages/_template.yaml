@@ -1,0 +1,5 @@
+SampleMessage:
+  name: sample.event
+  title: Sample Event
+  payload:
+    $ref: '../schemas/index.yaml#/SampleEvent'

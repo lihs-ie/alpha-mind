@@ -1,0 +1,46 @@
+type: object
+required:
+- oosReturn
+- sharpe
+- maxDrawdown
+- turnover
+- pbo
+- dsr
+- costAdjustedReturn
+- slippageAdjustedSharpe
+properties:
+  oosReturn:
+    type: number
+    format: double
+  sharpe:
+    type: number
+    format: double
+  maxDrawdown:
+    type: number
+    format: double
+  turnover:
+    type: number
+    format: double
+  pbo:
+    type: number
+    format: double
+  dsr:
+    type: number
+    format: double
+  costAdjustedReturn:
+    type: number
+    format: double
+    description: 手数料・スリッページ控除後リターン（%）
+  slippageAdjustedSharpe:
+    type: number
+    format: double
+    description: スリッページ控除後Sharpe
+example:
+  oosReturn: 1.0
+  sharpe: 1.0
+  maxDrawdown: 1.0
+  turnover: 1.0
+  pbo: 1.0
+  dsr: 1.0
+  costAdjustedReturn: 1.0
+  slippageAdjustedSharpe: 1.0

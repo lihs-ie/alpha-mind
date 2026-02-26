@@ -1,0 +1,16 @@
+type: object
+required:
+- identifier
+- count
+- storagePath
+properties:
+  identifier:
+    type: string
+  count:
+    type: integer
+  storagePath:
+    type: string
+example:
+  identifier: id-001
+  count: 1
+  storagePath: string

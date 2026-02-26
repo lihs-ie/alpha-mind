@@ -1,0 +1,16 @@
+name: HypothesisPromoted
+title: hypothesis.promoted
+payload:
+  "$ref": "../schemas/index.yaml#/HypothesisPromotedEvent"
+examples:
+- name: default
+  summary: Default example
+  payload:
+    identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    eventType: hypothesis.promoted
+    occurredAt: '2026-01-15T09:00:00Z'
+    trace: id-001
+    schemaVersion: 1.0.0
+    payload:
+      identifier: id-001
+      decision: promoted

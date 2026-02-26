@@ -1,0 +1,24 @@
+type: object
+required:
+- identifier
+- symbol
+- side
+- qty
+properties:
+  identifier:
+    type: string
+    format: uuid
+  symbol:
+    type: string
+  side:
+    type: string
+    enum:
+    - BUY
+    - SELL
+  qty:
+    type: number
+example:
+  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  symbol: AAPL
+  side: BUY
+  qty: 1.0

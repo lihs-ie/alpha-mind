@@ -1,0 +1,17 @@
+type: object
+required:
+- targetDate
+- featureVersion
+- storagePath
+properties:
+  targetDate:
+    type: string
+    format: date
+  featureVersion:
+    type: string
+  storagePath:
+    type: string
+example:
+  targetDate: '2026-01-15'
+  featureVersion: string
+  storagePath: string

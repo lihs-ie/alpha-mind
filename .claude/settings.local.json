@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(python3:*)",
+      "Bash(timeout 10 pnpm dev:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm msw init:*)",
+      "Bash(pnpm install:*)",
+      "Bash(curl:*)",
+      "mcp__cc-workflow-studio__get_workflow_schema",
+      "mcp__cc-workflow-studio__get_current_workflow",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:hackage.haskell.org)",
+      "WebFetch(domain:endoflife.date)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.moonbitlang.com)",
+      "WebFetch(domain:mooncakes.io)",
+      "WebFetch(domain:luna.mizchi.workers.dev)",
+      "WebFetch(domain:docs.moonbitlang.com)",
+      "WebFetch(domain:tour.moonbitlang.com)",
+      "Bash(gh repo:*)",
+      "Bash(gh issue:*)",
+      "WebFetch(domain:zenn.dev)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "cc-workflow-studio"
+  ]
+}

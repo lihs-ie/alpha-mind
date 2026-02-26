@@ -1,0 +1,5 @@
+in: query
+name: eventType
+schema:
+  type: string
+example: string

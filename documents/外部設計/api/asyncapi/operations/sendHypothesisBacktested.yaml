@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisBacktested.yaml"
+messages:
+- "$ref": "../channels/hypothesisBacktested.yaml#/messages/hypothesisBacktested"
+summary: svc-hypothesis-labがバックテスト結果を発行する。

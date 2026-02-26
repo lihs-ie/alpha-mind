@@ -1,0 +1,67 @@
+{
+  "serviceId": "svc-agent-orchestrator",
+  "version": "1.0.0",
+  "role": "Skillと指示書を適用して仮説を生成・管理する。",
+  "aiResponsibility": true,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "insight.collected",
+        "hypothesis.retest.requested"
+      ],
+      "publish": [
+        "hypothesis.proposed",
+        "hypothesis.proposal.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:skill_registry",
+      "Firestore:instruction_profiles",
+      "Firestore:failure_knowledge",
+      "Firestore:hypothesis_registry",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs"
+    ],
+    "external": [
+      "LLM Runtime"
+    ]
+  },
+  "workflow": [
+    "insight.collected受信",
+    "Skillと指示書解決",
+    "失敗知見照合",
+    "仮説生成",
+    "仮説台帳保存",
+    "hypothesis.proposed発行"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "eventId",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "nonRetryableErrors": [
+      "skill_not_found",
+      "instruction_profile_invalid"
+    ]
+  },
+  "qualityGates": [
+    "hypothesisId必須",
+    "sourceEvidence必須",
+    "skillVersion必須",
+    "instructionProfileVersion必須"
+  ],
+  "slo": {
+    "cycleCompletionWithinMinutes": 10,
+    "duplicateHypothesisRate": "<5%"
+  }
+}

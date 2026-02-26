@@ -1,0 +1,22 @@
+type: object
+required:
+- identifier
+- orderCount
+- orders
+properties:
+  identifier:
+    type: string
+  orderCount:
+    type: integer
+  orders:
+    type: array
+    items:
+      "$ref": "./index.yaml#/OrderItem"
+example:
+  identifier: id-001
+  orderCount: 1
+  orders:
+  - identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+    symbol: AAPL
+    side: BUY
+    qty: 1.0

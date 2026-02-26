@@ -1,0 +1,50 @@
+sendMarketCollectRequested:
+  "$ref": "./sendMarketCollectRequested.yaml"
+receiveMarketCollectRequested:
+  "$ref": "./receiveMarketCollectRequested.yaml"
+sendMarketCollected:
+  "$ref": "./sendMarketCollected.yaml"
+receiveMarketCollected:
+  "$ref": "./receiveMarketCollected.yaml"
+sendFeaturesGenerated:
+  "$ref": "./sendFeaturesGenerated.yaml"
+receiveFeaturesGenerated:
+  "$ref": "./receiveFeaturesGenerated.yaml"
+sendSignalGenerated:
+  "$ref": "./sendSignalGenerated.yaml"
+receiveSignalGenerated:
+  "$ref": "./receiveSignalGenerated.yaml"
+sendOrdersProposed:
+  "$ref": "./sendOrdersProposed.yaml"
+receiveOrdersProposed:
+  "$ref": "./receiveOrdersProposed.yaml"
+sendOrdersApproved:
+  "$ref": "./sendOrdersApproved.yaml"
+receiveOrdersApproved:
+  "$ref": "./receiveOrdersApproved.yaml"
+sendOrdersExecuted:
+  "$ref": "./sendOrdersExecuted.yaml"
+sendOperationKillSwitchChanged:
+  "$ref": "./sendOperationKillSwitchChanged.yaml"
+sendInsightCollectRequested:
+  "$ref": "./sendInsightCollectRequested.yaml"
+receiveInsightCollectRequested:
+  "$ref": "./receiveInsightCollectRequested.yaml"
+sendInsightCollected:
+  "$ref": "./sendInsightCollected.yaml"
+receiveInsightCollected:
+  "$ref": "./receiveInsightCollected.yaml"
+sendHypothesisRetestRequested:
+  "$ref": "./sendHypothesisRetestRequested.yaml"
+sendHypothesisProposed:
+  "$ref": "./sendHypothesisProposed.yaml"
+receiveHypothesisProposed:
+  "$ref": "./receiveHypothesisProposed.yaml"
+sendHypothesisBacktested:
+  "$ref": "./sendHypothesisBacktested.yaml"
+sendHypothesisPromoted:
+  "$ref": "./sendHypothesisPromoted.yaml"
+sendHypothesisRejected:
+  "$ref": "./sendHypothesisRejected.yaml"
+receiveAuditEvents:
+  "$ref": "./receiveAuditEvents.yaml"

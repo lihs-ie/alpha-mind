@@ -1,0 +1,27 @@
+type: object
+required:
+- accessToken
+- tokenType
+- expiresIn
+- user
+properties:
+  accessToken:
+    type: string
+  tokenType:
+    type: string
+    example: Bearer
+  expiresIn:
+    type: integer
+    example: 3600
+  user:
+    "$ref": "./index.yaml#/User"
+example:
+  accessToken: string
+  tokenType: Bearer
+  expiresIn: 3600
+  user:
+    id: id-001
+    email: user@example.com
+    role: admin
+    permissions:
+    - string

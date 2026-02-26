@@ -1,0 +1,8 @@
+type: object
+required:
+- identifier
+properties:
+  identifier:
+    type: string
+example:
+  identifier: id-001

@@ -1,0 +1,6 @@
+in: query
+name: trace
+schema:
+  type: string
+example: id-001
+required: false

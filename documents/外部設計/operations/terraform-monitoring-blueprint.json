@@ -1,0 +1,72 @@
+{
+  "version": "2026-02-24",
+  "scope": "monitoring",
+  "stateBackend": {
+    "type": "gcs",
+    "bucketPurpose": "terraform-state-monitoring",
+    "objectVersioning": true,
+    "stateLocking": true
+  },
+  "modules": [
+    {
+      "name": "notification-channels",
+      "responsibility": "Manage Monitoring notification channels",
+      "resources": [
+        "google_monitoring_notification_channel"
+      ]
+    },
+    {
+      "name": "custom-services",
+      "responsibility": "Define custom services for SLO scope",
+      "resources": [
+        "google_monitoring_custom_service"
+      ]
+    },
+    {
+      "name": "slos",
+      "responsibility": "Create SLO definitions from catalog/query spec",
+      "resources": [
+        "google_monitoring_slo"
+      ],
+      "inputs": [
+        "slo-catalog.json",
+        "slo-query-spec.json"
+      ]
+    },
+    {
+      "name": "burn-rate-alerts",
+      "responsibility": "Create multi-window burn-rate alert policies",
+      "resources": [
+        "google_monitoring_alert_policy"
+      ]
+    },
+    {
+      "name": "supplemental-monitor-alerts",
+      "responsibility": "Create non-SLO supplemental monitor alert policies from supplementalMonitors",
+      "resources": [
+        "google_monitoring_alert_policy"
+      ],
+      "inputs": [
+        "slo-catalog.json",
+        "slo-query-spec.json"
+      ]
+    }
+  ],
+  "pipeline": [
+    "terraform fmt -check",
+    "terraform init",
+    "terraform validate",
+    "terraform plan -out=tfplan",
+    "manual approval",
+    "terraform apply tfplan"
+  ],
+  "iamMinimumRoles": [
+    "roles/monitoring.editor",
+    "roles/monitoring.notificationChannelEditor"
+  ],
+  "changePolicy": {
+    "manualConsoleEdit": "forbidden",
+    "stateManualEdit": "forbidden",
+    "driftCheckFrequency": "weekly"
+  }
+}

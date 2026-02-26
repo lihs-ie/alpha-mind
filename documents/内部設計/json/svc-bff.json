@@ -1,0 +1,115 @@
+{
+  "serviceId": "svc-bff",
+  "version": "1.0.0",
+  "role": "Webコンソール向けBFF。認証、認可、画面向け集約API、コマンド受付を担当する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "public"
+  },
+  "interfaces": {
+    "http": {
+      "basePath": "/",
+      "endpoints": [
+        {"method": "GET", "path": "/healthz", "auth": "none"},
+        {"method": "GET", "path": "/dashboard/summary", "auth": "jwt"},
+        {"method": "GET", "path": "/orders", "auth": "jwt"},
+        {"method": "POST", "path": "/operations/kill-switch", "auth": "jwt"},
+        {"method": "POST", "path": "/commands/run-cycle", "auth": "jwt"},
+        {"method": "POST", "path": "/commands/run-insight-cycle", "auth": "jwt"},
+        {"method": "GET", "path": "/settings/strategy", "auth": "jwt"},
+        {"method": "PUT", "path": "/settings/strategy", "auth": "jwt"},
+        {"method": "GET", "path": "/compliance/controls", "auth": "jwt"},
+        {"method": "PUT", "path": "/compliance/controls", "auth": "jwt"},
+        {"method": "GET", "path": "/audit", "auth": "jwt"},
+        {"method": "GET", "path": "/insights", "auth": "jwt"},
+        {"method": "GET", "path": "/hypotheses", "auth": "jwt"},
+        {"method": "POST", "path": "/hypotheses/{hypothesisId}/retest", "auth": "jwt"},
+        {"method": "GET", "path": "/models/validation", "auth": "jwt"},
+        {"method": "POST", "path": "/models/validation/{modelVersion}/approve", "auth": "jwt"},
+        {"method": "POST", "path": "/models/validation/{modelVersion}/reject", "auth": "jwt"}
+      ]
+    },
+    "events": {
+      "publish": [
+        "market.collect.requested",
+        "operation.kill_switch.changed",
+        "insight.collect.requested",
+        "hypothesis.retest.requested"
+      ],
+      "subscribe": []
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:operations",
+      "Firestore:settings",
+      "Firestore:compliance_controls",
+      "Firestore:orders",
+      "Firestore:model_registry",
+      "Firestore:audit_logs",
+      "Firestore:insight_records",
+      "Firestore:hypothesis_registry"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "OIDC/JWT Provider",
+      "Secret Manager"
+    ]
+  },
+  "workflow": [
+    "HTTP受信",
+    "JWT検証",
+    "traceId付与",
+    "Firestore参照またはイベント発行",
+    "画面向けDTO返却",
+    "監査ログ記録"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "keys": [
+      "requestId",
+      "traceId"
+    ],
+    "strategy": "更新系APIは同一requestIdの重複実行を抑止する"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "dependency_timeout",
+      "dependency_5xx"
+    ]
+  },
+  "slo": {
+    "availabilityMonthly": "99.5%",
+    "latencyP95Ms": 500
+  },
+  "security": {
+    "authn": "OIDC JWT",
+    "authz": "single-user admin role",
+    "secretManagement": "Secret Manager",
+    "auditRequired": true
+  },
+  "observability": {
+    "metrics": [
+      "http_requests_total",
+      "http_errors_total",
+      "http_latency_p95_ms"
+    ],
+    "logFields": [
+      "traceId",
+      "requestId",
+      "userId",
+      "endpoint",
+      "result"
+    ],
+    "alerts": [
+      "5xx rate > 2% for 5m",
+      "p95 latency > 1000ms for 10m"
+    ]
+  }
+}
