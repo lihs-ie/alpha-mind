@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/ordersApproved.yaml"
 messages:
 - "$ref": "../channels/ordersApproved.yaml#/messages/ordersApproved"
-summary: svc-executionが承認イベントを購読する。
+summary: executionが承認イベントを購読する。

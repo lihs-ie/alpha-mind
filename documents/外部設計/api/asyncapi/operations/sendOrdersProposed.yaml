@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/ordersProposed.yaml"
 messages:
 - "$ref": "../channels/ordersProposed.yaml#/messages/ordersProposed"
-summary: svc-portfolio-plannerが注文候補イベントを発行する。
+summary: portfolio-plannerが注文候補イベントを発行する。

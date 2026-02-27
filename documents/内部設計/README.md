@@ -1,6 +1,6 @@
 # 内部設計ドキュメント一覧
 
-最終更新日: 2026-02-24
+最終更新日: 2026-02-27
 
 ## 1. 目的
 
@@ -17,32 +17,33 @@
 
 - `内部設計/内部設計書_作成ガイド.md`
 - `内部設計/共通設計.md`
+- `内部設計/md/DDD仕様駆動ドメインモデルテンプレート.md`
 
 ## 4. サービス別内部設計
 
-- `内部設計/services/svc-bff.md`
-- `内部設計/services/svc-data-collector.md`
-- `内部設計/services/svc-feature-engineering.md`
-- `内部設計/services/svc-signal-generator.md`
-- `内部設計/services/svc-portfolio-planner.md`
-- `内部設計/services/svc-risk-guard.md`
-- `内部設計/services/svc-execution.md`
-- `内部設計/services/svc-audit-log.md`
-- `内部設計/services/svc-insight-collector.md`
-- `内部設計/services/svc-agent-orchestrator.md`
-- `内部設計/services/svc-hypothesis-lab.md`
+- `内部設計/services/bff.md`
+- `内部設計/services/data-collector.md`
+- `内部設計/services/feature-engineering.md`
+- `内部設計/services/signal-generator.md`
+- `内部設計/services/portfolio-planner.md`
+- `内部設計/services/risk-guard.md`
+- `内部設計/services/execution.md`
+- `内部設計/services/audit-log.md`
+- `内部設計/services/insight-collector.md`
+- `内部設計/services/agent-orchestrator.md`
+- `内部設計/services/hypothesis-lab.md`
 
 ## 5. サービス定義JSON
 
 - `内部設計/json/services.json`
-- `内部設計/json/svc-bff.json`
-- `内部設計/json/svc-data-collector.json`
-- `内部設計/json/svc-feature-engineering.json`
-- `内部設計/json/svc-signal-generator.json`
-- `内部設計/json/svc-portfolio-planner.json`
-- `内部設計/json/svc-risk-guard.json`
-- `内部設計/json/svc-execution.json`
-- `内部設計/json/svc-audit-log.json`
-- `内部設計/json/svc-insight-collector.json`
-- `内部設計/json/svc-agent-orchestrator.json`
-- `内部設計/json/svc-hypothesis-lab.json`
+- `内部設計/json/bff.json`
+- `内部設計/json/data-collector.json`
+- `内部設計/json/feature-engineering.json`
+- `内部設計/json/signal-generator.json`
+- `内部設計/json/portfolio-planner.json`
+- `内部設計/json/risk-guard.json`
+- `内部設計/json/execution.json`
+- `内部設計/json/audit-log.json`
+- `内部設計/json/insight-collector.json`
+- `内部設計/json/agent-orchestrator.json`
+- `内部設計/json/hypothesis-lab.json`

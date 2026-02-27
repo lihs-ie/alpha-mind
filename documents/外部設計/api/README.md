@@ -1,11 +1,11 @@
 # API設計
 
-最終更新日: 2026-02-26
+最終更新日: 2026-02-27
 
 ## 1. OpenAPI
 
 - 仕様書: `外部設計/api/openapi.yaml`
-- 対象: BFF（`svc-bff`）の同期API
+- 対象: BFF（`bff`）の同期API
 
 ## 2. AsyncAPI
 
@@ -27,14 +27,13 @@
 - `GET/PUT /compliance/controls` で制限銘柄とブラックアウト期間を管理する。
 - インサイト/仮説系APIを追加し、定性分析結果から仮説検証までをBFF経由で一貫操作できるようにする。
 - AsyncAPIに `insight.*` と `hypothesis.*` ドメインイベントを追加し、既存イベントチェーンと疎結合に連携する。
+- コンプライアンス制御に `sourcePolicies` を含め、許可ソース・利用規約チェックをAPI契約化する。
 
 ## 4. 次の拡張
 
-- OpenAPI examples の拡充
-- AsyncAPI examples の拡充
 - スキーマバージョニング運用ルール（breaking change規約）
-- `run-insight-cycle` / `insights` / `hypotheses` 系エンドポイントのOpenAPI反映
-- `insight.collect.requested` / `hypothesis.proposed` / `hypothesis.backtested` 系イベントのAsyncAPI反映
+- `/compliance/controls` の source policy 運用フロー詳細化
+- `hypothesis.demo.completed` の運用Runbook連携（通知/再試行基準）
 
 ## 5. 分割フォーマット（新規）
 
@@ -53,9 +52,9 @@
 
 ### AsyncAPI分割責務
 
-- `asyncapi.yaml`: `info` / `servers` / `channels` / `operations` / `components` のルート集約
-- `asyncapi/channels/`: トピック（Channel）定義
-- `asyncapi/operations/`: send/receive 操作定義
+- `asyncapi.yaml`: `info` / `servers` / `channels` / `components` のルート集約
+- `asyncapi/channels/`: トピック（Channel）定義（AsyncAPI 3.x 形式）
+- `asyncapi/operations/`: send/receive 操作定義（設計補助資料）
 - `asyncapi/components/messages/`: Message Object
 - `asyncapi/components/schemas/`: payload/共通スキーマ
 - `asyncapi/components/securitySchemes/`: 認証方式
@@ -65,5 +64,5 @@
 - `Id` は略記として使わない。識別子は `Identifier` として表記する。
 - 関心ごとそのものの識別子は、型内で `identifier` フィールド名を使う。
 - その型が保持する他関心ごとの識別子は、`{entity}Identifier` ではなく `{entity}` フィールド名を使う。
-- 例: `EventPayload` の自分自身の識別子は `eventId` ではなく `identifier`。
+- 例: `EventPayload` の自分自身の識別子は `identifier` を使用する。
 - 例: `EventPayload` がユーザー識別子を保持する場合は `userIdentifier` ではなく `user`。

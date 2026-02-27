@@ -1,4 +1,4 @@
-subscribe:
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/InsightCollectFailedEvent"
+address: insightCollectFailed
+messages:
+  insightCollectFailed:
+    "$ref": "../components/messages/index.yaml#/InsightCollectFailed"

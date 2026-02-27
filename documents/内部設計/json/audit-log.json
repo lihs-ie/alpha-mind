@@ -1,0 +1,92 @@
+{
+  "serviceId": "audit-log",
+  "version": "1.0.0",
+  "role": "全イベントを監査記録として永続化し、追跡可能性を提供する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "market.*",
+        "features.*",
+        "signal.*",
+        "orders.*",
+        "operation.*"
+      ],
+      "publish": [
+        "audit.recorded"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:audit_logs",
+      "Cloud Logging",
+      "Firestore:idempotency_keys"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ]
+  },
+  "workflow": [
+    "業務イベント受信",
+    "イベント検証",
+    "監査レコード生成",
+    "Firestore保存",
+    "Cloud Logging出力"
+  ],
+  "dataModels": {
+    "auditRecord": {
+      "required": [
+        "logId",
+        "identifier",
+        "eventType",
+        "trace",
+        "occurredAt",
+        "service",
+        "result"
+      ]
+    }
+  },
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "firestore_transient_error",
+      "logging_transient_error"
+    ],
+    "nonRetryableErrors": [
+      "invalid_event_schema"
+    ]
+  },
+  "slo": {
+    "recordingDelayWithinSeconds": 5,
+    "missingRate": "<0.1%"
+  },
+  "retention": {
+    "firestoreDays": 90,
+    "cloudLoggingDays": 365
+  },
+  "observability": {
+    "metrics": [
+      "audit_record_success_total",
+      "audit_record_failure_total",
+      "audit_record_delay_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "eventType",
+      "result"
+    ]
+  }
+}

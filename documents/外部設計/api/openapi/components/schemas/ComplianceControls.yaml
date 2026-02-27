@@ -2,6 +2,7 @@ type: object
 required:
 - restrictedSymbols
 - blackoutWindows
+- sourcePolicies
 - maxCommentLength
 properties:
   restrictedSymbols:
@@ -12,6 +13,10 @@ properties:
     type: array
     items:
       "$ref": "./index.yaml#/BlackoutWindow"
+  sourcePolicies:
+    type: array
+    items:
+      "$ref": "./index.yaml#/SourcePolicy"
   maxCommentLength:
     type: integer
     minimum: 32
@@ -30,4 +35,10 @@ example:
     startAt: '2026-01-15T09:00:00Z'
     endAt: '2026-01-15T09:00:00Z'
     reasonCode: MANUAL
+  sourcePolicies:
+  - sourceType: youtube
+    enabled: true
+    termsVersion: v2026-01
+    redistributionAllowed: false
+    dailyQuota: 500
   maxCommentLength: 120

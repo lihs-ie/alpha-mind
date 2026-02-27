@@ -13,17 +13,17 @@
 
 ## サービス別外部設計
 
-- `外部設計/services/svc-api-gateway.md`
-- `外部設計/services/svc-data-collector.md`
-- `外部設計/services/svc-feature-engineering.md`
-- `外部設計/services/svc-signal-generator.md`
-- `外部設計/services/svc-portfolio-planner.md`
-- `外部設計/services/svc-risk-guard.md`
-- `外部設計/services/svc-execution.md`
-- `外部設計/services/svc-audit-log.md`
-- `外部設計/services/svc-insight-collector.md`
-- `外部設計/services/svc-agent-orchestrator.md`
-- `外部設計/services/svc-hypothesis-lab.md`
+- `外部設計/services/bff.md`
+- `外部設計/services/data-collector.md`
+- `外部設計/services/feature-engineering.md`
+- `外部設計/services/signal-generator.md`
+- `外部設計/services/portfolio-planner.md`
+- `外部設計/services/risk-guard.md`
+- `外部設計/services/execution.md`
+- `外部設計/services/audit-log.md`
+- `外部設計/services/insight-collector.md`
+- `外部設計/services/agent-orchestrator.md`
+- `外部設計/services/hypothesis-lab.md`
 
 ## 画面別外部設計
 

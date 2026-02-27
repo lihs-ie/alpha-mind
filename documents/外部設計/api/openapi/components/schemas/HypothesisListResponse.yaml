@@ -7,8 +7,9 @@ properties:
     items:
       "$ref": "./index.yaml#/HypothesisSummary"
   nextCursor:
-    type: string
-    nullable: true
+    type:
+    - string
+    - 'null'
 example:
   items:
   - identifier: id-001

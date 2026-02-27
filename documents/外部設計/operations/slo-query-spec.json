@@ -10,12 +10,12 @@
       "numerator": {
         "metricType": "run.googleapis.com/request_count",
         "resourceType": "cloud_run_revision",
-        "filter": "resource.labels.service_name=\"svc-bff\" AND metric.labels.response_code_class=monitoring.regex.full_match(\"2xx|3xx\")"
+        "filter": "resource.labels.service_name=\"bff\" AND metric.labels.response_code_class=monitoring.regex.full_match(\"2xx|3xx\")"
       },
       "denominator": {
         "metricType": "run.googleapis.com/request_count",
         "resourceType": "cloud_run_revision",
-        "filter": "resource.labels.service_name=\"svc-bff\""
+        "filter": "resource.labels.service_name=\"bff\""
       },
       "exclusions": [
         "/health"

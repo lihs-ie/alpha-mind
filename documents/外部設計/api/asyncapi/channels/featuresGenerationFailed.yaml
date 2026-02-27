@@ -1,4 +1,4 @@
-subscribe:
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/FeaturesGenerationFailedEvent"
+address: featuresGenerationFailed
+messages:
+  featuresGenerationFailed:
+    "$ref": "../components/messages/index.yaml#/FeaturesGenerationFailed"

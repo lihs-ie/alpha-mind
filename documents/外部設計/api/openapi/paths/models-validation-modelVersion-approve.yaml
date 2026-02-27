@@ -2,6 +2,7 @@ post:
   tags:
   - Models
   summary: モデル昇格
+  operationId: postModelValidationApprove
   parameters:
   - "$ref": "../components/parameters/index.yaml#/ModelVersion"
   requestBody:

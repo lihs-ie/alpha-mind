@@ -1,10 +1,4 @@
-publish:
-  summary: svc-risk-guardが承認イベントを発行する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/OrdersApprovedEvent"
-subscribe:
-  summary: svc-executionが承認イベントを購読する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/OrdersApprovedEvent"
+address: ordersApproved
+messages:
+  ordersApproved:
+    "$ref": "../components/messages/index.yaml#/OrdersApproved"

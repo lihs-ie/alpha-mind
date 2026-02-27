@@ -1,0 +1,83 @@
+{
+  "serviceId": "execution",
+  "version": "1.0.0",
+  "role": "承認済み注文をブローカーへ送信し、執行結果を記録・通知する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "orders.approved"
+      ],
+      "publish": [
+        "orders.executed",
+        "orders.execution.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:orders",
+      "Firestore:audit_logs",
+      "Firestore:idempotency_keys"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "Broker Order API",
+      "Secret Manager"
+    ]
+  },
+  "workflow": [
+    "orders.approved受信",
+    "重複発注防止チェック",
+    "ブローカーへ発注",
+    "執行結果保存",
+    "orders.executed or orders.execution.failed発行"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys",
+    "guard": "同一identifierで外部発注を再実行しない"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "broker_timeout",
+      "broker_5xx"
+    ],
+    "nonRetryableErrors": [
+      "insufficient_funds",
+      "invalid_symbol",
+      "market_closed"
+    ]
+  },
+  "slo": {
+    "acceptedToExecutionWithinSeconds": 30,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "execution_success_total",
+      "execution_failure_total",
+      "broker_api_latency_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "orderId",
+      "brokerOrderId",
+      "result"
+    ],
+    "alerts": [
+      "execution_failure_rate > 3% for 15m"
+    ]
+  }
+}

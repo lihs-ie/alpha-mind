@@ -1,0 +1,38 @@
+allOf:
+- "$ref": "./index.yaml#/HypothesisSummary"
+- type: object
+  properties:
+    costAdjustedReturn:
+      type: number
+    dsr:
+      type: number
+    pbo:
+      type: number
+    demoPeriod:
+      type: string
+    requiresComplianceReview:
+      type: boolean
+    sourceEvidence:
+      type: array
+      items:
+        type: string
+    skillVersion:
+      type: string
+    instructionProfileVersion:
+      type: string
+    latestFailureSummary:
+      type: string
+example:
+  identifier: id-001
+  status: demo
+  title: 逆日歩未発生×低PBRクラスターのリバウンド仮説
+  updatedAt: '2026-01-15T09:00:00Z'
+  costAdjustedReturn: 4.2
+  dsr: 1.14
+  pbo: 0.08
+  demoPeriod: 45d
+  requiresComplianceReview: false
+  sourceEvidence:
+  - insight-20260115-001
+  skillVersion: skill-cross-sectional@1.4.0
+  instructionProfileVersion: conservative-jp-equity@2.1.0

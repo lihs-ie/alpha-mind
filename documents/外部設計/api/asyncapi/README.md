@@ -6,11 +6,11 @@
 
 - `../asyncapi.yaml`
   - AsyncAPIドキュメントのルート。
-  - `info` / `servers` / `channels` / `operations` / `components` の参照定義を持つ。
+  - `info` / `servers` / `channels` / `components` の参照定義を持つ。
 - `channels/`
   - トピック（channel）定義を管理する。
 - `operations/`
-  - publish/subscribe 操作定義を管理する。
+  - send/receive 操作定義を管理する（設計補助資料）。
 - `components/messages/`
   - メッセージ定義を管理する。
 - `components/schemas/`

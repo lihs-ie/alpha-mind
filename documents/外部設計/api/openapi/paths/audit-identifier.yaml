@@ -2,6 +2,7 @@ get:
   tags:
   - Audit
   summary: 監査ログ詳細取得
+  operationId: getAuditLogByIdentifier
   parameters:
   - "$ref": "../components/parameters/index.yaml#/Identifier"
   responses:

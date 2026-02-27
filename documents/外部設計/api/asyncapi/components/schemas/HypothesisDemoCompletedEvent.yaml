@@ -1,0 +1,25 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - hypothesis.demo.completed
+    payload:
+      "$ref": "./index.yaml#/HypothesisDemoCompletedPayload"
+example:
+  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  eventType: hypothesis.demo.completed
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: id-001
+  schemaVersion: 1.0.0
+  payload:
+    identifier: id-001
+    demoRun: demo-20260115-001
+    startedAt: '2025-12-01T00:00:00Z'
+    endedAt: '2026-01-15T00:00:00Z'
+    promotable: true
+    costAdjustedReturn: 4.2
+    dsr: 1.14
+    pbo: 0.08

@@ -40,6 +40,8 @@ hypothesisProposed:
   "$ref": "./hypothesisProposed.yaml"
 hypothesisProposalFailed:
   "$ref": "./hypothesisProposalFailed.yaml"
+hypothesisDemoCompleted:
+  "$ref": "./hypothesisDemoCompleted.yaml"
 hypothesisBacktested:
   "$ref": "./hypothesisBacktested.yaml"
 hypothesisPromoted:

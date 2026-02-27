@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/marketCollected.yaml"
 messages:
 - "$ref": "../channels/marketCollected.yaml#/messages/marketCollected"
-summary: svc-data-collectorが収集成功イベントを発行する。
+summary: data-collectorが収集成功イベントを発行する。

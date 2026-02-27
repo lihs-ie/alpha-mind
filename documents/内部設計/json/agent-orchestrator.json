@@ -1,0 +1,69 @@
+{
+  "serviceId": "agent-orchestrator",
+  "version": "1.1.0",
+  "role": "Skillと指示書を適用して仮説を生成・管理する。",
+  "aiResponsibility": true,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "insight.collected",
+        "hypothesis.retest.requested"
+      ],
+      "publish": [
+        "hypothesis.proposed",
+        "hypothesis.proposal.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:skill_registry",
+      "Firestore:instruction_profiles",
+      "Firestore:code_reference_templates",
+      "Firestore:failure_knowledge",
+      "Firestore:hypothesis_registry",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs"
+    ],
+    "external": [
+      "LLM Runtime"
+    ]
+  },
+  "workflow": [
+    "insight.collected受信",
+    "Skill/指示書/コード参照テンプレート解決",
+    "失敗知見照合(Markdown要約含む)",
+    "仮説生成",
+    "仮説台帳保存",
+    "hypothesis.proposed発行"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "nonRetryableErrors": [
+      "skill_not_found",
+      "instruction_profile_invalid"
+    ]
+  },
+  "qualityGates": [
+    "identifier必須",
+    "sourceEvidence必須",
+    "skillVersion必須",
+    "instructionProfileVersion必須",
+    "失敗時failure_knowledgeにMarkdown要約保存"
+  ],
+  "slo": {
+    "cycleCompletionWithinMinutes": 10,
+    "duplicateHypothesisRate": "<5%"
+  }
+}

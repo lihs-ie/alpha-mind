@@ -1,0 +1,14 @@
+type: object
+required:
+- reasonCode
+x-compliance-guard:
+  mnpiDlpCheck: true
+  onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
+properties:
+  reasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+  comment:
+    "$ref": "./index.yaml#/SafeComment"
+example:
+  reasonCode: MODEL_REVIEW_DECISION
+  comment: デモ期間1か月超と劣化フラグなしを確認

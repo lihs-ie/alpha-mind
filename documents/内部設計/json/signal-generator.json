@@ -1,0 +1,98 @@
+{
+  "serviceId": "signal-generator",
+  "version": "1.0.0",
+  "role": "承認済みモデルを使って銘柄シグナルを推論し、注文計画へ渡す。",
+  "aiResponsibility": true,
+  "runtime": {
+    "platform": "Cloud Run Job",
+    "language": "Python",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "features.generated"
+      ],
+      "publish": [
+        "signal.generated",
+        "signal.generation.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Cloud Storage:feature_store",
+      "Cloud Storage:signal_store",
+      "Firestore:model_registry",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "MLflow Model Registry"
+    ]
+  },
+  "workflow": [
+    "features.generated受信",
+    "approvedモデル解決",
+    "特徴量読み込み",
+    "推論実行",
+    "signalVersion採番",
+    "結果保存",
+    "signal.generated発行"
+  ],
+  "dataModels": {
+    "outputEvent": {
+      "signal.generated": {
+        "required": [
+          "payload.modelVersion",
+          "payload.featureVersion",
+          "payload.signalVersion",
+          "payload.storagePath"
+        ]
+      }
+    }
+  },
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "model_registry_timeout",
+      "storage_transient_error"
+    ],
+    "nonRetryableErrors": [
+      "approved_model_not_found",
+      "invalid_feature_version"
+    ]
+  },
+  "qualityGates": [
+    "approvedモデルのみ利用",
+    "推論結果件数がユニバース件数と一致"
+  ],
+  "slo": {
+    "jobCompletionWithinMinutes": 10,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "signal_generation_success_total",
+      "signal_generation_failure_total",
+      "signal_generation_duration_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "modelVersion",
+      "featureVersion",
+      "signalVersion",
+      "result"
+    ]
+  }
+}

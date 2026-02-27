@@ -1008,7 +1008,7 @@ interface OrderSummary {
 
 interface OrderDetail extends OrderSummary {
   reasonCode?: string;
-  traceId?: string;
+  trace?: string;
   brokerOrderId?: string;
   updatedAt?: string;
 }
@@ -1017,7 +1017,7 @@ interface OrderDetail extends OrderSummary {
 class ApiError extends Error {
   status: number;
   reasonCode: ReasonCode;
-  traceId?: string;
+  trace?: string;
   retryable: boolean;
   get isAuthError(): boolean { return this.status === 401; }
   get isKillSwitchError(): boolean { return this.reasonCode === "KILL_SWITCH_ENABLED"; }

@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/marketCollectRequested.yaml"
 messages:
 - "$ref": "../channels/marketCollectRequested.yaml#/messages/marketCollectRequested"
-summary: svc-data-collectorが収集要求を購読する。
+summary: data-collectorが収集要求を購読する。

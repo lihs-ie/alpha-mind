@@ -2,6 +2,7 @@ get:
   tags:
   - Models
   summary: モデル検証詳細取得
+  operationId: getModelValidationByVersion
   parameters:
   - "$ref": "../components/parameters/index.yaml#/ModelVersion"
   responses:

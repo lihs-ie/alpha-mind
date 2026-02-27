@@ -1,0 +1,27 @@
+post:
+  tags:
+  - Hypotheses
+  summary: 仮説却下
+  operationId: postHypothesisReject
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/HypothesisDecisionRequest"
+  responses:
+    '200':
+      description: Hypothesis reject result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: id-001
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

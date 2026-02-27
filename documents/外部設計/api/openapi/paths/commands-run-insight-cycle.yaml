@@ -2,6 +2,7 @@ post:
   tags:
   - Commands
   summary: 手動インサイト収集サイクル実行
+  operationId: postCommandsRunInsightCycle
   requestBody:
     required: false
     content:

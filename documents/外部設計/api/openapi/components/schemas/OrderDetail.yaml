@@ -7,8 +7,9 @@ allOf:
     trace:
       type: string
     brokerOrder:
-      type: string
-      nullable: true
+      type:
+      - string
+      - 'null'
     updatedAt:
       type: string
       format: date-time

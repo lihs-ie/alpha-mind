@@ -1,0 +1,4 @@
+address: hypothesisDemoCompleted
+messages:
+  hypothesisDemoCompleted:
+    "$ref": "../components/messages/index.yaml#/HypothesisDemoCompleted"

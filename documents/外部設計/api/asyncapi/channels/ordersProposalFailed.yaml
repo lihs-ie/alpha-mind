@@ -1,4 +1,4 @@
-subscribe:
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/OrdersProposalFailedEvent"
+address: ordersProposalFailed
+messages:
+  ordersProposalFailed:
+    "$ref": "../components/messages/index.yaml#/OrdersProposalFailed"

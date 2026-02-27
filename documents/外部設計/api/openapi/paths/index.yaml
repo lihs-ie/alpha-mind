@@ -32,8 +32,22 @@
   "$ref": "./audit-identifier.yaml"
 "/insights":
   "$ref": "./insights.yaml"
+"/insights/{identifier}":
+  "$ref": "./insights-identifier.yaml"
+"/insights/{identifier}/adopt":
+  "$ref": "./insights-identifier-adopt.yaml"
+"/insights/{identifier}/reject":
+  "$ref": "./insights-identifier-reject.yaml"
+"/insights/{identifier}/hypothesize":
+  "$ref": "./insights-identifier-hypothesize.yaml"
 "/hypotheses":
   "$ref": "./hypotheses.yaml"
+"/hypotheses/{identifier}":
+  "$ref": "./hypotheses-identifier.yaml"
+"/hypotheses/{identifier}/promote":
+  "$ref": "./hypotheses-identifier-promote.yaml"
+"/hypotheses/{identifier}/reject":
+  "$ref": "./hypotheses-identifier-reject.yaml"
 "/hypotheses/{identifier}/retest":
   "$ref": "./hypotheses-identifier-retest.yaml"
 "/models/validation":

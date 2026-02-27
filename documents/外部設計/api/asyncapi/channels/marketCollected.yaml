@@ -1,10 +1,4 @@
-publish:
-  summary: svc-data-collectorが収集成功イベントを発行する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/MarketCollectedEvent"
-subscribe:
-  summary: svc-feature-engineeringが収集成功イベントを購読する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/MarketCollectedEvent"
+address: marketCollected
+messages:
+  marketCollected:
+    "$ref": "../components/messages/index.yaml#/MarketCollected"

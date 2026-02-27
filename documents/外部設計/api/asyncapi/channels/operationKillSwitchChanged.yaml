@@ -1,5 +1,4 @@
-publish:
-  summary: BFFがkill switch変更イベントを発行する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/OperationKillSwitchChangedEvent"
+address: operationKillSwitchChanged
+messages:
+  operationKillSwitchChanged:
+    "$ref": "../components/messages/index.yaml#/OperationKillSwitchChanged"

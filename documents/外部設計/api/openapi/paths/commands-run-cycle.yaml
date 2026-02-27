@@ -2,6 +2,7 @@ post:
   tags:
   - Commands
   summary: 手動運用サイクル実行
+  operationId: postCommandsRunCycle
   requestBody:
     required: false
     content:

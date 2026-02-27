@@ -2,6 +2,7 @@ get:
   tags:
   - Hypotheses
   summary: 仮説一覧取得
+  operationId: getHypotheses
   parameters:
   - in: query
     name: status
@@ -27,3 +28,5 @@ get:
             - identifier: id-001
               status: draft
               updatedAt: '2026-01-15T09:00:00Z'
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

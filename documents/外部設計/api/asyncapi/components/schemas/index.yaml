@@ -66,6 +66,10 @@ HypothesisProposedPayload:
   "$ref": "./HypothesisProposedPayload.yaml"
 HypothesisProposalFailedEvent:
   "$ref": "./HypothesisProposalFailedEvent.yaml"
+HypothesisDemoCompletedEvent:
+  "$ref": "./HypothesisDemoCompletedEvent.yaml"
+HypothesisDemoCompletedPayload:
+  "$ref": "./HypothesisDemoCompletedPayload.yaml"
 HypothesisBacktestedEvent:
   "$ref": "./HypothesisBacktestedEvent.yaml"
 HypothesisBacktestedPayload:

@@ -2,6 +2,7 @@ post:
   tags:
   - Hypotheses
   summary: 仮説再検証
+  operationId: postHypothesisRetest
   parameters:
   - "$ref": "../components/parameters/index.yaml#/Identifier"
   responses:

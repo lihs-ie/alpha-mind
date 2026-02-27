@@ -1,6 +1,6 @@
 # Firestore設計
 
-最終更新日: 2026-02-24
+最終更新日: 2026-02-27
 
 ## 1. 目的
 
@@ -11,7 +11,7 @@
 
 1. BFF経由アクセスを原則とし、クライアントからFirestoreへ直接接続しない。  
 2. 1ユーザーMVP前提で、固定費より従量課金最適化を優先する。  
-3. 監査可能性を確保するため、更新系は `traceId` と `updatedAt` を必須化する。  
+3. 監査可能性を確保するため、更新系は `trace` と `updatedAt` を必須化する。  
 4. イベント冪等性のため、`idempotency_keys` を全イベント処理で使用する。  
 
 ## 3. コレクション定義
@@ -82,7 +82,7 @@
 - `reasonCode` (string, optional)
 - `proposalId` (string)
 - `brokerOrderId` (string, optional)
-- `traceId` (string)
+- `trace` (string)
 - `createdAt` (timestamp)
 - `updatedAt` (timestamp)
 - `version` (number)
@@ -114,11 +114,11 @@
 
 主要フィールド:
 - `logId`
-- `eventId`
+- `identifier`
 - `eventType`
 - `service`
 - `result` (`success` / `failed`)
-- `traceId`
+- `trace`
 - `reason`
 - `occurredAt`
 - `payloadSummary` (map)
@@ -136,6 +136,7 @@
 - `restrictedSymbols` (array<string>)
 - `blackoutWindows` (array<map{symbol,startAt,endAt,reasonCode}>)
 - `mnpiKeywordVersion` (string)
+- `sourcePolicyVersion` (string)
 - `maxCommentLength` (number, default: 120)
 - `updatedAt` (timestamp)
 - `updatedBy` (string)
@@ -146,13 +147,13 @@
 - 処理済みイベント管理
 
 ドキュメントID:
-- `eventId`
+- `identifier`
 
 主要フィールド:
-- `eventId`
+- `identifier`
 - `service`
 - `processedAt`
-- `traceId`
+- `trace`
 - `expiresAt` (timestamp, TTL)
 
 ### 3.9 `skill_registry`
@@ -258,6 +259,8 @@
 - `failureType`
 - `reasonCode`
 - `summary`
+- `markdownSummary`
+- `preventionChecklist` (array<string>)
 - `similarityHash`
 - `createdAt`
 
@@ -277,6 +280,41 @@
 - `updatedAt`
 - `updatedBy`
 
+### 3.16 `source_policies`
+
+用途:
+- 収集可能ソースと利用規約条件の管理
+
+ドキュメントID:
+- `identifier`
+
+主要フィールド:
+- `identifier`
+- `sourceType` (`x` / `youtube` / `paper` / `github` / `nisshokin`)
+- `enabled` (boolean)
+- `termsVersion` (string)
+- `redistributionAllowed` (boolean)
+- `dailyQuota` (number)
+- `updatedAt` (timestamp)
+- `updatedBy` (string)
+
+### 3.17 `code_reference_templates`
+
+用途:
+- 自作コード参照テンプレート管理（プロンプト再現性担保）
+
+ドキュメントID:
+- `identifier`
+
+主要フィールド:
+- `identifier`
+- `name`
+- `scope` (`insight` / `hypothesis` / `validation`)
+- `version`
+- `markdownPath`
+- `updatedAt`
+- `updatedBy`
+
 ## 4. 主要アクセスパターン
 
 | 画面/サービス | クエリ | 期待件数 |
@@ -284,12 +322,13 @@
 | SCR-001 ダッシュボード | `operations/runtime` 直接取得 | 1件 |
 | SCR-002 戦略設定 | `settings/strategy` 直接取得・更新 | 1件 |
 | SCR-003 注文管理 | `orders` を `status` + `createdAt desc` で取得 | 50件/ページ |
-| SCR-004 監査ログ | `audit_logs` を `traceId` or `eventType` + `occurredAt desc` で取得 | 50件/ページ |
+| SCR-004 監査ログ | `audit_logs` を `trace` or `eventType` + `occurredAt desc` で取得 | 50件/ページ |
 | SCR-005 モデル検証 | `model_registry` を `status` + `createdAt desc` で取得 | 20件 |
-| svc-risk-guard | `operations/runtime` と `settings/strategy` と `compliance_controls/trading` を点取得 | 3件 |
+| risk-guard | `operations/runtime` と `settings/strategy` と `compliance_controls/trading` を点取得 | 3件 |
 | SCR-006 インサイト管理 | `insight_records` を `theme` + `collectedAt desc` で取得 | 50件/ページ |
 | SCR-007 仮説ラボ | `hypothesis_registry` を `status` + `updatedAt desc` で取得 | 30件 |
-| svc-agent-orchestrator | `skill_registry` と `instruction_profiles` と `failure_knowledge` を点取得 | 3〜10件 |
+| insight-collector | `source_policies` を `sourceType` + `enabled` で取得 | 5件以内 |
+| agent-orchestrator | `skill_registry` と `instruction_profiles` と `code_reference_templates` と `failure_knowledge` を点取得 | 3〜15件 |
 
 ## 5. インデックス設計
 
@@ -300,12 +339,14 @@
 1. `orders(status ASC, createdAt DESC)`
 2. `orders(symbol ASC, createdAt DESC)`
 3. `orders(status ASC, symbol ASC, createdAt DESC)`
-4. `audit_logs(traceId ASC, occurredAt DESC)`
+4. `audit_logs(trace ASC, occurredAt DESC)`
 5. `audit_logs(eventType ASC, occurredAt DESC)`
 6. `model_registry(status ASC, createdAt DESC)`
 7. `insight_records(theme ASC, collectedAt DESC)`
 8. `hypothesis_registry(status ASC, updatedAt DESC)`
 9. `failure_knowledge(similarityHash ASC, createdAt DESC)`
+10. `source_policies(sourceType ASC, enabled ASC, updatedAt DESC)`
+11. `code_reference_templates(scope ASC, updatedAt DESC)`
 
 ## 6. TTL設計
 

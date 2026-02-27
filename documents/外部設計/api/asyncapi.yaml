@@ -1,14 +1,19 @@
-asyncapi: 2.0.0
+asyncapi: 3.1.0
+id: urn:alpha-mind:external-design:event-contract
 info:
   title: Investment AI Event Contract
   version: 1.1.0
   description: |
     AI投資運用アプリのイベント契約定義（Pub/Sub想定）。
     CloudEvents互換の共通エンベロープを使用する。
+  contact:
+    name: Alpha Mind Team
+  license:
+    name: Proprietary
 defaultContentType: application/json
 servers:
   gcpPubSub:
-    url: pubsub.googleapis.com
+    host: pubsub.googleapis.com
     protocol: googlepubsub
     description: Google Cloud Pub/Sub
 channels:
@@ -54,6 +59,8 @@ channels:
     "$ref": "./asyncapi/channels/hypothesisProposed.yaml"
   hypothesisProposalFailed:
     "$ref": "./asyncapi/channels/hypothesisProposalFailed.yaml"
+  hypothesisDemoCompleted:
+    "$ref": "./asyncapi/channels/hypothesisDemoCompleted.yaml"
   hypothesisBacktested:
     "$ref": "./asyncapi/channels/hypothesisBacktested.yaml"
   hypothesisPromoted:
@@ -61,6 +68,8 @@ channels:
   hypothesisRejected:
     "$ref": "./asyncapi/channels/hypothesisRejected.yaml"
 components:
+  messages:
+    "$ref": "./asyncapi/components/messages/index.yaml"
   schemas:
     EventEnvelope:
       "$ref": "./asyncapi/components/schemas/EventEnvelope.yaml"
@@ -130,6 +139,10 @@ components:
       "$ref": "./asyncapi/components/schemas/HypothesisProposedPayload.yaml"
     HypothesisProposalFailedEvent:
       "$ref": "./asyncapi/components/schemas/HypothesisProposalFailedEvent.yaml"
+    HypothesisDemoCompletedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisDemoCompletedEvent.yaml"
+    HypothesisDemoCompletedPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisDemoCompletedPayload.yaml"
     HypothesisBacktestedEvent:
       "$ref": "./asyncapi/components/schemas/HypothesisBacktestedEvent.yaml"
     HypothesisBacktestedPayload:

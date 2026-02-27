@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/signalGenerated.yaml"
 messages:
 - "$ref": "../channels/signalGenerated.yaml#/messages/signalGenerated"
-summary: svc-portfolio-plannerがシグナル生成完了イベントを購読する。
+summary: portfolio-plannerがシグナル生成完了イベントを購読する。

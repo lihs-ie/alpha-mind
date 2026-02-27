@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/ordersApproved.yaml"
 messages:
 - "$ref": "../channels/ordersApproved.yaml#/messages/ordersApproved"
-summary: svc-risk-guardが承認イベントを発行する。
+summary: risk-guardが承認イベントを発行する。

@@ -2,6 +2,7 @@ get:
   tags:
   - Audit
   summary: 監査ログ一覧取得
+  operationId: getAuditLogs
   parameters:
   - "$ref": "../components/parameters/index.yaml#/Trace"
   - "$ref": "../components/parameters/index.yaml#/EventType"
@@ -24,3 +25,5 @@ get:
               service: string
               result: success
               trace: id-001
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

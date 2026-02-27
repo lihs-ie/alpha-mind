@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/insightCollectRequested.yaml"
 messages:
 - "$ref": "../channels/insightCollectRequested.yaml#/messages/insightCollectRequested"
-summary: svc-insight-collectorが収集要求を購読する。
+summary: insight-collectorが収集要求を購読する。

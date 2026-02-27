@@ -1,10 +1,4 @@
-publish:
-  summary: svc-insight-collectorがインサイト収集完了を発行する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/InsightCollectedEvent"
-subscribe:
-  summary: svc-agent-orchestratorがインサイトを購読する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/InsightCollectedEvent"
+address: insightCollected
+messages:
+  insightCollected:
+    "$ref": "../components/messages/index.yaml#/InsightCollected"

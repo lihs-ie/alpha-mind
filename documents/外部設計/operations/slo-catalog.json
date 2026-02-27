@@ -5,7 +5,7 @@
     {
       "id": "SLO-001",
       "name": "BFF availability",
-      "service": "svc-bff",
+      "service": "bff",
       "sli": "successful_requests / total_requests",
       "objective": 0.995,
       "latencyTargetMsP95": 500,
@@ -16,7 +16,7 @@
     {
       "id": "SLO-002",
       "name": "Daily data collection completion",
-      "service": "svc-data-collector",
+      "service": "data-collector",
       "sli": "completed_before_deadline_days / scheduled_business_days",
       "objective": 0.99,
       "deadlineJst": "07:00"
@@ -24,14 +24,14 @@
     {
       "id": "SLO-003",
       "name": "Signal generation success within 15 minutes",
-      "service": "svc-signal-generator",
+      "service": "signal-generator",
       "sli": "signals_generated_within_15m / features_generated_events",
       "objective": 0.99
     },
     {
       "id": "SLO-004",
       "name": "Approved order send success",
-      "service": "svc-execution",
+      "service": "execution",
       "sli": "orders_sent_successfully / approved_orders",
       "objective": 0.995,
       "note": "Orders excluded when kill switch is enabled"
@@ -39,21 +39,21 @@
     {
       "id": "SLO-005",
       "name": "Kill switch propagation",
-      "service": "svc-risk-guard",
+      "service": "risk-guard",
       "sli": "new_orders_blocked_within_30s / kill_switch_enable_events",
       "objective": 0.999
     },
     {
       "id": "SLO-006",
       "name": "Insight evidence attachment ratio",
-      "service": "svc-insight-collector",
+      "service": "insight-collector",
       "sli": "insights_with_evidence / insights_total",
       "objective": 0.99
     },
     {
       "id": "SLO-007",
       "name": "Hypothesis validation completion within 7 days",
-      "service": "svc-hypothesis-lab",
+      "service": "hypothesis-lab",
       "sli": "validated_hypotheses_within_7d / proposed_hypotheses",
       "objective": 0.95
     }
@@ -91,7 +91,7 @@
     {
       "id": "MON-001",
       "name": "Model degradation block ratio",
-      "service": "svc-signal-generator",
+      "service": "signal-generator",
       "metric": "degradation_blocked_total / model_evaluated_total",
       "window": "7d",
       "warningThreshold": 0.1,
@@ -101,7 +101,7 @@
     {
       "id": "MON-002",
       "name": "Cost-adjusted sharpe deterioration",
-      "service": "svc-signal-generator",
+      "service": "signal-generator",
       "metric": "cost_adjusted_sharpe_7d - cost_adjusted_sharpe_30d",
       "window": "1d",
       "warningThreshold": -0.2,
@@ -111,7 +111,7 @@
     {
       "id": "MON-003",
       "name": "Compliance review required events",
-      "service": "svc-bff",
+      "service": "bff",
       "metric": "compliance_review_required_total",
       "window": "1d",
       "warningThreshold": 1,
@@ -121,7 +121,7 @@
     {
       "id": "MON-004",
       "name": "Duplicate hypothesis ratio",
-      "service": "svc-agent-orchestrator",
+      "service": "agent-orchestrator",
       "metric": "hypothesis_duplicate_blocked_total / hypothesis_proposed_total",
       "window": "7d",
       "warningThreshold": 0.1,

@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/hypothesisProposed.yaml"
 messages:
 - "$ref": "../channels/hypothesisProposed.yaml#/messages/hypothesisProposed"
-summary: svc-hypothesis-labが仮説提案を購読する。
+summary: hypothesis-labが仮説提案を購読する。

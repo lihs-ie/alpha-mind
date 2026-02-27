@@ -2,6 +2,7 @@ post:
   tags:
   - Operations
   summary: 運用状態の変更（開始/停止）
+  operationId: postOperationsRuntime
   requestBody:
     required: true
     content:

@@ -2,6 +2,7 @@ get:
   tags:
   - Orders
   summary: 注文詳細取得
+  operationId: getOrderByIdentifier
   parameters:
   - "$ref": "../components/parameters/index.yaml#/Identifier"
   responses:

@@ -28,6 +28,8 @@ ComplianceControlsUpdate:
   "$ref": "./ComplianceControlsUpdate.yaml"
 BlackoutWindow:
   "$ref": "./BlackoutWindow.yaml"
+SourcePolicy:
+  "$ref": "./SourcePolicy.yaml"
 OrderListResponse:
   "$ref": "./OrderListResponse.yaml"
 OrderSummary:
@@ -48,10 +50,18 @@ InsightListResponse:
   "$ref": "./InsightListResponse.yaml"
 InsightSummary:
   "$ref": "./InsightSummary.yaml"
+InsightDetail:
+  "$ref": "./InsightDetail.yaml"
+InsightDecisionRequest:
+  "$ref": "./InsightDecisionRequest.yaml"
 HypothesisListResponse:
   "$ref": "./HypothesisListResponse.yaml"
 HypothesisSummary:
   "$ref": "./HypothesisSummary.yaml"
+HypothesisDetail:
+  "$ref": "./HypothesisDetail.yaml"
+HypothesisDecisionRequest:
+  "$ref": "./HypothesisDecisionRequest.yaml"
 ModelValidationListResponse:
   "$ref": "./ModelValidationListResponse.yaml"
 ModelValidationSummary:

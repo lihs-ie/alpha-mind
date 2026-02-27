@@ -1,5 +1,4 @@
-publish:
-  summary: svc-hypothesis-labが却下結果を発行する。
-  message:
-    payload:
-      "$ref": "../components/schemas/index.yaml#/HypothesisRejectedEvent"
+address: hypothesisRejected
+messages:
+  hypothesisRejected:
+    "$ref": "../components/messages/index.yaml#/HypothesisRejected"

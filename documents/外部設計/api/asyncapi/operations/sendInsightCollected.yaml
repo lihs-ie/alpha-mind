@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/insightCollected.yaml"
 messages:
 - "$ref": "../channels/insightCollected.yaml#/messages/insightCollected"
-summary: svc-insight-collectorがインサイト収集完了を発行する。
+summary: insight-collectorがインサイト収集完了を発行する。

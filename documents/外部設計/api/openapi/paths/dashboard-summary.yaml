@@ -2,6 +2,7 @@ get:
   tags:
   - Dashboard
   summary: ダッシュボード概要取得
+  operationId: getDashboardSummary
   responses:
     '200':
       description: Dashboard summary

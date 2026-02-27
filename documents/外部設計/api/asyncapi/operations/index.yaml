@@ -40,6 +40,10 @@ sendHypothesisProposed:
   "$ref": "./sendHypothesisProposed.yaml"
 receiveHypothesisProposed:
   "$ref": "./receiveHypothesisProposed.yaml"
+sendHypothesisDemoCompleted:
+  "$ref": "./sendHypothesisDemoCompleted.yaml"
+receiveHypothesisDemoCompleted:
+  "$ref": "./receiveHypothesisDemoCompleted.yaml"
 sendHypothesisBacktested:
   "$ref": "./sendHypothesisBacktested.yaml"
 sendHypothesisPromoted:

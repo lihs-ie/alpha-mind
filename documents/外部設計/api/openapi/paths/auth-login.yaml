@@ -2,6 +2,7 @@ post:
   tags:
   - Auth
   summary: ログイン
+  operationId: postAuthLogin
   security: []
   requestBody:
     required: true

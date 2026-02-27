@@ -1,0 +1,30 @@
+type: object
+required:
+- sourceType
+- enabled
+- termsVersion
+- redistributionAllowed
+properties:
+  sourceType:
+    type: string
+    enum:
+    - x
+    - youtube
+    - paper
+    - github
+    - nisshokin
+  enabled:
+    type: boolean
+  termsVersion:
+    type: string
+  redistributionAllowed:
+    type: boolean
+  dailyQuota:
+    type: integer
+    minimum: 1
+example:
+  sourceType: youtube
+  enabled: true
+  termsVersion: v2026-01
+  redistributionAllowed: false
+  dailyQuota: 500

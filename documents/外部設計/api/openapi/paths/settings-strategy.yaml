@@ -2,6 +2,7 @@ get:
   tags:
   - Settings
   summary: 戦略設定取得
+  operationId: getSettingsStrategy
   responses:
     '200':
       description: Strategy settings
@@ -17,10 +18,13 @@ get:
             dailyLossLimit: 0.0
             positionConcentrationLimit: 0.0
             dailyOrderLimit: 1
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
 put:
   tags:
   - Settings
   summary: 戦略設定更新
+  operationId: putSettingsStrategy
   requestBody:
     required: true
     content:

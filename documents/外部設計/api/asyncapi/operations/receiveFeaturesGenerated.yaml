@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/featuresGenerated.yaml"
 messages:
 - "$ref": "../channels/featuresGenerated.yaml#/messages/featuresGenerated"
-summary: svc-signal-generatorが特徴量生成完了イベントを購読する。
+summary: signal-generatorが特徴量生成完了イベントを購読する。

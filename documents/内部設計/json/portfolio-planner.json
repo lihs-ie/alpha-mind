@@ -1,0 +1,91 @@
+{
+  "serviceId": "portfolio-planner",
+  "version": "1.0.0",
+  "role": "シグナルと保有状態から注文候補を生成する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "signal.generated"
+      ],
+      "publish": [
+        "orders.proposed",
+        "orders.proposal.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:positions",
+      "Firestore:settings",
+      "Firestore:orders",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "Broker Account API(read-only)"
+    ]
+  },
+  "workflow": [
+    "signal.generated受信",
+    "保有状態取得",
+    "運用設定取得",
+    "注文候補計算",
+    "orders保存",
+    "orders.proposed発行"
+  ],
+  "dataModels": {
+    "orderProposal": {
+      "required": [
+        "orderId",
+        "symbol",
+        "side",
+        "qty",
+        "signalVersion",
+        "proposedAt"
+      ]
+    }
+  },
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "firestore_transient_error",
+      "broker_read_timeout"
+    ],
+    "nonRetryableErrors": [
+      "missing_signal_payload",
+      "invalid_strategy_setting"
+    ]
+  },
+  "slo": {
+    "jobCompletionWithinMinutes": 5,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "proposal_success_total",
+      "proposal_failure_total",
+      "proposal_duration_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "proposalCount",
+      "result"
+    ]
+  }
+}

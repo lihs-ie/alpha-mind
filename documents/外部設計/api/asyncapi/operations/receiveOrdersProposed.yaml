@@ -3,4 +3,4 @@ channel:
   "$ref": "../channels/ordersProposed.yaml"
 messages:
 - "$ref": "../channels/ordersProposed.yaml#/messages/ordersProposed"
-summary: svc-risk-guardが注文候補イベントを購読する。
+summary: risk-guardが注文候補イベントを購読する。
