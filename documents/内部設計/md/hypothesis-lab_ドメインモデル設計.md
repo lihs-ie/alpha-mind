@@ -101,6 +101,9 @@ Feature: hypothesis-lab validation and promotion
 | `RULE-HL-002` | `SCN-HL-002` | `Hypothesis` | `hypothesis.demo.completed` | `TST-HL-002` |
 | `RULE-HL-003` | `SCN-HL-003` | `Hypothesis` | `hypothesis.demo.completed` | `TST-HL-003` |
 | `RULE-HL-004` | `SCN-HL-004` | `Hypothesis` | `POST /hypotheses/{identifier}/promote` | `TST-HL-004` |
+| `RULE-HL-005` | `SCN-HL-006` | `FailureSummary` | `failure_knowledge` | `TST-HL-008` |
+| `RULE-HL-006` | `SCN-HL-007` | `Hypothesis` | `hypothesis.proposed`, `hypothesis.demo.completed` | `TST-HL-009` |
+| `RULE-HL-007` | `SCN-HL-008` | `Hypothesis` | OpenAPI/AsyncAPI/Domain Model | `TST-HL-006` |
 | `RULE-HL-008` | `SCN-HL-005` | `Hypothesis` | `PUT /hypotheses/{identifier}/mnpi-self-declaration` | `TST-HL-005` |
 
 ## 4. 戦術設計（Tactical DDD）
@@ -309,7 +312,7 @@ Feature: hypothesis-lab validation and promotion
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
 | `hypothesis.backtested` | `bff`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `hypothesis.promoted` | `signal-generator`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `hypothesis.promoted` | `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
 | `hypothesis.rejected` | `bff`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
@@ -346,6 +349,8 @@ Feature: hypothesis-lab validation and promotion
 | `TST-HL-005` | acceptance | `RULE-HL-008` | `status!=demo` でMNPI自己申告更新不可 |
 | `TST-HL-006` | invariant | `RULE-HL-007` | `identifier` 命名と不変条件を検証 |
 | `TST-HL-007` | contract | `RULE-HL-003` | OpenAPI/AsyncAPI payload整合 |
+| `TST-HL-008` | acceptance | `RULE-HL-005` | 失敗時に `failure_knowledge` へMarkdown要約保存 |
+| `TST-HL-009` | idempotency | `RULE-HL-006` | 同一identifierイベント重複で副作用なし |
 
 ## 10. 実装規約（このプロジェクト向け）
 

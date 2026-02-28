@@ -124,6 +124,7 @@ Feature: demo completion publish
 | `RULE-EX-006` | `SCN-EX-006` | `OrderExecution` | `orders.execution.failed` | `TST-EX-006` |
 | `RULE-EX-007` | `SCN-EX-007` | `DemoRunEvaluation` | `hypothesis.demo.completed` | `TST-EX-007` |
 | `RULE-EX-008` | `SCN-EX-008` | `OrderExecution` | `orders.executed/failed` | `TST-EX-008` |
+| `RULE-EX-009` | `SCN-EX-009` | `OrderExecution` | OpenAPI/AsyncAPI/Domain Model | `TST-EX-009` |
 
 ## 4. 戦術設計（Tactical DDD）
 
@@ -404,6 +405,7 @@ Feature: demo completion publish
 | `TST-EX-006` | domain event | `RULE-EX-006` | `orders.execution.failed` が保存後に発行 |
 | `TST-EX-007` | acceptance | `RULE-EX-007` | `hypothesis.demo.completed` 重複発行なし |
 | `TST-EX-008` | contract | `RULE-EX-008` | AsyncAPI payloadに `trace`,`identifier` を含む |
+| `TST-EX-009` | contract | `RULE-EX-009` | OpenAPI/AsyncAPI/Domain Modelで `identifier` 命名統一 |
 
 - 受け入れ: Gherkinの `Given/When/Then`
 - ドメイン: 不変条件・状態遷移・イベント発行

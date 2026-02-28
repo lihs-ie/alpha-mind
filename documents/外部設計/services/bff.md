@@ -24,14 +24,26 @@
 - `GET /healthz`
 - `GET /dashboard/summary`
 - `GET /orders?status={status}`
+- `GET /orders/{identifier}`
+- `POST /orders/{identifier}/approve`
+- `POST /orders/{identifier}/reject`
+- `POST /orders/{identifier}/retry`
 - `GET /compliance/controls`
 - `PUT /compliance/controls`
 - `POST /operations/kill-switch`
 - `POST /commands/run-cycle`
 - `POST /commands/run-insight-cycle`
 - `GET /insights`
+- `GET /insights/{identifier}`
+- `POST /insights/{identifier}/hypothesize`
+- `POST /insights/{identifier}/adopt`
+- `POST /insights/{identifier}/reject`
 - `POST /hypotheses/{identifier}/retest`
 - `GET /hypotheses`
+- `GET /hypotheses/{identifier}`
+- `POST /hypotheses/{identifier}/promote`
+- `POST /hypotheses/{identifier}/reject`
+- `PUT /hypotheses/{identifier}/mnpi-self-declaration`
 
 認証:
 - `Authorization: Bearer <JWT>` 必須（`GET /healthz`を除く）。

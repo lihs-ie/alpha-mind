@@ -24,6 +24,10 @@ JSON対応: `内部設計/json/bff.json`
 - `GET /healthz`
 - `GET /dashboard/summary`
 - `GET /orders`
+- `GET /orders/{identifier}`
+- `POST /orders/{identifier}/approve`
+- `POST /orders/{identifier}/reject`
+- `POST /orders/{identifier}/retry`
 - `POST /operations/kill-switch`
 - `POST /commands/run-cycle`
 - `POST /commands/run-insight-cycle`
@@ -33,8 +37,16 @@ JSON対応: `内部設計/json/bff.json`
 - `PUT /compliance/controls`
 - `GET /audit`
 - `GET /insights`
+- `GET /insights/{identifier}`
+- `POST /insights/{identifier}/hypothesize`
+- `POST /insights/{identifier}/adopt`
+- `POST /insights/{identifier}/reject`
 - `GET /hypotheses`
+- `GET /hypotheses/{identifier}`
 - `POST /hypotheses/{identifier}/retest`
+- `POST /hypotheses/{identifier}/promote`
+- `POST /hypotheses/{identifier}/reject`
+- `PUT /hypotheses/{identifier}/mnpi-self-declaration`
 - `GET /models/validation`
 - `POST /models/validation/{modelVersion}/approve`
 - `POST /models/validation/{modelVersion}/reject`

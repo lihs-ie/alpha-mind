@@ -109,8 +109,10 @@ Feature: risk-guard order screening
 | `RULE-RG-003` | `SCN-RG-003` | `OrderRiskAssessment` | `orders.proposed` | `TST-RG-003` |
 | `RULE-RG-004` | `SCN-RG-004` | `OrderRiskAssessment` | `orders.proposed`, `GET/PUT /compliance/controls` | `TST-RG-004` |
 | `RULE-RG-005` | `SCN-RG-005` | `OrderRiskAssessment` | `orders.proposed` | `TST-RG-005` |
+| `RULE-RG-006` | `SCN-RG-008` | `OrderRiskAssessment` | `orders.proposed` | `TST-RG-008` |
 | `RULE-RG-007` | `SCN-RG-006` | `OrderRiskAssessment` | `orders.proposed` | `TST-RG-006` |
 | `RULE-RG-008` | `SCN-RG-007` | `OrderRiskAssessment` | `orders.approved/rejected` | `TST-RG-007` |
+| `RULE-RG-009` | `SCN-RG-009` | `OrderRiskAssessment` | OpenAPI/AsyncAPI/Domain Model | `TST-RG-009` |
 
 ## 4. 戦術設計（Tactical DDD）
 
@@ -342,7 +344,8 @@ Feature: risk-guard order screening
 | `TST-RG-005` | acceptance | `RULE-RG-005` | ブラックアウト期間で却下 |
 | `TST-RG-006` | idempotency | `RULE-RG-007` | 同一identifier重複で副作用なし |
 | `TST-RG-007` | audit | `RULE-RG-008` | 監査項目の欠損なし |
-| `TST-RG-008` | contract | `RULE-RG-009` | OpenAPI/AsyncAPIの識別子命名整合 |
+| `TST-RG-008` | acceptance | `RULE-RG-006` | 判定不能時にfail-closedで却下 |
+| `TST-RG-009` | contract | `RULE-RG-009` | OpenAPI/AsyncAPI/Domain Modelの識別子命名整合 |
 
 - 受け入れ: Gherkinの `Given/When/Then`
 - ドメイン: 不変条件・状態遷移・イベント発行

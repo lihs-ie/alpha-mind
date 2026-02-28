@@ -20,6 +20,7 @@
 - `内部設計/md/DDD仕様駆動ドメインモデルテンプレート.md`
 - `内部設計/md/execution_ドメインモデル設計.md`
 - `内部設計/md/hypothesis-lab_ドメインモデル設計.md`
+- `内部設計/md/portfolio-planner_ドメインモデル設計.md`
 - `内部設計/md/risk-guard_ドメインモデル設計.md`
 
 ## 4. サービス別内部設計
