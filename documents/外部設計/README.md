@@ -67,6 +67,7 @@
 ## 運用設計
 
 - `外部設計/operations/運用設計.md`
+- `外部設計/operations/STG環境構築設計.md`
 - `外部設計/operations/slo-catalog.json`
 - `外部設計/operations/監視クエリ設計.md`
 - `外部設計/operations/slo-query-spec.json`
