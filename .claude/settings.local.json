@@ -23,11 +23,17 @@
       "WebFetch(domain:tour.moonbitlang.com)",
       "Bash(gh repo:*)",
       "Bash(gh issue:*)",
-      "WebFetch(domain:zenn.dev)"
+      "WebFetch(domain:zenn.dev)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(source:*)",
+      "Bash(moon update:*)",
+      "Bash(export:*)",
+      "Bash(find:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "cc-workflow-studio"
-  ]
+  ],
+  "includeCoAuthoredBy": false
 }
