@@ -1,0 +1,50 @@
+MarketCollectRequested:
+  "$ref": "./MarketCollectRequested.yaml"
+MarketCollected:
+  "$ref": "./MarketCollected.yaml"
+MarketCollectFailed:
+  "$ref": "./MarketCollectFailed.yaml"
+FeaturesGenerated:
+  "$ref": "./FeaturesGenerated.yaml"
+FeaturesGenerationFailed:
+  "$ref": "./FeaturesGenerationFailed.yaml"
+SignalGenerated:
+  "$ref": "./SignalGenerated.yaml"
+SignalGenerationFailed:
+  "$ref": "./SignalGenerationFailed.yaml"
+OrdersProposed:
+  "$ref": "./OrdersProposed.yaml"
+OrdersProposalFailed:
+  "$ref": "./OrdersProposalFailed.yaml"
+OrdersApproved:
+  "$ref": "./OrdersApproved.yaml"
+OrdersRejected:
+  "$ref": "./OrdersRejected.yaml"
+OrdersExecuted:
+  "$ref": "./OrdersExecuted.yaml"
+OrdersExecutionFailed:
+  "$ref": "./OrdersExecutionFailed.yaml"
+OperationKillSwitchChanged:
+  "$ref": "./OperationKillSwitchChanged.yaml"
+AuditRecorded:
+  "$ref": "./AuditRecorded.yaml"
+InsightCollectRequested:
+  "$ref": "./InsightCollectRequested.yaml"
+InsightCollected:
+  "$ref": "./InsightCollected.yaml"
+InsightCollectFailed:
+  "$ref": "./InsightCollectFailed.yaml"
+HypothesisRetestRequested:
+  "$ref": "./HypothesisRetestRequested.yaml"
+HypothesisProposed:
+  "$ref": "./HypothesisProposed.yaml"
+HypothesisProposalFailed:
+  "$ref": "./HypothesisProposalFailed.yaml"
+HypothesisDemoCompleted:
+  "$ref": "./HypothesisDemoCompleted.yaml"
+HypothesisBacktested:
+  "$ref": "./HypothesisBacktested.yaml"
+HypothesisPromoted:
+  "$ref": "./HypothesisPromoted.yaml"
+HypothesisRejected:
+  "$ref": "./HypothesisRejected.yaml"

@@ -1,0 +1,4 @@
+address: insight.collect.failed
+messages:
+  insightCollectFailed:
+    "$ref": "../components/messages/index.yaml#/InsightCollectFailed"

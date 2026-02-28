@@ -1,0 +1,16 @@
+type: object
+required:
+- targetDate
+- requestedBy
+properties:
+  targetDate:
+    type: string
+    format: date
+  requestedBy:
+    type: string
+    enum:
+    - scheduler
+    - user
+example:
+  targetDate: '2026-01-15'
+  requestedBy: scheduler

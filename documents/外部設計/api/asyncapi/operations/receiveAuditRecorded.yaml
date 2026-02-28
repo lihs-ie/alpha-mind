@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/auditRecorded.yaml"
+messages:
+- "$ref": "../channels/auditRecorded.yaml#/messages/auditRecorded"
+summary: 監査ビューが監査記録イベントを購読する。

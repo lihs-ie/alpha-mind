@@ -1,0 +1,17 @@
+type: object
+required:
+- sourceEventType
+- sourceEvent
+- service
+properties:
+  sourceEventType:
+    type: string
+  sourceEvent:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  service:
+    type: string
+example:
+  sourceEventType: string
+  sourceEvent: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  service: string

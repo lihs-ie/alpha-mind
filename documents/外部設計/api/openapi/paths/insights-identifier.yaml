@@ -1,0 +1,27 @@
+get:
+  tags:
+  - Insights
+  summary: インサイト詳細取得
+  operationId: getInsightByIdentifier
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/InsightIdentifier"
+  responses:
+    '200':
+      description: Insight detail
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/InsightDetail"
+          example:
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            sourceType: youtube
+            summary: 生成AI関連銘柄の短期モメンタムが継続
+            sourceUrl: https://example.com/live/stream
+            skillVersion: skill-youtube-transcript@1.2.0
+            collectedAt: '2026-01-15T09:00:00Z'
+            theme: ai-momentum
+            sentiment: positive
+            evidenceSnippet: 09:31時点で需給改善を示唆するコメントが増加
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '404':
+      "$ref": "../components/responses/index.yaml#/NotFound"

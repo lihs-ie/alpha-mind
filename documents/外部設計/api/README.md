@@ -1,0 +1,89 @@
+# API設計
+
+最終更新日: 2026-02-28
+
+## 1. OpenAPI
+
+- 仕様書: `外部設計/api/openapi.yaml`
+- 対象: BFF（`bff`）の同期API
+
+## 2. AsyncAPI
+
+- 仕様書: `外部設計/api/asyncapi.yaml`
+- 対象: マイクロサービス間イベント契約（Pub/Sub）
+
+## 3. 方針
+
+- 画面外部設計（`外部設計/screens/*.md`）に必要なAPIを網羅する。
+- 認証はBearer JWT（`/healthz`, `/auth/login`を除く）。
+- エラー形式は RFC 9457 互換（`application/problem+json`）。
+- イベントは CloudEvents 互換エンベロープ（`identifier`, `eventType`, `occurredAt`, `trace`, `schemaVersion`, `payload`）を使用する。
+- `reasonCode` は `外部設計/error/error-codes.json` を正本としてOpenAPI/AsyncAPIに反映する。
+- 認証・認可の正本は `外部設計/security/認証認可設計.md` と `外部設計/security/authz-matrix.json` とする。
+- モデル検証APIは `degradationFlag` とコスト控除指標（`costAdjustedReturn`, `slippageAdjustedSharpe`）を含む。
+- `signal.generated` イベントは `modelDiagnostics` を含み、劣化判定とコンプライアンスレビュー要否を伝播する。
+- 更新系APIの手動入力は `actionReasonCode` + `comment`（最大120文字）に制限し、MNPI疑義は拒否する。
+- 仮説昇格API（`POST /hypotheses/{identifier}/promote`）は `mnpiSelfDeclared=true` を必須とする。
+- MNPI自己申告は `PUT /hypotheses/{identifier}/mnpi-self-declaration` で事前更新できる。
+- コンプライアンス拒否は `COMPLIANCE_*` 系 `reasonCode` で統一する。
+- `orders.approved/rejected` は判定結果理由を `reasonCode`、手動操作理由を `actionReasonCode` で表現する。
+- `GET/PUT /compliance/controls` で制限銘柄・取引先関連銘柄・ブラックアウト期間を管理する。
+- 自動昇格は `instrumentType=ETF` かつ `insiderRisk=low` かつ `partnerRestrictedSymbols` 非該当時のみ許可する。
+- インサイト/仮説系APIを追加し、定性分析結果から仮説検証までをBFF経由で一貫操作できるようにする。
+- AsyncAPIに `insight.*` と `hypothesis.*` ドメインイベントを追加し、既存イベントチェーンと疎結合に連携する。
+- コンプライアンス制御に `sourcePolicies` を含め、許可ソース・利用規約チェックをAPI契約化する。
+
+## 4. 次の拡張
+
+- スキーマバージョニング運用ルール（breaking change規約）
+- `/compliance/controls` の source policy 運用フロー詳細化
+- `hypothesis.demo.completed` の運用Runbook連携（通知/再試行基準）
+
+## 5. 分割フォーマット（新規）
+
+- OpenAPI分割ルート: `外部設計/api/openapi.yaml`
+- AsyncAPI分割ルート: `外部設計/api/asyncapi.yaml`
+
+### OpenAPI分割責務
+
+- `openapi.yaml`: `info` / `servers` / `security` / `tags` / `paths` / `components` のルート集約
+- `openapi/paths/`: Path Item Object（1ファイル1パス）
+- `openapi/components/schemas/`: 共通スキーマ
+- `openapi/components/responses/`: 共通レスポンス
+- `openapi/components/parameters/`: 共通パラメータ
+- `openapi/components/requestBodies/`: 共通リクエストボディ
+- `openapi/components/securitySchemes/`: 認証方式
+
+### AsyncAPI分割責務
+
+- `asyncapi.yaml`: `info` / `servers` / `channels` / `components` のルート集約
+- `asyncapi/channels/`: トピック（Channel）定義（AsyncAPI 3.x 形式）
+- `asyncapi/operations/`: send/receive 操作定義（設計補助資料）
+- `asyncapi/components/messages/`: Message Object
+- `asyncapi/components/schemas/`: payload/共通スキーマ
+- `asyncapi/components/securitySchemes/`: 認証方式
+
+## 6. 命名規約（Identifier）
+
+- `Id` は略記として使わない。識別子は `Identifier` として表記する。
+- 関心ごとそのものの識別子は、型内で `identifier` フィールド名を使う。
+- その型が保持する他関心ごとの識別子は、`{entity}Identifier` ではなく `{entity}` フィールド名を使う。
+- 例: `EventPayload` の自分自身の識別子は `identifier` を使用する。
+- 例: `EventPayload` がユーザー識別子を保持する場合は `userIdentifier` ではなく `user`。
+- `reasonCode` は失敗理由（`ReasonCode`）専用とする。
+- 運用者操作や自動昇格判定の理由は `actionReasonCode`（`OperatorActionReasonCode`）を使う。
+- 識別子の生成規約:
+  - ドメイン識別子（`identifier`）は `ULID` を使用する。
+  - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ使用する。
+  - イベントエンベロープの `identifier`（イベント識別子/冪等性キー）は `ULID` を使用する。
+
+## 7. 識別子採番表（固定）
+
+| 対象 | フィールド | 形式 | 理由 |
+|---|---|---|---|
+| Orders | `identifier` | `ULID` | 時系列追跡と運用可読性を優先 |
+| Hypotheses | `identifier` | `ULID` | 時系列での検索/運用追跡を優先 |
+| Insights | `identifier` | `ULID` | 収集時系列の可読性を優先 |
+| Audit Logs | `identifier` | `ULID` | 監査時系列の追跡性を優先 |
+| API Command Accepted | `identifier` | `ULID` | 受付イベントと冪等管理を統一 |
+| Event Envelope | `identifier` | `ULID` | イベント識別子兼冪等性キーとして統一 |

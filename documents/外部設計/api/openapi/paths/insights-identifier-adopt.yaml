@@ -1,0 +1,27 @@
+post:
+  tags:
+  - Insights
+  summary: インサイト採用
+  operationId: postInsightAdopt
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/InsightIdentifier"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/InsightDecisionRequest"
+  responses:
+    '200':
+      description: Insight adopt result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

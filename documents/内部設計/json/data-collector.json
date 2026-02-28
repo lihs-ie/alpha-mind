@@ -1,0 +1,114 @@
+{
+  "serviceId": "data-collector",
+  "version": "1.2.0",
+  "role": "市場データを取得し、正規化して保存し、後続処理イベントを発行する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run Job",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "market.collect.requested"
+      ],
+      "publish": [
+        "market.collected",
+        "market.collect.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Cloud Storage:raw_market_data",
+      "Firestore:audit_logs",
+      "Firestore:idempotency_keys"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "J-Quants API",
+      "Alpaca Market Data API",
+      "Nisshokin Web",
+      "Secret Manager"
+    ]
+  },
+  "workflow": [
+    "market.collect.requested受信",
+    "idempotency確認",
+    "日本/米国データ取得",
+    "日商金データ取得(逆日歩CSV)",
+    "スキーマ正規化/逆日歩クレンジング",
+    "Cloud Storageへ保存",
+    "market.collected発行"
+  ],
+  "dataModels": {
+    "inputEvent": {
+      "required": [
+        "identifier",
+        "trace",
+        "payload.targetDate"
+      ]
+    },
+    "outputEvent": {
+      "market.collected": {
+        "required": [
+          "payload.targetDate",
+          "payload.storagePath",
+          "payload.sourceStatus"
+        ]
+      },
+      "market.collect.failed": {
+        "required": [
+          "payload.reasonCode"
+        ]
+      }
+    }
+  },
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "DATA_SOURCE_TIMEOUT",
+      "DATA_SOURCE_UNAVAILABLE",
+      "DEPENDENCY_TIMEOUT"
+    ],
+    "nonRetryableErrors": [
+      "REQUEST_VALIDATION_FAILED",
+      "DATA_SCHEMA_INVALID"
+    ]
+  },
+  "failureHandling": {
+    "onPermanentFailure": [
+      "market.collect.failed発行",
+      "DLQへ送信",
+      "監査ログ記録"
+    ]
+  },
+  "slo": {
+    "jobCompletionWithinMinutes": 10,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "collect_success_total",
+      "collect_failure_total",
+      "source_latency_ms",
+      "nisshokin_fetch_success_total"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "targetDate",
+      "source",
+      "result"
+    ]
+  }
+}

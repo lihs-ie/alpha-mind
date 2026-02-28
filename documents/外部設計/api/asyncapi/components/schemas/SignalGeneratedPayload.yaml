@@ -1,0 +1,26 @@
+type: object
+required:
+- signalVersion
+- modelVersion
+- featureVersion
+- storagePath
+- modelDiagnostics
+properties:
+  signalVersion:
+    type: string
+  modelVersion:
+    type: string
+  featureVersion:
+    type: string
+  storagePath:
+    type: string
+  modelDiagnostics:
+    "$ref": "./index.yaml#/ModelDiagnostics"
+example:
+  signalVersion: string
+  modelVersion: string
+  featureVersion: string
+  storagePath: string
+  modelDiagnostics:
+    degradationFlag: normal
+    requiresComplianceReview: false

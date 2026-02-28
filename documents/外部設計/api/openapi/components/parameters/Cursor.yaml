@@ -1,0 +1,5 @@
+in: query
+name: cursor
+schema:
+  type: string
+example: string

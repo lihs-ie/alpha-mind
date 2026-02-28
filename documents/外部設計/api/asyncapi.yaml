@@ -1,0 +1,174 @@
+asyncapi: 3.1.0
+id: urn:alpha-mind:external-design:event-contract
+info:
+  title: Investment AI Event Contract
+  version: 1.1.0
+  description: |
+    AI投資運用アプリのイベント契約定義（Pub/Sub想定）。
+    CloudEvents互換の共通エンベロープを使用する。
+  contact:
+    name: Alpha Mind Team
+  license:
+    name: Proprietary
+defaultContentType: application/json
+servers:
+  gcpPubSub:
+    host: pubsub.googleapis.com
+    protocol: googlepubsub
+    description: Google Cloud Pub/Sub
+channels:
+  marketCollectRequested:
+    "$ref": "./asyncapi/channels/marketCollectRequested.yaml"
+  marketCollected:
+    "$ref": "./asyncapi/channels/marketCollected.yaml"
+  marketCollectFailed:
+    "$ref": "./asyncapi/channels/marketCollectFailed.yaml"
+  featuresGenerated:
+    "$ref": "./asyncapi/channels/featuresGenerated.yaml"
+  featuresGenerationFailed:
+    "$ref": "./asyncapi/channels/featuresGenerationFailed.yaml"
+  signalGenerated:
+    "$ref": "./asyncapi/channels/signalGenerated.yaml"
+  signalGenerationFailed:
+    "$ref": "./asyncapi/channels/signalGenerationFailed.yaml"
+  ordersProposed:
+    "$ref": "./asyncapi/channels/ordersProposed.yaml"
+  ordersProposalFailed:
+    "$ref": "./asyncapi/channels/ordersProposalFailed.yaml"
+  ordersApproved:
+    "$ref": "./asyncapi/channels/ordersApproved.yaml"
+  ordersRejected:
+    "$ref": "./asyncapi/channels/ordersRejected.yaml"
+  ordersExecuted:
+    "$ref": "./asyncapi/channels/ordersExecuted.yaml"
+  ordersExecutionFailed:
+    "$ref": "./asyncapi/channels/ordersExecutionFailed.yaml"
+  operationKillSwitchChanged:
+    "$ref": "./asyncapi/channels/operationKillSwitchChanged.yaml"
+  auditRecorded:
+    "$ref": "./asyncapi/channels/auditRecorded.yaml"
+  insightCollectRequested:
+    "$ref": "./asyncapi/channels/insightCollectRequested.yaml"
+  insightCollected:
+    "$ref": "./asyncapi/channels/insightCollected.yaml"
+  insightCollectFailed:
+    "$ref": "./asyncapi/channels/insightCollectFailed.yaml"
+  hypothesisRetestRequested:
+    "$ref": "./asyncapi/channels/hypothesisRetestRequested.yaml"
+  hypothesisProposed:
+    "$ref": "./asyncapi/channels/hypothesisProposed.yaml"
+  hypothesisProposalFailed:
+    "$ref": "./asyncapi/channels/hypothesisProposalFailed.yaml"
+  hypothesisDemoCompleted:
+    "$ref": "./asyncapi/channels/hypothesisDemoCompleted.yaml"
+  hypothesisBacktested:
+    "$ref": "./asyncapi/channels/hypothesisBacktested.yaml"
+  hypothesisPromoted:
+    "$ref": "./asyncapi/channels/hypothesisPromoted.yaml"
+  hypothesisRejected:
+    "$ref": "./asyncapi/channels/hypothesisRejected.yaml"
+components:
+  messages:
+    "$ref": "./asyncapi/components/messages/index.yaml"
+  schemas:
+    EventEnvelope:
+      "$ref": "./asyncapi/components/schemas/EventEnvelope.yaml"
+    MarketCollectRequestedEvent:
+      "$ref": "./asyncapi/components/schemas/MarketCollectRequestedEvent.yaml"
+    MarketCollectRequestedPayload:
+      "$ref": "./asyncapi/components/schemas/MarketCollectRequestedPayload.yaml"
+    MarketCollectedEvent:
+      "$ref": "./asyncapi/components/schemas/MarketCollectedEvent.yaml"
+    MarketCollectedPayload:
+      "$ref": "./asyncapi/components/schemas/MarketCollectedPayload.yaml"
+    MarketCollectFailedEvent:
+      "$ref": "./asyncapi/components/schemas/MarketCollectFailedEvent.yaml"
+    FeaturesGeneratedEvent:
+      "$ref": "./asyncapi/components/schemas/FeaturesGeneratedEvent.yaml"
+    FeaturesGeneratedPayload:
+      "$ref": "./asyncapi/components/schemas/FeaturesGeneratedPayload.yaml"
+    FeaturesGenerationFailedEvent:
+      "$ref": "./asyncapi/components/schemas/FeaturesGenerationFailedEvent.yaml"
+    SignalGeneratedEvent:
+      "$ref": "./asyncapi/components/schemas/SignalGeneratedEvent.yaml"
+    SignalGeneratedPayload:
+      "$ref": "./asyncapi/components/schemas/SignalGeneratedPayload.yaml"
+    SignalGenerationFailedEvent:
+      "$ref": "./asyncapi/components/schemas/SignalGenerationFailedEvent.yaml"
+    OrdersProposedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersProposedEvent.yaml"
+    OrdersProposedPayload:
+      "$ref": "./asyncapi/components/schemas/OrdersProposedPayload.yaml"
+    OrdersProposalFailedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersProposalFailedEvent.yaml"
+    OrdersApprovedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersApprovedEvent.yaml"
+    OrdersRejectedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersRejectedEvent.yaml"
+    OrdersExecutedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersExecutedEvent.yaml"
+    OrdersExecutedPayload:
+      "$ref": "./asyncapi/components/schemas/OrdersExecutedPayload.yaml"
+    OrdersExecutionFailedEvent:
+      "$ref": "./asyncapi/components/schemas/OrdersExecutionFailedEvent.yaml"
+    OperationKillSwitchChangedEvent:
+      "$ref": "./asyncapi/components/schemas/OperationKillSwitchChangedEvent.yaml"
+    KillSwitchChangedPayload:
+      "$ref": "./asyncapi/components/schemas/KillSwitchChangedPayload.yaml"
+    AuditRecordedEvent:
+      "$ref": "./asyncapi/components/schemas/AuditRecordedEvent.yaml"
+    AuditRecordedPayload:
+      "$ref": "./asyncapi/components/schemas/AuditRecordedPayload.yaml"
+    InsightCollectRequestedEvent:
+      "$ref": "./asyncapi/components/schemas/InsightCollectRequestedEvent.yaml"
+    InsightCollectRequestedPayload:
+      "$ref": "./asyncapi/components/schemas/InsightCollectRequestedPayload.yaml"
+    InsightCollectedEvent:
+      "$ref": "./asyncapi/components/schemas/InsightCollectedEvent.yaml"
+    InsightCollectedPayload:
+      "$ref": "./asyncapi/components/schemas/InsightCollectedPayload.yaml"
+    InsightCollectFailedEvent:
+      "$ref": "./asyncapi/components/schemas/InsightCollectFailedEvent.yaml"
+    HypothesisRetestRequestedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisRetestRequestedEvent.yaml"
+    HypothesisRetestRequestedPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisRetestRequestedPayload.yaml"
+    HypothesisProposedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisProposedEvent.yaml"
+    HypothesisProposedPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisProposedPayload.yaml"
+    HypothesisProposalFailedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisProposalFailedEvent.yaml"
+    HypothesisDemoCompletedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisDemoCompletedEvent.yaml"
+    HypothesisDemoCompletedPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisDemoCompletedPayload.yaml"
+    HypothesisBacktestedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisBacktestedEvent.yaml"
+    HypothesisBacktestedPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisBacktestedPayload.yaml"
+    HypothesisPromotedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisPromotedEvent.yaml"
+    HypothesisRejectedEvent:
+      "$ref": "./asyncapi/components/schemas/HypothesisRejectedEvent.yaml"
+    HypothesisDecisionPayload:
+      "$ref": "./asyncapi/components/schemas/HypothesisDecisionPayload.yaml"
+    OrdersDecisionPayload:
+      "$ref": "./asyncapi/components/schemas/OrdersDecisionPayload.yaml"
+    OrderItem:
+      "$ref": "./asyncapi/components/schemas/OrderItem.yaml"
+    FailedPayload:
+      "$ref": "./asyncapi/components/schemas/FailedPayload.yaml"
+    ModelDiagnostics:
+      "$ref": "./asyncapi/components/schemas/ModelDiagnostics.yaml"
+    DegradationFlag:
+      "$ref": "./asyncapi/components/schemas/DegradationFlag.yaml"
+    ReasonCode:
+      "$ref": "./asyncapi/components/schemas/ReasonCode.yaml"
+    OperatorActionReasonCode:
+      "$ref": "./asyncapi/components/schemas/OperatorActionReasonCode.yaml"
+  securitySchemes:
+    serviceAccountJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

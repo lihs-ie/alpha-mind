@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisRetestRequested.yaml"
+messages:
+- "$ref": "../channels/hypothesisRetestRequested.yaml#/messages/hypothesisRetestRequested"
+summary: BFFが仮説再検証要求を発行する。

@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/insightCollectRequested.yaml"
+messages:
+- "$ref": "../channels/insightCollectRequested.yaml#/messages/insightCollectRequested"
+summary: BFF/スケジューラがインサイト収集要求を発行する。

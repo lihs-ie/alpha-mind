@@ -1,0 +1,34 @@
+post:
+  tags:
+  - Auth
+  summary: ログイン
+  operationId: postAuthLogin
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/LoginRequest"
+        example:
+          email: user@example.com
+          password: P@ssw0rd123!
+  responses:
+    '200':
+      description: Login success
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/LoginResponse"
+          example:
+            accessToken: string
+            tokenType: Bearer
+            expiresIn: 3600
+            user:
+              identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+              email: user@example.com
+              role: admin
+              permissions:
+              - string
+    '401':
+      "$ref": "../components/responses/index.yaml#/Unauthorized"

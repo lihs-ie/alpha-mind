@@ -1,0 +1,20 @@
+post:
+  tags:
+  - Hypotheses
+  summary: 仮説再検証
+  operationId: postHypothesisRetest
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
+  responses:
+    '202':
+      description: Retry accepted
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/CommandAccepted"
+          example:
+            accepted: true
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

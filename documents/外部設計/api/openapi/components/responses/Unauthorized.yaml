@@ -1,0 +1,11 @@
+description: Unauthorized
+content:
+  application/problem+json:
+    schema:
+      "$ref": "../schemas/index.yaml#/Problem"
+    example:
+      type: about:blank
+      title: Unauthorized
+      status: 401
+      trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      reasonCode: AUTH_INVALID_CREDENTIALS

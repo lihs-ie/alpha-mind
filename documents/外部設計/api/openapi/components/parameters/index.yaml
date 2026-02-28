@@ -1,0 +1,28 @@
+Identifier:
+  "$ref": "./Identifier.yaml"
+OrderIdentifier:
+  "$ref": "./OrderIdentifier.yaml"
+HypothesisIdentifier:
+  "$ref": "./HypothesisIdentifier.yaml"
+InsightIdentifier:
+  "$ref": "./InsightIdentifier.yaml"
+AuditIdentifier:
+  "$ref": "./AuditIdentifier.yaml"
+ModelVersion:
+  "$ref": "./ModelVersion.yaml"
+OrderStatus:
+  "$ref": "./OrderStatus.yaml"
+Symbol:
+  "$ref": "./Symbol.yaml"
+From:
+  "$ref": "./From.yaml"
+To:
+  "$ref": "./To.yaml"
+Limit:
+  "$ref": "./Limit.yaml"
+Cursor:
+  "$ref": "./Cursor.yaml"
+Trace:
+  "$ref": "./Trace.yaml"
+EventType:
+  "$ref": "./EventType.yaml"

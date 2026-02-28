@@ -1,0 +1,101 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Order Status */
+.proposed {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.proposed .dot {
+  background-color: var(--color-info);
+}
+
+.approved {
+  background-color: var(--color-profit-light);
+  color: var(--color-profit);
+}
+
+.approved .dot {
+  background-color: var(--color-profit);
+}
+
+.rejected {
+  background-color: var(--color-loss-light);
+  color: var(--color-loss);
+}
+
+.rejected .dot {
+  background-color: var(--color-loss);
+}
+
+.executed {
+  background-color: var(--color-profit-light);
+  color: var(--color-profit);
+}
+
+.executed .dot {
+  background-color: var(--color-profit);
+}
+
+.failed {
+  background-color: var(--color-loss-light);
+  color: var(--color-loss);
+}
+
+.failed .dot {
+  background-color: var(--color-loss);
+}
+
+/* Runtime State */
+.running {
+  background-color: var(--color-profit-light);
+  color: var(--color-profit);
+}
+
+.running .dot {
+  background-color: var(--color-profit);
+}
+
+.stopped {
+  background-color: var(--color-loss-light);
+  color: var(--color-loss);
+}
+
+.stopped .dot {
+  background-color: var(--color-loss);
+}
+
+/* Audit Result */
+.success {
+  background-color: var(--color-profit-light);
+  color: var(--color-profit);
+}
+
+.success .dot {
+  background-color: var(--color-profit);
+}
+
+/* Model Status */
+.candidate {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.candidate .dot {
+  background-color: var(--color-warning);
+}

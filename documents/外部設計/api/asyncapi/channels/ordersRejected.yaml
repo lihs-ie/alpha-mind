@@ -1,0 +1,4 @@
+address: orders.rejected
+messages:
+  ordersRejected:
+    "$ref": "../components/messages/index.yaml#/OrdersRejected"

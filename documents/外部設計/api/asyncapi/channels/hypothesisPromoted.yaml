@@ -1,0 +1,4 @@
+address: hypothesis.promoted
+messages:
+  hypothesisPromoted:
+    "$ref": "../components/messages/index.yaml#/HypothesisPromoted"

@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/signalGenerationFailed.yaml"
+messages:
+- "$ref": "../channels/signalGenerationFailed.yaml#/messages/signalGenerationFailed"
+summary: signal-generatorがシグナル生成失敗イベントを発行する。

@@ -1,0 +1,25 @@
+get:
+  tags:
+  - Orders
+  summary: 注文詳細取得
+  operationId: getOrderByIdentifier
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
+  responses:
+    '200':
+      description: Order detail
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OrderDetail"
+          example:
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            symbol: AAPL
+            side: BUY
+            qty: 1.0
+            status: FAILED
+            createdAt: '2026-01-15T09:00:00Z'
+            reasonCode: EXECUTION_BROKER_TIMEOUT
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '404':
+      "$ref": "../components/responses/index.yaml#/NotFound"

@@ -1,0 +1,36 @@
+type: object
+required:
+- identifier
+- eventType
+- occurredAt
+- trace
+- schemaVersion
+- payload
+properties:
+  identifier:
+    type: string
+    description: Event identifier and idempotency key (ULID)
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  eventType:
+    type: string
+  occurredAt:
+    type: string
+    format: date-time
+  trace:
+    type: string
+    description: Trace identifier (ULID)
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  schemaVersion:
+    type: string
+    example: 1.0.0
+  payload:
+    type: object
+    additionalProperties: true
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: string
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    key: value

@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/hypothesisDemoCompleted.yaml"
+messages:
+- "$ref": "../channels/hypothesisDemoCompleted.yaml#/messages/hypothesisDemoCompleted"
+summary: hypothesis-labがデモ期間完了イベントを購読する。

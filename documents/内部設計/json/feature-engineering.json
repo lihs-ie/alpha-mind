@@ -1,0 +1,100 @@
+{
+  "serviceId": "feature-engineering",
+  "version": "1.2.0",
+  "role": "市場データから学習・推論用特徴量を生成し、バージョン管理して保存する。",
+  "aiResponsibility": true,
+  "runtime": {
+    "platform": "Cloud Run Job",
+    "language": "Python",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "market.collected"
+      ],
+      "publish": [
+        "features.generated",
+        "features.generation.failed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Cloud Storage:raw_market_data",
+      "Cloud Storage:feature_store",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs",
+      "Firestore:insight_records"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ]
+  },
+  "workflow": [
+    "market.collected受信",
+    "入力データ読込",
+    "定性インサイト読込",
+    "時点整合チェック(定量/定性)",
+    "定性×定量特徴量計算",
+    "featureVersion採番",
+    "Cloud Storage保存",
+    "features.generated発行"
+  ],
+  "dataModels": {
+    "outputEvent": {
+      "features.generated": {
+        "required": [
+          "payload.featureVersion",
+          "payload.storagePath",
+          "payload.targetDate"
+        ]
+      },
+      "features.generation.failed": {
+        "required": [
+          "payload.reasonCode"
+        ]
+      }
+    }
+  },
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "DEPENDENCY_UNAVAILABLE"
+    ],
+    "nonRetryableErrors": [
+      "REQUEST_VALIDATION_FAILED",
+      "DATA_QUALITY_LEAK_DETECTED",
+      "DATA_SCHEMA_INVALID"
+    ]
+  },
+  "qualityGates": [
+    "将来情報リークなし",
+    "insight_recordsはcollectedAt<=targetDateのみ採用",
+    "必須特徴量欠損率閾値以内",
+    "定性特徴量の根拠リンク欠損率閾値以内"
+  ],
+  "slo": {
+    "jobCompletionWithinMinutes": 15,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "feature_job_success_total",
+      "feature_job_failure_total",
+      "feature_generation_duration_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "featureVersion",
+      "result"
+    ]
+  }
+}

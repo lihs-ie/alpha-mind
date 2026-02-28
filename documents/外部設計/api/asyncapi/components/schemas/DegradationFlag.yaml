@@ -1,0 +1,6 @@
+type: string
+enum:
+- normal
+- warn
+- block
+example: normal

@@ -1,0 +1,22 @@
+type: object
+required:
+- symbol
+- startAt
+- endAt
+- actionReasonCode
+properties:
+  symbol:
+    type: string
+  startAt:
+    type: string
+    format: date-time
+  endAt:
+    type: string
+    format: date-time
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+example:
+  symbol: AAPL
+  startAt: '2026-01-15T09:00:00Z'
+  endAt: '2026-01-15T09:00:00Z'
+  actionReasonCode: MANUAL_OPERATION

@@ -1,0 +1,70 @@
+{
+  "serviceId": "hypothesis-lab",
+  "version": "1.1.0",
+  "role": "仮説のバックテスト/デモトレードを実行し、昇格可否を判定する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run Job",
+    "language": "Python",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "hypothesis.proposed",
+        "hypothesis.demo.completed"
+      ],
+      "publish": [
+        "hypothesis.backtested",
+        "hypothesis.promoted",
+        "hypothesis.rejected"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:hypothesis_registry",
+      "Firestore:backtest_runs",
+      "Firestore:demo_trade_runs",
+      "Firestore:failure_knowledge",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs",
+      "Cloud Storage:backtest_artifacts",
+      "Cloud Storage:demo_artifacts"
+    ]
+  },
+  "workflow": [
+    "hypothesis.proposed受信",
+    "バックテスト実行",
+    "コスト控除評価",
+    "デモトレード評価",
+    "ETF低リスク条件なら自動昇格判定",
+    "個別株は手動昇格待ち判定",
+    "昇格/却下判定",
+    "結果イベント発行"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "nonRetryableErrors": [
+      "REQUEST_VALIDATION_FAILED",
+      "OPERATION_NOT_ALLOWED"
+    ]
+  },
+  "qualityGates": [
+    "コスト控除後指標の閾値達成",
+    "requiresComplianceReview=trueは昇格禁止",
+    "自動昇格はinstrumentType=ETFかつinsiderRisk=lowかつmnpiSelfDeclared=trueかつpartnerRestrictedSymbols非該当時のみ",
+    "個別株は手動昇格のみ",
+    "失敗時failure_knowledgeへMarkdown要約登録"
+  ],
+  "slo": {
+    "validationCompletionWithinDays": 7,
+    "validationCompletionRate": "95.0%"
+  }
+}

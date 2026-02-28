@@ -1,0 +1,11 @@
+description: Conflict
+content:
+  application/problem+json:
+    schema:
+      "$ref": "../schemas/index.yaml#/Problem"
+    example:
+      type: about:blank
+      title: Conflict
+      status: 409
+      trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      reasonCode: STATE_CONFLICT

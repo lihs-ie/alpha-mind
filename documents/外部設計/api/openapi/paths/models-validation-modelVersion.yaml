@@ -1,0 +1,30 @@
+get:
+  tags:
+  - Models
+  summary: モデル検証詳細取得
+  operationId: getModelValidationByVersion
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/ModelVersion"
+  responses:
+    '200':
+      description: Model validation detail
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/ModelValidationDetail"
+          example:
+            modelVersion: string
+            status: candidate
+            degradationFlag: normal
+            createdAt: '2026-01-15T09:00:00Z'
+            metrics:
+              oosReturn: 1.0
+              sharpe: 1.0
+              maxDrawdown: 1.0
+              turnover: 1.0
+              pbo: 1.0
+              dsr: 1.0
+              costAdjustedReturn: 1.0
+              slippageAdjustedSharpe: 1.0
+    '404':
+      "$ref": "../components/responses/index.yaml#/NotFound"

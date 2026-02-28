@@ -1,0 +1,27 @@
+get:
+  tags:
+  - Insights
+  summary: インサイト一覧取得
+  operationId: getInsights
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/Symbol"
+  - "$ref": "../components/parameters/index.yaml#/From"
+  - "$ref": "../components/parameters/index.yaml#/To"
+  - "$ref": "../components/parameters/index.yaml#/Limit"
+  - "$ref": "../components/parameters/index.yaml#/Cursor"
+  responses:
+    '200':
+      description: Insight list
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/InsightListResponse"
+          example:
+            items:
+            - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+              sourceType: x
+              summary: string
+              sourceUrl: https://example.com/resource
+              collectedAt: '2026-01-15T09:00:00Z'
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

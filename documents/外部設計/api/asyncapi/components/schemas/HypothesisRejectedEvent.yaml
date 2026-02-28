@@ -1,0 +1,23 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - hypothesis.rejected
+    payload:
+      "$ref": "./index.yaml#/HypothesisDecisionPayload"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: hypothesis.rejected
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    decision: rejected
+    actionReasonCode: POLICY_COMPLIANCE_HOLD
+    promotionMode: manual
+    mnpiSelfDeclared: true
+    insiderRisk: medium

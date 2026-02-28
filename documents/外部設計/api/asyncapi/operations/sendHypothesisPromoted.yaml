@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisPromoted.yaml"
+messages:
+- "$ref": "../channels/hypothesisPromoted.yaml#/messages/hypothesisPromoted"
+summary: hypothesis-labが昇格結果を発行する。

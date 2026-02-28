@@ -1,0 +1,23 @@
+type: object
+required:
+- identifier
+- orderCount
+- orders
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  orderCount:
+    type: integer
+  orders:
+    type: array
+    items:
+      "$ref": "./index.yaml#/OrderItem"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  orderCount: 1
+  orders:
+  - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    symbol: AAPL
+    side: BUY
+    qty: 1.0

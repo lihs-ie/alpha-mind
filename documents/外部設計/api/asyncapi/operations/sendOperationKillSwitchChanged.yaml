@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/operationKillSwitchChanged.yaml"
+messages:
+- "$ref": "../channels/operationKillSwitchChanged.yaml#/messages/operationKillSwitchChanged"
+summary: BFFがkill switch変更イベントを発行する。

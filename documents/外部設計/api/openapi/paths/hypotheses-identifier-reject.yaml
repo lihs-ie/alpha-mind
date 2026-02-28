@@ -1,0 +1,32 @@
+post:
+  tags:
+  - Hypotheses
+  summary: 仮説却下
+  operationId: postHypothesisReject
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/HypothesisRejectRequest"
+        example:
+          actionReasonCode: POLICY_COMPLIANCE_HOLD
+          comment: デモ成績が昇格基準に未達
+  responses:
+    '200':
+      description: Hypothesis reject result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"
+    '422':
+      "$ref": "../components/responses/index.yaml#/UnprocessableEntity"

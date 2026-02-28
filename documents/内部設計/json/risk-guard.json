@@ -1,0 +1,92 @@
+{
+  "serviceId": "risk-guard",
+  "version": "1.1.0",
+  "role": "注文候補をリスク制約で検証し、承認または却下する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "http": {
+      "basePath": "/internal",
+      "endpoints": [
+        {"method": "POST", "path": "/orders/{identifier}/approve", "auth": "service-account-jwt"},
+        {"method": "POST", "path": "/orders/{identifier}/reject", "auth": "service-account-jwt"}
+      ]
+    },
+    "events": {
+      "subscribe": [
+        "orders.proposed",
+        "operation.kill_switch.changed"
+      ],
+      "publish": [
+        "orders.approved",
+        "orders.rejected"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:settings",
+      "Firestore:operations",
+      "Firestore:compliance_controls",
+      "Firestore:orders",
+      "Firestore:idempotency_keys",
+      "Firestore:audit_logs"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ]
+  },
+  "workflow": [
+    "orders.proposed受信",
+    "kill switch状態確認",
+    "リスク制約評価",
+    "承認/却下判定",
+    "orders状態更新",
+    "orders.approved or orders.rejected発行"
+  ],
+  "riskRules": [
+    "dailyLossLimit",
+    "positionConcentrationLimit",
+    "dailyOrderLimit",
+    "killSwitchGuard",
+    "restrictedSymbolsGuard",
+    "blackoutWindowGuard"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "DEPENDENCY_UNAVAILABLE"
+    ],
+    "nonRetryableErrors": [
+      "REQUEST_VALIDATION_FAILED"
+    ]
+  },
+  "failureMode": "fail-closed",
+  "slo": {
+    "decisionLatencyP95Ms": 1000,
+    "successRate": "99.5%"
+  },
+  "observability": {
+    "metrics": [
+      "risk_approved_total",
+      "risk_rejected_total",
+      "risk_evaluation_latency_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "decision",
+      "reasonCode"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+type: object
+required:
+- degradationFlag
+- requiresComplianceReview
+properties:
+  degradationFlag:
+    "$ref": "./index.yaml#/DegradationFlag"
+  costAdjustedReturn:
+    type: number
+    description: 手数料・スリッページ控除後リターン（%）
+  slippageAdjustedSharpe:
+    type: number
+    description: スリッページ控除後Sharpe
+  requiresComplianceReview:
+    type: boolean
+    description: true の場合は昇格判定前に運用者レビューが必要
+example:
+  degradationFlag: normal
+  requiresComplianceReview: false

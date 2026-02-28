@@ -1,0 +1,39 @@
+type: object
+required:
+- identifier
+- symbol
+- side
+- qty
+- status
+- createdAt
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  symbol:
+    type: string
+  side:
+    type: string
+    enum:
+    - BUY
+    - SELL
+  qty:
+    type: number
+  status:
+    type: string
+    enum:
+    - PROPOSED
+    - APPROVED
+    - REJECTED
+    - EXECUTED
+    - FAILED
+  createdAt:
+    type: string
+    format: date-time
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  symbol: AAPL
+  side: BUY
+  qty: 1.0
+  status: PROPOSED
+  createdAt: '2026-01-15T09:00:00Z'

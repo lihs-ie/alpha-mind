@@ -1,0 +1,25 @@
+type: object
+required:
+- modelVersion
+- status
+- degradationFlag
+- createdAt
+properties:
+  modelVersion:
+    type: string
+  status:
+    type: string
+    enum:
+    - candidate
+    - approved
+    - rejected
+  degradationFlag:
+    "$ref": "./index.yaml#/DegradationFlag"
+  createdAt:
+    type: string
+    format: date-time
+example:
+  modelVersion: string
+  status: candidate
+  degradationFlag: normal
+  createdAt: '2026-01-15T09:00:00Z'

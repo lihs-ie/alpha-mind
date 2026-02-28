@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/marketCollected.yaml"
+messages:
+- "$ref": "../channels/marketCollected.yaml#/messages/marketCollected"
+summary: feature-engineeringが収集成功イベントを購読する。

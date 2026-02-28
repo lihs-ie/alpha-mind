@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisDemoCompleted.yaml"
+messages:
+- "$ref": "../channels/hypothesisDemoCompleted.yaml#/messages/hypothesisDemoCompleted"
+summary: executionがデモ期間完了イベントを発行する。

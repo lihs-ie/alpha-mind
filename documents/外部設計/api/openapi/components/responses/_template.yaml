@@ -1,0 +1,6 @@
+BadRequest:
+  description: Bad request
+  content:
+    application/problem+json:
+      schema:
+        $ref: '../schemas/index.yaml#/Problem'

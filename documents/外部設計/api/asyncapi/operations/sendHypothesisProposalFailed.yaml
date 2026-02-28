@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisProposalFailed.yaml"
+messages:
+- "$ref": "../channels/hypothesisProposalFailed.yaml#/messages/hypothesisProposalFailed"
+summary: agent-orchestratorが仮説提案失敗イベントを発行する。

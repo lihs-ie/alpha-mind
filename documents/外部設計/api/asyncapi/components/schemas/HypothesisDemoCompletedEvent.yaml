@@ -1,0 +1,31 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - hypothesis.demo.completed
+    payload:
+      "$ref": "./index.yaml#/HypothesisDemoCompletedPayload"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: hypothesis.demo.completed
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    demoRun: demo-20260115-001
+    symbol: 1306.T
+    instrumentType: ETF
+    insiderRisk: low
+    startedAt: '2025-12-01T00:00:00Z'
+    endedAt: '2026-01-15T00:00:00Z'
+    demoPeriodDays: 45
+    promotable: true
+    requiresComplianceReview: false
+    mnpiSelfDeclared: true
+    costAdjustedReturn: 4.2
+    dsr: 1.14
+    pbo: 0.08

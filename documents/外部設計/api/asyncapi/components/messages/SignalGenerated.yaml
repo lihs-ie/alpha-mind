@@ -1,0 +1,21 @@
+name: SignalGenerated
+title: signal.generated
+payload:
+  "$ref": "../schemas/index.yaml#/SignalGeneratedEvent"
+examples:
+- name: default
+  summary: Default example
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    eventType: signal.generated
+    occurredAt: '2026-01-15T09:00:00Z'
+    trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    schemaVersion: 1.0.0
+    payload:
+      signalVersion: string
+      modelVersion: string
+      featureVersion: string
+      storagePath: string
+      modelDiagnostics:
+        degradationFlag: normal
+        requiresComplianceReview: false

@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/hypothesisRetestRequested.yaml"
+messages:
+- "$ref": "../channels/hypothesisRetestRequested.yaml#/messages/hypothesisRetestRequested"
+summary: agent-orchestratorが仮説再検証要求を購読する。

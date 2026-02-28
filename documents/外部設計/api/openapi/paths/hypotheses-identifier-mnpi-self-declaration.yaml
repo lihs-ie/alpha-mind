@@ -1,0 +1,33 @@
+put:
+  tags:
+  - Hypotheses
+  summary: 仮説MNPI自己申告更新
+  operationId: putHypothesisMnpiSelfDeclaration
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/HypothesisMnpiSelfDeclarationUpdate"
+        example:
+          mnpiSelfDeclared: true
+          actionReasonCode: MANUAL_OPERATION
+          comment: 昇格前に自己申告を更新
+  responses:
+    '200':
+      description: Update result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"
+    '422':
+      "$ref": "../components/responses/index.yaml#/UnprocessableEntity"

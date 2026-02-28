@@ -1,0 +1,19 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - market.collect.failed
+    payload:
+      "$ref": "./index.yaml#/FailedPayload"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: market.collect.failed
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    reasonCode: DATA_SOURCE_UNAVAILABLE
+    detail: primary market data provider unavailable

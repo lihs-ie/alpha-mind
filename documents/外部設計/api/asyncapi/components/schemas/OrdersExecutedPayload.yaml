@@ -1,0 +1,18 @@
+type: object
+required:
+- identifier
+- brokerOrder
+- executedAt
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  brokerOrder:
+    type: string
+  executedAt:
+    type: string
+    format: date-time
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  brokerOrder: id-001
+  executedAt: '2026-01-15T09:00:00Z'

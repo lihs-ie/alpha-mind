@@ -1,0 +1,34 @@
+type: object
+required:
+- identifier
+- sourceType
+- summary
+- sourceUrl
+- collectedAt
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  sourceType:
+    type: string
+    enum:
+    - x
+    - youtube
+    - paper
+    - github
+  summary:
+    type: string
+  sourceUrl:
+    type: string
+    format: uri
+  skillVersion:
+    type: string
+  collectedAt:
+    type: string
+    format: date-time
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  sourceType: x
+  summary: string
+  sourceUrl: https://example.com/resource
+  collectedAt: '2026-01-15T09:00:00Z'

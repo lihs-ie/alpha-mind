@@ -1,0 +1,19 @@
+type: object
+required:
+- accepted
+- identifier
+- trace
+properties:
+  accepted:
+    type: boolean
+    example: true
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  trace:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+example:
+  accepted: true
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV

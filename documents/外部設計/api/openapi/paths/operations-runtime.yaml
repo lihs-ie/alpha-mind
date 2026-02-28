@@ -1,0 +1,27 @@
+post:
+  tags:
+  - Operations
+  summary: 運用状態の変更（開始/停止）
+  operationId: postOperationsRuntime
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/RuntimeOperationRequest"
+        example:
+          action: START
+  responses:
+    '200':
+      description: Runtime operation result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

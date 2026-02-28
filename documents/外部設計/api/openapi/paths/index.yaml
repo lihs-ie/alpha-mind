@@ -1,0 +1,62 @@
+"/healthz":
+  "$ref": "./healthz.yaml"
+"/auth/login":
+  "$ref": "./auth-login.yaml"
+"/dashboard/summary":
+  "$ref": "./dashboard-summary.yaml"
+"/operations/runtime":
+  "$ref": "./operations-runtime.yaml"
+"/operations/kill-switch":
+  "$ref": "./operations-kill-switch.yaml"
+"/commands/run-cycle":
+  "$ref": "./commands-run-cycle.yaml"
+"/commands/run-insight-cycle":
+  "$ref": "./commands-run-insight-cycle.yaml"
+"/settings/strategy":
+  "$ref": "./settings-strategy.yaml"
+"/compliance/controls":
+  "$ref": "./compliance-controls.yaml"
+"/orders":
+  "$ref": "./orders.yaml"
+"/orders/{identifier}":
+  "$ref": "./orders-identifier.yaml"
+"/orders/{identifier}/approve":
+  "$ref": "./orders-identifier-approve.yaml"
+"/orders/{identifier}/reject":
+  "$ref": "./orders-identifier-reject.yaml"
+"/orders/{identifier}/retry":
+  "$ref": "./orders-identifier-retry.yaml"
+"/audit":
+  "$ref": "./audit.yaml"
+"/audit/{identifier}":
+  "$ref": "./audit-identifier.yaml"
+"/insights":
+  "$ref": "./insights.yaml"
+"/insights/{identifier}":
+  "$ref": "./insights-identifier.yaml"
+"/insights/{identifier}/adopt":
+  "$ref": "./insights-identifier-adopt.yaml"
+"/insights/{identifier}/reject":
+  "$ref": "./insights-identifier-reject.yaml"
+"/insights/{identifier}/hypothesize":
+  "$ref": "./insights-identifier-hypothesize.yaml"
+"/hypotheses":
+  "$ref": "./hypotheses.yaml"
+"/hypotheses/{identifier}":
+  "$ref": "./hypotheses-identifier.yaml"
+"/hypotheses/{identifier}/promote":
+  "$ref": "./hypotheses-identifier-promote.yaml"
+"/hypotheses/{identifier}/mnpi-self-declaration":
+  "$ref": "./hypotheses-identifier-mnpi-self-declaration.yaml"
+"/hypotheses/{identifier}/reject":
+  "$ref": "./hypotheses-identifier-reject.yaml"
+"/hypotheses/{identifier}/retest":
+  "$ref": "./hypotheses-identifier-retest.yaml"
+"/models/validation":
+  "$ref": "./models-validation.yaml"
+"/models/validation/{modelVersion}":
+  "$ref": "./models-validation-modelVersion.yaml"
+"/models/validation/{modelVersion}/approve":
+  "$ref": "./models-validation-modelVersion-approve.yaml"
+"/models/validation/{modelVersion}/reject":
+  "$ref": "./models-validation-modelVersion-reject.yaml"

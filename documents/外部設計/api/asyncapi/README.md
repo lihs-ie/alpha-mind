@@ -1,0 +1,32 @@
+# AsyncAPI分割フォーマット
+
+このディレクトリは、`asyncapi.yaml` を責務単位で分割管理するためのフォーマットです。
+
+## 責務
+
+- `../asyncapi.yaml`
+  - AsyncAPIドキュメントのルート。
+  - `info` / `servers` / `channels` / `components` の参照定義を持つ。
+- `channels/`
+  - トピック（channel）定義を管理する。
+- `operations/`
+  - send/receive 操作定義を管理する（設計補助資料）。
+- `components/messages/`
+  - メッセージ定義を管理する。
+- `components/schemas/`
+  - payloadや共通データのスキーマ定義を管理する。
+- `components/securitySchemes/`
+  - 認証方式定義を管理する。
+
+## 運用ルール
+
+- 集約ファイルは各ディレクトリの `index.yaml` を正本とする。
+- 実体定義は `_template.yaml` を複製して作成する。
+- 参照関係は相対パス `$ref` を利用する。
+- 識別子命名は `Id` を使わず `Identifier` を採用する。
+- 関心ごと自身の識別子は `identifier`、他関心ごとの識別子は `{entity}` を使う（例: `user`）。
+- `reasonCode` は失敗理由（`ReasonCode`）専用とし、運用者/自動判定の理由は `actionReasonCode`（`OperatorActionReasonCode`）を使う。
+- 識別子の生成規約は以下を適用する。
+  - ドメイン識別子（`identifier`）は `ULID`
+  - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ利用
+  - イベントエンベロープの `identifier` は `ULID`（イベント識別子/冪等性キー）

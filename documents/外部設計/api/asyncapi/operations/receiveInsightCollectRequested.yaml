@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/insightCollectRequested.yaml"
+messages:
+- "$ref": "../channels/insightCollectRequested.yaml#/messages/insightCollectRequested"
+summary: insight-collectorが収集要求を購読する。

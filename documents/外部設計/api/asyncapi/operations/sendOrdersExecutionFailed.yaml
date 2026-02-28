@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/ordersExecutionFailed.yaml"
+messages:
+- "$ref": "../channels/ordersExecutionFailed.yaml#/messages/ordersExecutionFailed"
+summary: executionが注文執行失敗イベントを発行する。

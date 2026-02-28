@@ -1,0 +1,19 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - hypothesis.proposal.failed
+    payload:
+      "$ref": "./index.yaml#/FailedPayload"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: hypothesis.proposal.failed
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    reasonCode: INTERNAL_ERROR
+    detail: orchestration pipeline failed

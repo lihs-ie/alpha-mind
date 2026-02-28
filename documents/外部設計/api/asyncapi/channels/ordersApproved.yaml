@@ -1,0 +1,4 @@
+address: orders.approved
+messages:
+  ordersApproved:
+    "$ref": "../components/messages/index.yaml#/OrdersApproved"

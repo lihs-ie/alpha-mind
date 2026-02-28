@@ -1,0 +1,20 @@
+allOf:
+- "$ref": "./index.yaml#/EventEnvelope"
+- type: object
+  properties:
+    eventType:
+      type: string
+      enum:
+      - orders.approved
+    payload:
+      "$ref": "./index.yaml#/OrdersDecisionPayload"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  eventType: orders.approved
+  occurredAt: '2026-01-15T09:00:00Z'
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  schemaVersion: 1.0.0
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    decision: approved
+    actionReasonCode: MANUAL_OPERATION

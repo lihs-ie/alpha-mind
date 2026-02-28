@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/featuresGenerated.yaml"
+messages:
+- "$ref": "../channels/featuresGenerated.yaml#/messages/featuresGenerated"
+summary: feature-engineeringが特徴量生成完了イベントを発行する。

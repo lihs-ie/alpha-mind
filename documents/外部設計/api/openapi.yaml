@@ -1,0 +1,234 @@
+openapi: 3.1.1
+info:
+  title: Investment AI BFF API
+  version: 1.1.0
+  description: |
+    AI投資運用アプリのBFF向けOpenAPI定義。
+    画面外部設計（SCR-000〜SCR-007）とサービス外部設計を基に作成。
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+- url: https://api.alpha-mind.dev
+  description: production
+- url: https://staging.api.alpha-mind.dev
+  description: staging
+tags:
+- name: Health
+  description: ヘルスチェックAPI
+- name: Auth
+  description: 認証API
+- name: Dashboard
+  description: ダッシュボード表示API
+- name: Operations
+  description: 運用状態制御API
+- name: Commands
+  description: 手動実行コマンドAPI
+- name: Settings
+  description: 戦略設定API
+- name: Compliance
+  description: コンプライアンス制御API
+- name: Orders
+  description: 注文管理API
+- name: Audit
+  description: 監査ログAPI
+- name: Models
+  description: モデル検証API
+- name: Insights
+  description: インサイト管理API
+- name: Hypotheses
+  description: 仮説検証API
+security:
+- bearerAuth: []
+paths:
+  /healthz:
+    $ref: "./openapi/paths/healthz.yaml"
+  /auth/login:
+    $ref: "./openapi/paths/auth-login.yaml"
+  /dashboard/summary:
+    $ref: "./openapi/paths/dashboard-summary.yaml"
+  /operations/runtime:
+    $ref: "./openapi/paths/operations-runtime.yaml"
+  /operations/kill-switch:
+    $ref: "./openapi/paths/operations-kill-switch.yaml"
+  /commands/run-cycle:
+    $ref: "./openapi/paths/commands-run-cycle.yaml"
+  /commands/run-insight-cycle:
+    $ref: "./openapi/paths/commands-run-insight-cycle.yaml"
+  /settings/strategy:
+    $ref: "./openapi/paths/settings-strategy.yaml"
+  /compliance/controls:
+    $ref: "./openapi/paths/compliance-controls.yaml"
+  /orders:
+    $ref: "./openapi/paths/orders.yaml"
+  /orders/{identifier}:
+    $ref: "./openapi/paths/orders-identifier.yaml"
+  /orders/{identifier}/approve:
+    $ref: "./openapi/paths/orders-identifier-approve.yaml"
+  /orders/{identifier}/reject:
+    $ref: "./openapi/paths/orders-identifier-reject.yaml"
+  /orders/{identifier}/retry:
+    $ref: "./openapi/paths/orders-identifier-retry.yaml"
+  /audit:
+    $ref: "./openapi/paths/audit.yaml"
+  /audit/{identifier}:
+    $ref: "./openapi/paths/audit-identifier.yaml"
+  /insights:
+    $ref: "./openapi/paths/insights.yaml"
+  /insights/{identifier}:
+    $ref: "./openapi/paths/insights-identifier.yaml"
+  /insights/{identifier}/adopt:
+    $ref: "./openapi/paths/insights-identifier-adopt.yaml"
+  /insights/{identifier}/reject:
+    $ref: "./openapi/paths/insights-identifier-reject.yaml"
+  /insights/{identifier}/hypothesize:
+    $ref: "./openapi/paths/insights-identifier-hypothesize.yaml"
+  /hypotheses:
+    $ref: "./openapi/paths/hypotheses.yaml"
+  /hypotheses/{identifier}:
+    $ref: "./openapi/paths/hypotheses-identifier.yaml"
+  /hypotheses/{identifier}/promote:
+    $ref: "./openapi/paths/hypotheses-identifier-promote.yaml"
+  /hypotheses/{identifier}/mnpi-self-declaration:
+    $ref: "./openapi/paths/hypotheses-identifier-mnpi-self-declaration.yaml"
+  /hypotheses/{identifier}/reject:
+    $ref: "./openapi/paths/hypotheses-identifier-reject.yaml"
+  /hypotheses/{identifier}/retest:
+    $ref: "./openapi/paths/hypotheses-identifier-retest.yaml"
+  /models/validation:
+    $ref: "./openapi/paths/models-validation.yaml"
+  /models/validation/{modelVersion}:
+    $ref: "./openapi/paths/models-validation-modelVersion.yaml"
+  /models/validation/{modelVersion}/approve:
+    $ref: "./openapi/paths/models-validation-modelVersion-approve.yaml"
+  /models/validation/{modelVersion}/reject:
+    $ref: "./openapi/paths/models-validation-modelVersion-reject.yaml"
+components:
+  schemas:
+    HealthResponse:
+      $ref: "./openapi/components/schemas/HealthResponse.yaml"
+    LoginRequest:
+      $ref: "./openapi/components/schemas/LoginRequest.yaml"
+    LoginResponse:
+      $ref: "./openapi/components/schemas/LoginResponse.yaml"
+    User:
+      $ref: "./openapi/components/schemas/User.yaml"
+    DashboardSummary:
+      $ref: "./openapi/components/schemas/DashboardSummary.yaml"
+    RuntimeOperationRequest:
+      $ref: "./openapi/components/schemas/RuntimeOperationRequest.yaml"
+    KillSwitchRequest:
+      $ref: "./openapi/components/schemas/KillSwitchRequest.yaml"
+    RunCycleRequest:
+      $ref: "./openapi/components/schemas/RunCycleRequest.yaml"
+    CommandAccepted:
+      $ref: "./openapi/components/schemas/CommandAccepted.yaml"
+    OperationResult:
+      $ref: "./openapi/components/schemas/OperationResult.yaml"
+    StrategySettings:
+      $ref: "./openapi/components/schemas/StrategySettings.yaml"
+    StrategySettingsUpdate:
+      $ref: "./openapi/components/schemas/StrategySettingsUpdate.yaml"
+    ComplianceControls:
+      $ref: "./openapi/components/schemas/ComplianceControls.yaml"
+    ComplianceControlsUpdate:
+      $ref: "./openapi/components/schemas/ComplianceControlsUpdate.yaml"
+    BlackoutWindow:
+      $ref: "./openapi/components/schemas/BlackoutWindow.yaml"
+    SourcePolicy:
+      $ref: "./openapi/components/schemas/SourcePolicy.yaml"
+    OrderListResponse:
+      $ref: "./openapi/components/schemas/OrderListResponse.yaml"
+    OrderSummary:
+      $ref: "./openapi/components/schemas/OrderSummary.yaml"
+    OrderDetail:
+      $ref: "./openapi/components/schemas/OrderDetail.yaml"
+    ApproveOrderRequest:
+      $ref: "./openapi/components/schemas/ApproveOrderRequest.yaml"
+    RejectOrderRequest:
+      $ref: "./openapi/components/schemas/RejectOrderRequest.yaml"
+    AuditListResponse:
+      $ref: "./openapi/components/schemas/AuditListResponse.yaml"
+    AuditSummary:
+      $ref: "./openapi/components/schemas/AuditSummary.yaml"
+    AuditDetail:
+      $ref: "./openapi/components/schemas/AuditDetail.yaml"
+    InsightListResponse:
+      $ref: "./openapi/components/schemas/InsightListResponse.yaml"
+    InsightSummary:
+      $ref: "./openapi/components/schemas/InsightSummary.yaml"
+    InsightDetail:
+      $ref: "./openapi/components/schemas/InsightDetail.yaml"
+    InsightDecisionRequest:
+      $ref: "./openapi/components/schemas/InsightDecisionRequest.yaml"
+    HypothesisListResponse:
+      $ref: "./openapi/components/schemas/HypothesisListResponse.yaml"
+    HypothesisSummary:
+      $ref: "./openapi/components/schemas/HypothesisSummary.yaml"
+    HypothesisDetail:
+      $ref: "./openapi/components/schemas/HypothesisDetail.yaml"
+    HypothesisDecisionRequest:
+      $ref: "./openapi/components/schemas/HypothesisDecisionRequest.yaml"
+    HypothesisRejectRequest:
+      $ref: "./openapi/components/schemas/HypothesisRejectRequest.yaml"
+    HypothesisMnpiSelfDeclarationUpdate:
+      $ref: "./openapi/components/schemas/HypothesisMnpiSelfDeclarationUpdate.yaml"
+    ModelValidationListResponse:
+      $ref: "./openapi/components/schemas/ModelValidationListResponse.yaml"
+    ModelValidationSummary:
+      $ref: "./openapi/components/schemas/ModelValidationSummary.yaml"
+    ModelValidationDetail:
+      $ref: "./openapi/components/schemas/ModelValidationDetail.yaml"
+    ModelMetrics:
+      $ref: "./openapi/components/schemas/ModelMetrics.yaml"
+    ModelDecisionRequest:
+      $ref: "./openapi/components/schemas/ModelDecisionRequest.yaml"
+    SafeComment:
+      $ref: "./openapi/components/schemas/SafeComment.yaml"
+    OperatorActionReasonCode:
+      $ref: "./openapi/components/schemas/OperatorActionReasonCode.yaml"
+    DegradationFlag:
+      $ref: "./openapi/components/schemas/DegradationFlag.yaml"
+    Problem:
+      $ref: "./openapi/components/schemas/Problem.yaml"
+    ReasonCode:
+      $ref: "./openapi/components/schemas/ReasonCode.yaml"
+  responses:
+    BadRequest:
+      $ref: "./openapi/components/responses/BadRequest.yaml"
+    Unauthorized:
+      $ref: "./openapi/components/responses/Unauthorized.yaml"
+    Forbidden:
+      $ref: "./openapi/components/responses/Forbidden.yaml"
+    NotFound:
+      $ref: "./openapi/components/responses/NotFound.yaml"
+    Conflict:
+      $ref: "./openapi/components/responses/Conflict.yaml"
+    UnprocessableEntity:
+      $ref: "./openapi/components/responses/UnprocessableEntity.yaml"
+    ServiceUnavailable:
+      $ref: "./openapi/components/responses/ServiceUnavailable.yaml"
+  parameters:
+    Identifier:
+      $ref: "./openapi/components/parameters/Identifier.yaml"
+    ModelVersion:
+      $ref: "./openapi/components/parameters/ModelVersion.yaml"
+    OrderStatus:
+      $ref: "./openapi/components/parameters/OrderStatus.yaml"
+    Symbol:
+      $ref: "./openapi/components/parameters/Symbol.yaml"
+    From:
+      $ref: "./openapi/components/parameters/From.yaml"
+    To:
+      $ref: "./openapi/components/parameters/To.yaml"
+    Limit:
+      $ref: "./openapi/components/parameters/Limit.yaml"
+    Cursor:
+      $ref: "./openapi/components/parameters/Cursor.yaml"
+    Trace:
+      $ref: "./openapi/components/parameters/Trace.yaml"
+    EventType:
+      $ref: "./openapi/components/parameters/EventType.yaml"
+  securitySchemes:
+    bearerAuth:
+      $ref: "./openapi/components/securitySchemes/bearerAuth.yaml"

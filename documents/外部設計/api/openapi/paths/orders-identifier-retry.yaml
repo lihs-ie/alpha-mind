@@ -1,0 +1,20 @@
+post:
+  tags:
+  - Orders
+  summary: 失敗注文の再送
+  operationId: postOrderRetry
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
+  responses:
+    '202':
+      description: Retry accepted
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/CommandAccepted"
+          example:
+            accepted: true
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

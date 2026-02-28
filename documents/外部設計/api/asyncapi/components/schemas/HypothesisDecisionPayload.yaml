@@ -1,0 +1,39 @@
+type: object
+required:
+- identifier
+- decision
+- actionReasonCode
+- promotionMode
+- mnpiSelfDeclared
+- insiderRisk
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  decision:
+    type: string
+    enum:
+    - promoted
+    - rejected
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+  promotionMode:
+    type: string
+    enum:
+    - manual
+    - auto
+  mnpiSelfDeclared:
+    type: boolean
+  insiderRisk:
+    type: string
+    enum:
+    - low
+    - medium
+    - high
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  decision: promoted
+  actionReasonCode: AUTO_PROMOTION_POLICY_MATCH
+  promotionMode: auto
+  mnpiSelfDeclared: true
+  insiderRisk: low

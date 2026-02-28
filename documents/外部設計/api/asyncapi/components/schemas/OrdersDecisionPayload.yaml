@@ -1,0 +1,29 @@
+type: object
+required:
+- identifier
+- decision
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  decision:
+    type: string
+    enum:
+    - approved
+    - rejected
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+allOf:
+- if:
+    properties:
+      decision:
+        const: rejected
+  then:
+    required:
+    - reasonCode
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  decision: approved
+  actionReasonCode: MANUAL_OPERATION

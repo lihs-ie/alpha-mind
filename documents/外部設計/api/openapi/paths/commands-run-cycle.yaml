@@ -1,0 +1,26 @@
+post:
+  tags:
+  - Commands
+  summary: 手動運用サイクル実行
+  operationId: postCommandsRunCycle
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/RunCycleRequest"
+        example:
+          mode: manual
+  responses:
+    '202':
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/CommandAccepted"
+          example:
+            accepted: true
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

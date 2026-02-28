@@ -1,0 +1,32 @@
+type: object
+required:
+- type
+- title
+- status
+- reasonCode
+properties:
+  type:
+    type: string
+    format: uri
+    default: about:blank
+  title:
+    type: string
+  status:
+    type: integer
+  detail:
+    type: string
+  instance:
+    type: string
+  trace:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+  retryable:
+    type: boolean
+example:
+  type: about:blank
+  title: Unauthorized
+  status: 401
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  reasonCode: AUTH_INVALID_CREDENTIALS

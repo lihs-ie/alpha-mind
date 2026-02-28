@@ -1,0 +1,88 @@
+HealthResponse:
+  "$ref": "./HealthResponse.yaml"
+LoginRequest:
+  "$ref": "./LoginRequest.yaml"
+LoginResponse:
+  "$ref": "./LoginResponse.yaml"
+User:
+  "$ref": "./User.yaml"
+DashboardSummary:
+  "$ref": "./DashboardSummary.yaml"
+RuntimeOperationRequest:
+  "$ref": "./RuntimeOperationRequest.yaml"
+KillSwitchRequest:
+  "$ref": "./KillSwitchRequest.yaml"
+RunCycleRequest:
+  "$ref": "./RunCycleRequest.yaml"
+CommandAccepted:
+  "$ref": "./CommandAccepted.yaml"
+OperationResult:
+  "$ref": "./OperationResult.yaml"
+StrategySettings:
+  "$ref": "./StrategySettings.yaml"
+StrategySettingsUpdate:
+  "$ref": "./StrategySettingsUpdate.yaml"
+ComplianceControls:
+  "$ref": "./ComplianceControls.yaml"
+ComplianceControlsUpdate:
+  "$ref": "./ComplianceControlsUpdate.yaml"
+BlackoutWindow:
+  "$ref": "./BlackoutWindow.yaml"
+SourcePolicy:
+  "$ref": "./SourcePolicy.yaml"
+OrderListResponse:
+  "$ref": "./OrderListResponse.yaml"
+OrderSummary:
+  "$ref": "./OrderSummary.yaml"
+OrderDetail:
+  "$ref": "./OrderDetail.yaml"
+ApproveOrderRequest:
+  "$ref": "./ApproveOrderRequest.yaml"
+RejectOrderRequest:
+  "$ref": "./RejectOrderRequest.yaml"
+AuditListResponse:
+  "$ref": "./AuditListResponse.yaml"
+AuditSummary:
+  "$ref": "./AuditSummary.yaml"
+AuditDetail:
+  "$ref": "./AuditDetail.yaml"
+InsightListResponse:
+  "$ref": "./InsightListResponse.yaml"
+InsightSummary:
+  "$ref": "./InsightSummary.yaml"
+InsightDetail:
+  "$ref": "./InsightDetail.yaml"
+InsightDecisionRequest:
+  "$ref": "./InsightDecisionRequest.yaml"
+HypothesisListResponse:
+  "$ref": "./HypothesisListResponse.yaml"
+HypothesisSummary:
+  "$ref": "./HypothesisSummary.yaml"
+HypothesisDetail:
+  "$ref": "./HypothesisDetail.yaml"
+HypothesisDecisionRequest:
+  "$ref": "./HypothesisDecisionRequest.yaml"
+HypothesisRejectRequest:
+  "$ref": "./HypothesisRejectRequest.yaml"
+HypothesisMnpiSelfDeclarationUpdate:
+  "$ref": "./HypothesisMnpiSelfDeclarationUpdate.yaml"
+ModelValidationListResponse:
+  "$ref": "./ModelValidationListResponse.yaml"
+ModelValidationSummary:
+  "$ref": "./ModelValidationSummary.yaml"
+ModelValidationDetail:
+  "$ref": "./ModelValidationDetail.yaml"
+ModelMetrics:
+  "$ref": "./ModelMetrics.yaml"
+ModelDecisionRequest:
+  "$ref": "./ModelDecisionRequest.yaml"
+SafeComment:
+  "$ref": "./SafeComment.yaml"
+OperatorActionReasonCode:
+  "$ref": "./OperatorActionReasonCode.yaml"
+DegradationFlag:
+  "$ref": "./DegradationFlag.yaml"
+Problem:
+  "$ref": "./Problem.yaml"
+ReasonCode:
+  "$ref": "./ReasonCode.yaml"

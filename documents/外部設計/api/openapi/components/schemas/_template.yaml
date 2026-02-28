@@ -1,0 +1,10 @@
+TemplateResponse:
+  type: object
+  additionalProperties: false
+  required:
+    - identifier
+  properties:
+    identifier:
+      type: string
+    user:
+      type: string

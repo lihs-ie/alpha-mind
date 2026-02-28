@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/hypothesisProposed.yaml"
+messages:
+- "$ref": "../channels/hypothesisProposed.yaml#/messages/hypothesisProposed"
+summary: agent-orchestratorが仮説提案を発行する。

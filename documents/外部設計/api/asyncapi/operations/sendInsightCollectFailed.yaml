@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/insightCollectFailed.yaml"
+messages:
+- "$ref": "../channels/insightCollectFailed.yaml#/messages/insightCollectFailed"
+summary: insight-collectorがインサイト収集失敗イベントを発行する。

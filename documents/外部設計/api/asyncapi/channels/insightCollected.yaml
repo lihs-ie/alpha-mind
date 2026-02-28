@@ -1,0 +1,4 @@
+address: insight.collected
+messages:
+  insightCollected:
+    "$ref": "../components/messages/index.yaml#/InsightCollected"

@@ -1,0 +1,4 @@
+address: audit.recorded
+messages:
+  auditRecorded:
+    "$ref": "../components/messages/index.yaml#/AuditRecorded"

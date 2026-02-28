@@ -1,0 +1,28 @@
+post:
+  tags:
+  - Insights
+  summary: インサイトから仮説化
+  operationId: postInsightHypothesize
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/InsightIdentifier"
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/InsightDecisionRequest"
+  responses:
+    '202':
+      description: Hypothesis creation accepted
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/CommandAccepted"
+          example:
+            accepted: true
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

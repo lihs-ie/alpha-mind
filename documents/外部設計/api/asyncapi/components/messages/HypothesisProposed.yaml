@@ -1,0 +1,24 @@
+name: HypothesisProposed
+title: hypothesis.proposed
+payload:
+  "$ref": "../schemas/index.yaml#/HypothesisProposedEvent"
+examples:
+- name: default
+  summary: Default example
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    eventType: hypothesis.proposed
+    occurredAt: '2026-01-15T09:00:00Z'
+    trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    schemaVersion: 1.0.0
+    payload:
+      identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      symbol: 1306.T
+      instrumentType: ETF
+      insiderRisk: low
+      title: 低ボラETFの押し目反発仮説
+      sourceEvidence:
+      - insight-20260115-001
+      mnpiSelfDeclared: false
+      skillVersion: skill-cross-sectional@1.4.0
+      instructionProfileVersion: conservative-jp-equity@2.1.0

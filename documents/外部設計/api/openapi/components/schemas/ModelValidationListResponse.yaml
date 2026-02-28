@@ -1,0 +1,14 @@
+type: object
+required:
+- items
+properties:
+  items:
+    type: array
+    items:
+      "$ref": "./index.yaml#/ModelValidationSummary"
+example:
+  items:
+  - modelVersion: string
+    status: candidate
+    degradationFlag: normal
+    createdAt: '2026-01-15T09:00:00Z'

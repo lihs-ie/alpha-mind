@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/marketCollected.yaml"
+messages:
+- "$ref": "../channels/marketCollected.yaml#/messages/marketCollected"
+summary: data-collectorが収集成功イベントを発行する。

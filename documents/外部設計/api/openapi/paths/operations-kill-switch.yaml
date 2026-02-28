@@ -1,0 +1,25 @@
+post:
+  tags:
+  - Operations
+  summary: kill switchの切替
+  operationId: postOperationsKillSwitch
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/KillSwitchRequest"
+        example:
+          enabled: true
+  responses:
+    '200':
+      description: Kill switch operation result
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

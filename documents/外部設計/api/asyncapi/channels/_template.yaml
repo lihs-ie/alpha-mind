@@ -1,0 +1,5 @@
+sampleChannel:
+  address: sample.event
+  messages:
+    sampleMessage:
+      $ref: '../components/messages/index.yaml#/SampleMessage'

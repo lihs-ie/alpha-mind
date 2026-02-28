@@ -1,0 +1,9 @@
+type: object
+required:
+- identifier
+properties:
+  identifier:
+    type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV

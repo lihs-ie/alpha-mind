@@ -1,0 +1,21 @@
+type: object
+required:
+- actionReasonCode
+- mnpiSelfDeclared
+x-compliance-guard:
+  mnpiDlpCheck: true
+  onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
+properties:
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+  comment:
+    "$ref": "./index.yaml#/SafeComment"
+  mnpiSelfDeclared:
+    type: boolean
+    enum:
+    - true
+    description: 昇格時のMNPI未保有自己申告。trueのみ許可。
+example:
+  actionReasonCode: MODEL_REVIEW_DECISION
+  comment: デモ期間1か月超と劣化フラグなしを確認
+  mnpiSelfDeclared: true

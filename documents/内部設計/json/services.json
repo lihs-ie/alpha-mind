@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "updatedAt": "2026-02-24",
+  "services": [
+    {
+      "serviceId": "bff",
+      "file": "内部設計/json/bff.json"
+    },
+    {
+      "serviceId": "data-collector",
+      "file": "内部設計/json/data-collector.json"
+    },
+    {
+      "serviceId": "feature-engineering",
+      "file": "内部設計/json/feature-engineering.json"
+    },
+    {
+      "serviceId": "signal-generator",
+      "file": "内部設計/json/signal-generator.json"
+    },
+    {
+      "serviceId": "portfolio-planner",
+      "file": "内部設計/json/portfolio-planner.json"
+    },
+    {
+      "serviceId": "risk-guard",
+      "file": "内部設計/json/risk-guard.json"
+    },
+    {
+      "serviceId": "execution",
+      "file": "内部設計/json/execution.json"
+    },
+    {
+      "serviceId": "audit-log",
+      "file": "内部設計/json/audit-log.json"
+    },
+    {
+      "serviceId": "insight-collector",
+      "file": "内部設計/json/insight-collector.json"
+    },
+    {
+      "serviceId": "agent-orchestrator",
+      "file": "内部設計/json/agent-orchestrator.json"
+    },
+    {
+      "serviceId": "hypothesis-lab",
+      "file": "内部設計/json/hypothesis-lab.json"
+    }
+  ]
+}

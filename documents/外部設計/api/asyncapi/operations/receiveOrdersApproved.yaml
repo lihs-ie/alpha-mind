@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/ordersApproved.yaml"
+messages:
+- "$ref": "../channels/ordersApproved.yaml#/messages/ordersApproved"
+summary: executionが承認イベントを購読する。

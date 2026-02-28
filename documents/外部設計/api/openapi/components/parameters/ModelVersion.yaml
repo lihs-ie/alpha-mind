@@ -1,0 +1,6 @@
+in: path
+name: modelVersion
+required: true
+schema:
+  type: string
+example: string

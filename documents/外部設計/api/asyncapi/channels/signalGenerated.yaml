@@ -1,0 +1,4 @@
+address: signal.generated
+messages:
+  signalGenerated:
+    "$ref": "../components/messages/index.yaml#/SignalGenerated"

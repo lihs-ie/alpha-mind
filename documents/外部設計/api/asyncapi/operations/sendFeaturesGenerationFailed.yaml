@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/featuresGenerationFailed.yaml"
+messages:
+- "$ref": "../channels/featuresGenerationFailed.yaml#/messages/featuresGenerationFailed"
+summary: feature-engineeringが特徴量生成失敗イベントを発行する。

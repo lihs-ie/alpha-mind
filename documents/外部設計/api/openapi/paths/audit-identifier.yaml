@@ -1,0 +1,26 @@
+get:
+  tags:
+  - Audit
+  summary: 監査ログ詳細取得
+  operationId: getAuditLogByIdentifier
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/AuditIdentifier"
+  responses:
+    '200':
+      description: Audit detail
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/AuditDetail"
+          example:
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            occurredAt: '2026-01-15T09:00:00Z'
+            eventType: string
+            service: string
+            result: success
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            payload:
+              key: value
+            reason: MANUAL_OPERATION
+    '404':
+      "$ref": "../components/responses/index.yaml#/NotFound"

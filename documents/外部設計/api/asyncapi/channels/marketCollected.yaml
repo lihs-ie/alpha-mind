@@ -1,0 +1,4 @@
+address: market.collected
+messages:
+  marketCollected:
+    "$ref": "../components/messages/index.yaml#/MarketCollected"

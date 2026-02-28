@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/ordersProposalFailed.yaml"
+messages:
+- "$ref": "../channels/ordersProposalFailed.yaml#/messages/ordersProposalFailed"
+summary: portfolio-plannerが注文提案失敗イベントを発行する。

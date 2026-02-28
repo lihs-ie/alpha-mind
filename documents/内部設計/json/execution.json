@@ -1,0 +1,85 @@
+{
+  "serviceId": "execution",
+  "version": "1.2.0",
+  "role": "承認済み注文をブローカーへ送信し、執行結果を記録・通知する。",
+  "aiResponsibility": false,
+  "runtime": {
+    "platform": "Cloud Run",
+    "language": "TypeScript",
+    "networkExposure": "private"
+  },
+  "interfaces": {
+    "events": {
+      "subscribe": [
+        "orders.approved"
+      ],
+      "publish": [
+        "orders.executed",
+        "orders.execution.failed",
+        "hypothesis.demo.completed"
+      ]
+    }
+  },
+  "dependencies": {
+    "datastores": [
+      "Firestore:orders",
+      "Firestore:audit_logs",
+      "Firestore:idempotency_keys",
+      "Firestore:demo_trade_runs"
+    ],
+    "messaging": [
+      "Pub/Sub"
+    ],
+    "external": [
+      "Broker Order API",
+      "Secret Manager"
+    ]
+  },
+  "workflow": [
+    "orders.approved受信",
+    "重複発注防止チェック",
+    "ブローカーへ発注",
+    "執行結果保存",
+    "orders.executed or orders.execution.failed発行",
+    "（デモ運用時）hypothesis.demo.completed発行"
+  ],
+  "idempotency": {
+    "enabled": true,
+    "key": "identifier",
+    "store": "Firestore:idempotency_keys",
+    "guard": "同一identifierで外部発注を再実行しない"
+  },
+  "retryPolicy": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "retryableErrors": [
+      "EXECUTION_BROKER_TIMEOUT",
+      "DEPENDENCY_UNAVAILABLE"
+    ],
+    "nonRetryableErrors": [
+      "EXECUTION_INSUFFICIENT_FUNDS",
+      "EXECUTION_BROKER_REJECTED",
+      "EXECUTION_MARKET_CLOSED"
+    ]
+  },
+  "slo": {
+    "acceptedToExecutionWithinSeconds": 30,
+    "successRate": "99.0%"
+  },
+  "observability": {
+    "metrics": [
+      "execution_success_total",
+      "execution_failure_total",
+      "broker_api_latency_ms"
+    ],
+    "logFields": [
+      "trace",
+      "identifier",
+      "brokerOrder",
+      "result"
+    ],
+    "alerts": [
+      "execution_failure_rate > 3% for 15m"
+    ]
+  }
+}

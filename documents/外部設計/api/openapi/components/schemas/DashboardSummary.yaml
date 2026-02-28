@@ -1,0 +1,36 @@
+type: object
+required:
+- pnlToday
+- pnlTotal
+- maxDrawdown
+- runtimeState
+- killSwitchEnabled
+- latestSignalAt
+properties:
+  pnlToday:
+    type: number
+    format: double
+  pnlTotal:
+    type: number
+    format: double
+  maxDrawdown:
+    type: number
+    format: double
+    description: percentage value
+  runtimeState:
+    type: string
+    enum:
+    - RUNNING
+    - STOPPED
+  killSwitchEnabled:
+    type: boolean
+  latestSignalAt:
+    type: string
+    format: date-time
+example:
+  pnlToday: 1.0
+  pnlTotal: 1.0
+  maxDrawdown: 1.0
+  runtimeState: RUNNING
+  killSwitchEnabled: true
+  latestSignalAt: '2026-01-15T09:00:00Z'

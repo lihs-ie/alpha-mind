@@ -1,0 +1,28 @@
+post:
+  tags:
+  - Orders
+  summary: 注文承認
+  operationId: postOrderApprove
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          "$ref": "../components/schemas/index.yaml#/ApproveOrderRequest"
+        example:
+          actionReasonCode: MANUAL_OPERATION
+          comment: operator comment
+  responses:
+    '200':
+      description: Approved
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/OperationResult"
+          example:
+            success: true
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '409':
+      "$ref": "../components/responses/index.yaml#/Conflict"

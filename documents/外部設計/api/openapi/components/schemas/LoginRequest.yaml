@@ -1,0 +1,14 @@
+type: object
+required:
+- email
+- password
+properties:
+  email:
+    type: string
+    format: email
+  password:
+    type: string
+    format: password
+example:
+  email: user@example.com
+  password: P@ssw0rd123!

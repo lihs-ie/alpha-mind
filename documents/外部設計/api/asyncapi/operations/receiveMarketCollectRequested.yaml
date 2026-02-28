@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/marketCollectRequested.yaml"
+messages:
+- "$ref": "../channels/marketCollectRequested.yaml#/messages/marketCollectRequested"
+summary: data-collectorが収集要求を購読する。

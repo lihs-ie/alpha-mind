@@ -1,0 +1,29 @@
+get:
+  tags:
+  - Audit
+  summary: 監査ログ一覧取得
+  operationId: getAuditLogs
+  parameters:
+  - "$ref": "../components/parameters/index.yaml#/Trace"
+  - "$ref": "../components/parameters/index.yaml#/EventType"
+  - "$ref": "../components/parameters/index.yaml#/From"
+  - "$ref": "../components/parameters/index.yaml#/To"
+  - "$ref": "../components/parameters/index.yaml#/Limit"
+  - "$ref": "../components/parameters/index.yaml#/Cursor"
+  responses:
+    '200':
+      description: Audit log list
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/AuditListResponse"
+          example:
+            items:
+            - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+              occurredAt: '2026-01-15T09:00:00Z'
+              eventType: string
+              service: string
+              result: success
+              trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

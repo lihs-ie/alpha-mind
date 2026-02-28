@@ -1,0 +1,20 @@
+allOf:
+- "$ref": "./index.yaml#/ComplianceControls"
+example:
+  restrictedSymbols:
+  - AAPL
+  partnerRestrictedSymbols:
+  - 7203.T
+  blackoutWindows:
+  - symbol: AAPL
+    startAt: '2026-01-15T09:00:00Z'
+    endAt: '2026-01-15T09:00:00Z'
+    actionReasonCode: MANUAL_OPERATION
+  sourcePolicies:
+  - sourceType: youtube
+    enabled: true
+    termsVersion: v2026-01
+    redistributionAllowed: false
+    dailyQuota: 500
+  maxCommentLength: 120
+  autoPromotionEnabled: true

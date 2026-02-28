@@ -1,0 +1,17 @@
+name: FeaturesGenerated
+title: features.generated
+payload:
+  "$ref": "../schemas/index.yaml#/FeaturesGeneratedEvent"
+examples:
+- name: default
+  summary: Default example
+  payload:
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    eventType: features.generated
+    occurredAt: '2026-01-15T09:00:00Z'
+    trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    schemaVersion: 1.0.0
+    payload:
+      targetDate: '2026-01-15'
+      featureVersion: string
+      storagePath: string

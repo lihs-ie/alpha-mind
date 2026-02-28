@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/ordersProposed.yaml"
+messages:
+- "$ref": "../channels/ordersProposed.yaml#/messages/ordersProposed"
+summary: risk-guardが注文候補イベントを購読する。

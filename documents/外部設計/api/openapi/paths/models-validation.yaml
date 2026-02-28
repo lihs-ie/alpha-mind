@@ -1,0 +1,33 @@
+get:
+  tags:
+  - Models
+  summary: モデル検証一覧取得
+  operationId: getModelValidations
+  parameters:
+  - in: query
+    name: status
+    schema:
+      type: string
+      enum:
+      - candidate
+      - approved
+      - rejected
+  - in: query
+    name: degradationFlag
+    schema:
+      "$ref": "../components/schemas/index.yaml#/DegradationFlag"
+  responses:
+    '200':
+      description: Model validation list
+      content:
+        application/json:
+          schema:
+            "$ref": "../components/schemas/index.yaml#/ModelValidationListResponse"
+          example:
+            items:
+            - modelVersion: string
+              status: candidate
+              degradationFlag: normal
+              createdAt: '2026-01-15T09:00:00Z'
+    '400':
+      "$ref": "../components/responses/index.yaml#/BadRequest"

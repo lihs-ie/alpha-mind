@@ -1,0 +1,14 @@
+type: object
+required:
+- actionReasonCode
+x-compliance-guard:
+  mnpiDlpCheck: true
+  onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
+properties:
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+  comment:
+    "$ref": "./index.yaml#/SafeComment"
+example:
+  actionReasonCode: MANUAL_OPERATION
+  comment: 根拠品質を確認済み

@@ -1,0 +1,14 @@
+type: object
+required:
+- status
+- time
+properties:
+  status:
+    type: string
+    example: ok
+  time:
+    type: string
+    format: date-time
+example:
+  status: ok
+  time: '2026-01-15T09:00:00Z'

@@ -1,0 +1,137 @@
+{
+  "version": "2026-02-24",
+  "window": "30d",
+  "slos": [
+    {
+      "id": "SLO-001",
+      "name": "BFF availability",
+      "service": "bff",
+      "sli": "successful_requests / total_requests",
+      "objective": 0.995,
+      "latencyTargetMsP95": 500,
+      "exclusions": [
+        "/healthz"
+      ]
+    },
+    {
+      "id": "SLO-002",
+      "name": "Daily data collection completion",
+      "service": "data-collector",
+      "sli": "completed_before_deadline_days / scheduled_business_days",
+      "objective": 0.99,
+      "deadlineJst": "07:00"
+    },
+    {
+      "id": "SLO-003",
+      "name": "Signal generation success within 15 minutes",
+      "service": "signal-generator",
+      "sli": "signals_generated_within_15m / features_generated_events",
+      "objective": 0.99
+    },
+    {
+      "id": "SLO-004",
+      "name": "Approved order send success",
+      "service": "execution",
+      "sli": "orders_sent_successfully / approved_orders",
+      "objective": 0.995,
+      "note": "Orders excluded when kill switch is enabled"
+    },
+    {
+      "id": "SLO-005",
+      "name": "Kill switch propagation",
+      "service": "risk-guard",
+      "sli": "new_orders_blocked_within_30s / kill_switch_enable_events",
+      "objective": 0.999
+    },
+    {
+      "id": "SLO-006",
+      "name": "Insight evidence attachment ratio",
+      "service": "insight-collector",
+      "sli": "insights_with_evidence / insights_total",
+      "objective": 0.99
+    },
+    {
+      "id": "SLO-007",
+      "name": "Hypothesis validation completion within 7 days",
+      "service": "hypothesis-lab",
+      "sli": "validated_hypotheses_within_7d / proposed_hypotheses",
+      "objective": 0.95
+    }
+  ],
+  "burnRateAlerts": [
+    {
+      "id": "ALERT-CRITICAL",
+      "level": "page",
+      "burnRateThreshold": 14.4,
+      "windows": [
+        "5m",
+        "1h"
+      ]
+    },
+    {
+      "id": "ALERT-HIGH",
+      "level": "page",
+      "burnRateThreshold": 6,
+      "windows": [
+        "30m",
+        "6h"
+      ]
+    },
+    {
+      "id": "ALERT-TICKET",
+      "level": "ticket",
+      "burnRateThreshold": 1,
+      "windows": [
+        "6h",
+        "3d"
+      ]
+    }
+  ],
+  "supplementalMonitors": [
+    {
+      "id": "MON-001",
+      "name": "Model degradation block ratio",
+      "service": "signal-generator",
+      "metric": "degradation_blocked_total / model_evaluated_total",
+      "window": "7d",
+      "warningThreshold": 0.1,
+      "criticalThreshold": 0.2,
+      "runbook": "RB-AI-001"
+    },
+    {
+      "id": "MON-002",
+      "name": "Cost-adjusted sharpe deterioration",
+      "service": "signal-generator",
+      "metric": "cost_adjusted_sharpe_7d - cost_adjusted_sharpe_30d",
+      "window": "1d",
+      "warningThreshold": -0.2,
+      "criticalThreshold": -0.4,
+      "runbook": "RB-AI-001"
+    },
+    {
+      "id": "MON-003",
+      "name": "Compliance review required events",
+      "service": "bff",
+      "metric": "compliance_review_required_total",
+      "window": "1d",
+      "warningThreshold": 1,
+      "criticalThreshold": 3,
+      "runbook": "RB-AI-002"
+    },
+    {
+      "id": "MON-004",
+      "name": "Duplicate hypothesis ratio",
+      "service": "agent-orchestrator",
+      "metric": "hypothesis_duplicate_blocked_total / hypothesis_proposed_total",
+      "window": "7d",
+      "warningThreshold": 0.1,
+      "criticalThreshold": 0.2,
+      "runbook": "RB-AI-004"
+    }
+  ],
+  "errorBudgetPolicy": {
+    "lessThan50PercentConsumed": "normal_operation",
+    "atLeast50PercentConsumed": "freeze_feature_releases",
+    "atLeast100PercentConsumed": "freeze_all_changes_and_focus_reliability"
+  }
+}

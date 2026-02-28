@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/marketCollectRequested.yaml"
+messages:
+- "$ref": "../channels/marketCollectRequested.yaml#/messages/marketCollectRequested"
+summary: BFF/スケジューラがデータ収集要求を発行する。

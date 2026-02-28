@@ -1,0 +1,6 @@
+action: receive
+channel:
+  "$ref": "../channels/hypothesisProposed.yaml"
+messages:
+- "$ref": "../channels/hypothesisProposed.yaml#/messages/hypothesisProposed"
+summary: hypothesis-labが仮説提案を購読する。

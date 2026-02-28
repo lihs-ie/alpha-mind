@@ -1,0 +1,25 @@
+allOf:
+- "$ref": "./index.yaml#/OrderSummary"
+- type: object
+  properties:
+    reasonCode:
+      "$ref": "./index.yaml#/ReasonCode"
+    trace:
+      type: string
+      pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+    brokerOrder:
+      type:
+      - string
+      - 'null'
+    updatedAt:
+      type: string
+      format: date-time
+example:
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+  symbol: AAPL
+  side: BUY
+  qty: 1.0
+  status: FAILED
+  createdAt: '2026-01-15T09:00:00Z'
+  reasonCode: EXECUTION_BROKER_TIMEOUT
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
