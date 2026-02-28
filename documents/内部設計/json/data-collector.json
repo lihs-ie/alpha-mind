@@ -1,6 +1,6 @@
 {
   "serviceId": "data-collector",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "role": "市場データを取得し、正規化して保存し、後続処理イベントを発行する。",
   "aiResponsibility": false,
   "runtime": {
@@ -62,8 +62,7 @@
       },
       "market.collect.failed": {
         "required": [
-          "payload.reasonCode",
-          "payload.failedSource"
+          "payload.reasonCode"
         ]
       }
     }
@@ -77,13 +76,13 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "source_timeout",
-      "source_5xx",
-      "temporary_network_error"
+      "DATA_SOURCE_TIMEOUT",
+      "DATA_SOURCE_UNAVAILABLE",
+      "DEPENDENCY_TIMEOUT"
     ],
     "nonRetryableErrors": [
-      "invalid_payload",
-      "unsupported_schema"
+      "REQUEST_VALIDATION_FAILED",
+      "DATA_SCHEMA_INVALID"
     ]
   },
   "failureHandling": {

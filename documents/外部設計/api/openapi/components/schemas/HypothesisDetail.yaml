@@ -1,6 +1,10 @@
 allOf:
 - "$ref": "./index.yaml#/HypothesisSummary"
 - type: object
+  required:
+  - sourceEvidence
+  - skillVersion
+  - instructionProfileVersion
   properties:
     costAdjustedReturn:
       type: number

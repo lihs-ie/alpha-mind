@@ -1,6 +1,6 @@
 {
   "serviceId": "feature-engineering",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "role": "市場データから学習・推論用特徴量を生成し、バージョン管理して保存する。",
   "aiResponsibility": true,
   "runtime": {
@@ -49,6 +49,11 @@
           "payload.storagePath",
           "payload.targetDate"
         ]
+      },
+      "features.generation.failed": {
+        "required": [
+          "payload.reasonCode"
+        ]
       }
     }
   },
@@ -61,15 +66,17 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "storage_transient_error"
+      "DEPENDENCY_UNAVAILABLE"
     ],
     "nonRetryableErrors": [
-      "future_data_leak_detected",
-      "invalid_input_schema"
+      "REQUEST_VALIDATION_FAILED",
+      "DATA_QUALITY_LEAK_DETECTED",
+      "DATA_SCHEMA_INVALID"
     ]
   },
   "qualityGates": [
     "将来情報リークなし",
+    "insight_recordsはcollectedAt<=targetDateのみ採用",
     "必須特徴量欠損率閾値以内",
     "定性特徴量の根拠リンク欠損率閾値以内"
   ],

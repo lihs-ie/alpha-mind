@@ -1,11 +1,10 @@
 # bff 外部設計書
 
-最終更新日: 2026-02-24
+最終更新日: 2026-02-28
 
 ## 1. サービス概要
 
 - 役割: Webコンソールおよび運用者向けAPIの単一入口。
-- 主な責務: 認証済みリクエスト受付、運用コマンド受付、参照データ提供、コンプライアンス制御設定管理。
 - 主な責務: 認証済みリクエスト受付、運用コマンド受付、参照データ提供、コンプライアンス制御設定管理、インサイト/仮説運用API提供。
 - 主な利用者: 運用者（単一ユーザー）。
 
@@ -22,17 +21,23 @@
 ### 3.1 同期API
 
 - `GET /healthz`
+- `POST /auth/login`
 - `GET /dashboard/summary`
-- `GET /orders?status={status}`
+- `POST /operations/runtime`
+- `POST /operations/kill-switch`
+- `POST /commands/run-cycle`
+- `POST /commands/run-insight-cycle`
+- `GET /settings/strategy`
+- `PUT /settings/strategy`
+- `GET /compliance/controls`
+- `PUT /compliance/controls`
 - `GET /orders/{identifier}`
 - `POST /orders/{identifier}/approve`
 - `POST /orders/{identifier}/reject`
 - `POST /orders/{identifier}/retry`
-- `GET /compliance/controls`
-- `PUT /compliance/controls`
-- `POST /operations/kill-switch`
-- `POST /commands/run-cycle`
-- `POST /commands/run-insight-cycle`
+- `GET /orders`（query: `status`, `cursor`, `limit`）
+- `GET /audit`
+- `GET /audit/{identifier}`
 - `GET /insights`
 - `GET /insights/{identifier}`
 - `POST /insights/{identifier}/hypothesize`
@@ -44,9 +49,17 @@
 - `POST /hypotheses/{identifier}/promote`
 - `POST /hypotheses/{identifier}/reject`
 - `PUT /hypotheses/{identifier}/mnpi-self-declaration`
+- `GET /models/validation`
+- `GET /models/validation/{modelVersion}`
+- `POST /models/validation/{modelVersion}/approve`
+- `POST /models/validation/{modelVersion}/reject`
 
 認証:
 - `Authorization: Bearer <JWT>` 必須（`GET /healthz`を除く）。
+
+注文承認/却下APIの責務:
+- `POST /orders/{identifier}/approve` / `POST /orders/{identifier}/reject` は BFF が受付し、`risk-guard` の内部コマンドAPIへ委譲する。
+- 判定・状態更新・`orders.approved` / `orders.rejected` の発行責務は `risk-guard` が担う。
 
 主要レスポンス:
 - `200`: 正常
@@ -62,6 +75,7 @@
 - `operation.kill_switch.changed`
 - `insight.collect.requested`
 - `hypothesis.retest.requested`
+- `orders.proposed`（`POST /orders/{identifier}/retry` 受付時）
 
 購読:
 - なし（MVPでは状態参照はFirestoreから取得）

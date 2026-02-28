@@ -61,6 +61,7 @@
 | `RULE-HL-006` | 同一イベント `identifier` は冪等に1回のみ処理する | must | outside |
 | `RULE-HL-007` | 識別子命名は `identifier` を使用し `Id` を禁止する | must | inside |
 | `RULE-HL-008` | `PUT /hypotheses/{identifier}/mnpi-self-declaration` は `status=demo` のときのみ更新可 | must | inside |
+| `RULE-HL-009` | `hypothesis.proposed` 由来の必須属性（`title`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion`）は `Hypothesis` に保持し続ける | must | inside |
 
 ### 3.2 受け入れ仕様（Gherkin）
 
@@ -105,6 +106,7 @@ Feature: hypothesis-lab validation and promotion
 | `RULE-HL-006` | `SCN-HL-007` | `Hypothesis` | `hypothesis.proposed`, `hypothesis.demo.completed` | `TST-HL-009` |
 | `RULE-HL-007` | `SCN-HL-008` | `Hypothesis` | OpenAPI/AsyncAPI/Domain Model | `TST-HL-006` |
 | `RULE-HL-008` | `SCN-HL-005` | `Hypothesis` | `PUT /hypotheses/{identifier}/mnpi-self-declaration` | `TST-HL-005` |
+| `RULE-HL-009` | `SCN-HL-009` | `Hypothesis` | `hypothesis.proposed` | `TST-HL-010` |
 
 ## 4. 戦術設計（Tactical DDD）
 
@@ -136,14 +138,15 @@ Feature: hypothesis-lab validation and promotion
 | `symbol` | `string` | 対象銘柄 | `1` |
 | `instrumentType` | `enum(ETF, STOCK)` | 金融商品種別 | `1` |
 | `status` | `enum(draft, backtested, demo, live, rejected)` | 仮説ライフサイクル状態 | `1` |
-| `title` | `string` | 仮説タイトル | `0..1` |
+| `title` | `string` | 仮説タイトル | `1` |
 | `insiderRisk` | `enum(low, medium, high)` | インサイダー接触リスク | `0..1` |
 | `requiresComplianceReview` | `boolean` | コンプライアンス追加審査要否 | `0..1` |
 | `mnpiSelfDeclared` | `boolean` | MNPI未保有自己申告 | `0..1` |
 | `autoPromotionEligible` | `boolean` | 自動昇格候補かどうか | `0..1` |
 | `promotionMode` | `enum(manual, auto)` | 昇格モード | `0..1` |
-| `sourceEvidence` | `array<string>` | 根拠インサイト識別子群 | `0..n` |
-| `instructionProfileVersion` | `string` | 指示プロファイル版 | `0..1` |
+| `sourceEvidence` | `array<string>` | 根拠インサイト識別子群 | `1..n` |
+| `skillVersion` | `string` | 仮説生成に使用したSkill版 | `1` |
+| `instructionProfileVersion` | `string` | 指示プロファイル版 | `1` |
 | `latestFailureSummary` | `string` | 直近失敗要約 | `0..1` |
 | `updatedAt` | `datetime` | 最終更新時刻 | `1` |
 | `updatedBy` | `string` | 最終更新主体 | `0..1` |
@@ -179,6 +182,10 @@ Feature: hypothesis-lab validation and promotion
 | `identifier` | `string` | 仮説識別子 | `1` |
 | `status` | `enum(draft, backtested, demo, live, rejected)` | 状態 | `1` |
 | `instrumentType` | `enum(ETF, STOCK)` | 商品種別 | `1` |
+| `title` | `string` | 仮説タイトル | `1` |
+| `sourceEvidence` | `array<string>` | 根拠インサイト識別子群 | `1..n` |
+| `skillVersion` | `string` | 仮説生成に使用したSkill版 | `1` |
+| `instructionProfileVersion` | `string` | 指示プロファイル版 | `1` |
 | `mnpiSelfDeclared` | `boolean` | MNPI自己申告 | `0..1` |
 | `promotionMode` | `enum(manual, auto)` | 最終判断モード | `0..1` |
 
@@ -201,7 +208,7 @@ Feature: hypothesis-lab validation and promotion
 | `PerformanceMetrics` | `costAdjustedReturn`, `dsr`, `pbo` | 値比較 | immutable |
 | `DemoWindow` | `startedAt`, `endedAt`, `demoPeriodDays` | 値比較 | immutable |
 | `ComplianceSnapshot` | `requiresComplianceReview`, `insiderRisk`, `mnpiSelfDeclared` | 値比較 | immutable |
-| `PromotionDecision` | `decision`, `reasonCode`, `promotionMode` | 値比較 | immutable |
+| `PromotionDecision` | `decision`, `actionReasonCode`, `promotionMode` | 値比較 | immutable |
 | `FailureSummary` | `reasonCode`, `markdownSummary` | 値比較 | immutable |
 
 #### Value Object詳細: `PerformanceMetrics`
@@ -233,7 +240,7 @@ Feature: hypothesis-lab validation and promotion
 | フィールド名 | 型 | 説明 | 保持数 |
 |---|---|---|---|
 | `decision` | `enum(promoted, rejected)` | 判定結果 | `1` |
-| `reasonCode` | `enum(OperatorActionReasonCode)` | 判断理由コード | `1` |
+| `actionReasonCode` | `enum(OperatorActionReasonCode)` | 判断理由コード | `1` |
 | `promotionMode` | `enum(manual, auto)` | 判定経路 | `1` |
 
 #### Value Object詳細: `FailureSummary`
@@ -277,7 +284,7 @@ Feature: hypothesis-lab validation and promotion
 
 | 現在状態 | コマンド | 次状態 | ガード条件 | 失敗時reasonCode |
 |---|---|---|---|---|
-| なし | `AcceptProposedHypothesis` | `draft` | 必須フィールドあり | `REQUEST_VALIDATION_FAILED` |
+| なし | `AcceptProposedHypothesis` | `draft` | `title`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion` を含む必須フィールドあり | `REQUEST_VALIDATION_FAILED` |
 | `draft` | `RecordBacktestResult(pass=true)` | `backtested` | backtest必須指標あり | `REQUEST_VALIDATION_FAILED` |
 | `draft` | `RecordBacktestResult(pass=false)` | `rejected` | backtest必須指標あり | `REQUEST_VALIDATION_FAILED` |
 | `backtested` | `StartDemoRun` | `demo` | demo開始条件を満たす | `STATE_CONFLICT` |
@@ -296,6 +303,7 @@ Feature: hypothesis-lab validation and promotion
 | `INV-HL-002` | `Hypothesis` | `live` 遷移には昇格条件充足が必要 | コマンド拒否 |
 | `INV-HL-003` | `Hypothesis` | 自動昇格は ETF低リスク + MNPI自己申告 + 非ブロック銘柄が必須 | コマンド拒否 |
 | `INV-HL-004` | `ValidationRun` | run種別ごとの必須フィールド欠損禁止 | コマンド拒否 |
+| `INV-HL-005` | `Hypothesis` | `title`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion` は常に保持される | コマンド拒否 |
 
 ## 6. ドメインイベント設計
 
@@ -304,8 +312,8 @@ Feature: hypothesis-lab validation and promotion
 | eventType | 発行主体 | 発行タイミング | payload | 冪等キー |
 |---|---|---|---|---|
 | `hypothesis.backtested` | `Hypothesis` | backtest結果確定時 | `identifier`, `passed`, `costAdjustedReturn`, `dsr`, `pbo` | `identifier` |
-| `hypothesis.promoted` | `Hypothesis` | `live` 遷移確定時 | `identifier`, `decision`, `reasonCode`, `promotionMode`, `mnpiSelfDeclared`, `insiderRisk` | `identifier` |
-| `hypothesis.rejected` | `Hypothesis` | `rejected` 遷移確定時 | `identifier`, `decision`, `reasonCode`, `promotionMode`, `mnpiSelfDeclared`, `insiderRisk` | `identifier` |
+| `hypothesis.promoted` | `Hypothesis` | `live` 遷移確定時 | `identifier`, `decision`, `actionReasonCode`, `promotionMode`, `mnpiSelfDeclared`, `insiderRisk` | `identifier` |
+| `hypothesis.rejected` | `Hypothesis` | `rejected` 遷移確定時 | `identifier`, `decision`, `actionReasonCode`, `promotionMode`, `mnpiSelfDeclared`, `insiderRisk` | `identifier` |
 
 ### 6.2 Integration Event（境界外）
 
@@ -351,6 +359,7 @@ Feature: hypothesis-lab validation and promotion
 | `TST-HL-007` | contract | `RULE-HL-003` | OpenAPI/AsyncAPI payload整合 |
 | `TST-HL-008` | acceptance | `RULE-HL-005` | 失敗時に `failure_knowledge` へMarkdown要約保存 |
 | `TST-HL-009` | idempotency | `RULE-HL-006` | 同一identifierイベント重複で副作用なし |
+| `TST-HL-010` | invariant | `RULE-HL-009` | 提案由来必須属性が欠損した状態を拒否 |
 
 ## 10. 実装規約（このプロジェクト向け）
 

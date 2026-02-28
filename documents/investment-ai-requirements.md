@@ -135,7 +135,7 @@
 - これらの拒否は `reasonCode` で監査可能にし、運用Runbookに連動させる。
 - 昇格時は、`MNPIを知らない` 自己申告を監査ログに必須記録する。
 - 取引先・案件関連銘柄を `partnerRestrictedSymbols` として管理し、該当銘柄の自動昇格を禁止する。
-- 昇格判断は `reasonCode` と `trace` を必須記録し、後追い監査可能にする。
+- 昇格判断は `actionReasonCode` と `trace` を必須記録し、後追い監査可能にする。
 - 自動昇格は `instrumentType=ETF` かつ `insiderRisk=low` の場合に限定し、個別株は手動承認を必須とする。
 
 ### 10.4 エージェントベース分析の要件

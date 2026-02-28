@@ -7,8 +7,9 @@ properties:
     type: boolean
   trace:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   message:
     type: string
 example:
   success: true
-  trace: id-001
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV

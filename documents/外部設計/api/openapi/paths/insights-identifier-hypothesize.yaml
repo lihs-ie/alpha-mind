@@ -21,7 +21,7 @@ post:
           example:
             accepted: true
             identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"
     '409':

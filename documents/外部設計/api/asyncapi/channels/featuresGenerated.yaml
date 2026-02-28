@@ -1,4 +1,4 @@
-address: featuresGenerated
+address: features.generated
 messages:
   featuresGenerated:
     "$ref": "../components/messages/index.yaml#/FeaturesGenerated"

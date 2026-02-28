@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/marketCollectFailed.yaml"
+messages:
+- "$ref": "../channels/marketCollectFailed.yaml#/messages/marketCollectFailed"
+summary: data-collectorが市場データ収集失敗イベントを発行する。

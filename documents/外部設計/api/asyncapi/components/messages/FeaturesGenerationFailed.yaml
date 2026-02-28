@@ -9,7 +9,8 @@ examples:
     identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     eventType: features.generation.failed
     occurredAt: '2026-01-15T09:00:00Z'
-    trace: id-001
+    trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     schemaVersion: 1.0.0
     payload:
-      reasonCode: AUTH_INVALID_CREDENTIALS
+      reasonCode: FEATURE_GENERATION_FAILED
+      detail: point-in-time join failed

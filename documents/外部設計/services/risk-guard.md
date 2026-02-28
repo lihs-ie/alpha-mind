@@ -6,7 +6,7 @@
 
 - 役割: 注文候補の発注可否を判定する安全ゲート。
 - 主な責務: 損失上限、集中度、売買上限、kill switch、コンプライアンス制約（制限銘柄/ブラックアウト）を検証し承認/却下する。
-- 主な利用者: `execution`。
+- 主な利用者: `execution`, `bff`（内部コマンド委譲）。
 
 ## 2. 採用技術と比較
 
@@ -28,7 +28,16 @@
 - `orders.approved`
 - `orders.rejected`
 
-### 3.3 外部依存
+### 3.3 内部コマンドAPI（BFF委譲用）
+
+- `POST /internal/orders/{identifier}/approve`
+- `POST /internal/orders/{identifier}/reject`
+
+注記:
+- 上記は内部通信専用（Service Account認可）であり、公開APIではない。
+- BFFの `POST /orders/{identifier}/approve|reject` は本内部APIへ委譲される。
+
+### 3.4 外部依存
 
 - Firestore（リスク設定、停止状態、判定履歴）
 
@@ -37,13 +46,13 @@
 ### UC-RG-01: 注文承認
 
 - 事前条件: kill switch無効、全制約を満たす。
-- トリガー: `orders.proposed`受信。
+- トリガー: `orders.proposed`受信 または `POST /internal/orders/{identifier}/approve`。
 - 成果: `orders.approved`発行。
 
 ### UC-RG-02: 注文却下
 
 - 事前条件: いずれかの制約違反、またはkill switch有効。
-- トリガー: `orders.proposed`受信。
+- トリガー: `orders.proposed`受信 または `POST /internal/orders/{identifier}/reject`。
 - 成果: `orders.rejected`を理由コード付きで発行。
 
 ### UC-RG-03: コンプライアンス制約による拒否

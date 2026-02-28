@@ -4,30 +4,44 @@ receiveMarketCollectRequested:
   "$ref": "./receiveMarketCollectRequested.yaml"
 sendMarketCollected:
   "$ref": "./sendMarketCollected.yaml"
+sendMarketCollectFailed:
+  "$ref": "./sendMarketCollectFailed.yaml"
 receiveMarketCollected:
   "$ref": "./receiveMarketCollected.yaml"
 sendFeaturesGenerated:
   "$ref": "./sendFeaturesGenerated.yaml"
+sendFeaturesGenerationFailed:
+  "$ref": "./sendFeaturesGenerationFailed.yaml"
 receiveFeaturesGenerated:
   "$ref": "./receiveFeaturesGenerated.yaml"
 sendSignalGenerated:
   "$ref": "./sendSignalGenerated.yaml"
+sendSignalGenerationFailed:
+  "$ref": "./sendSignalGenerationFailed.yaml"
 receiveSignalGenerated:
   "$ref": "./receiveSignalGenerated.yaml"
 sendOrdersProposed:
   "$ref": "./sendOrdersProposed.yaml"
+sendOrdersProposalFailed:
+  "$ref": "./sendOrdersProposalFailed.yaml"
 receiveOrdersProposed:
   "$ref": "./receiveOrdersProposed.yaml"
 sendOrdersApproved:
   "$ref": "./sendOrdersApproved.yaml"
+sendOrdersRejected:
+  "$ref": "./sendOrdersRejected.yaml"
 receiveOrdersApproved:
   "$ref": "./receiveOrdersApproved.yaml"
 sendOrdersExecuted:
   "$ref": "./sendOrdersExecuted.yaml"
+sendOrdersExecutionFailed:
+  "$ref": "./sendOrdersExecutionFailed.yaml"
 sendOperationKillSwitchChanged:
   "$ref": "./sendOperationKillSwitchChanged.yaml"
 sendInsightCollectRequested:
   "$ref": "./sendInsightCollectRequested.yaml"
+sendInsightCollectFailed:
+  "$ref": "./sendInsightCollectFailed.yaml"
 receiveInsightCollectRequested:
   "$ref": "./receiveInsightCollectRequested.yaml"
 sendInsightCollected:
@@ -36,8 +50,12 @@ receiveInsightCollected:
   "$ref": "./receiveInsightCollected.yaml"
 sendHypothesisRetestRequested:
   "$ref": "./sendHypothesisRetestRequested.yaml"
+receiveHypothesisRetestRequested:
+  "$ref": "./receiveHypothesisRetestRequested.yaml"
 sendHypothesisProposed:
   "$ref": "./sendHypothesisProposed.yaml"
+sendHypothesisProposalFailed:
+  "$ref": "./sendHypothesisProposalFailed.yaml"
 receiveHypothesisProposed:
   "$ref": "./receiveHypothesisProposed.yaml"
 sendHypothesisDemoCompleted:
@@ -50,5 +68,7 @@ sendHypothesisPromoted:
   "$ref": "./sendHypothesisPromoted.yaml"
 sendHypothesisRejected:
   "$ref": "./sendHypothesisRejected.yaml"
-receiveAuditEvents:
-  "$ref": "./receiveAuditEvents.yaml"
+sendAuditRecorded:
+  "$ref": "./sendAuditRecorded.yaml"
+receiveAuditRecorded:
+  "$ref": "./receiveAuditRecorded.yaml"

@@ -13,7 +13,7 @@ put:
           "$ref": "../components/schemas/index.yaml#/HypothesisMnpiSelfDeclarationUpdate"
         example:
           mnpiSelfDeclared: true
-          reasonCode: MANUAL_OPERATION
+          actionReasonCode: MANUAL_OPERATION
           comment: 昇格前に自己申告を更新
   responses:
     '200':
@@ -24,7 +24,7 @@ put:
             "$ref": "../components/schemas/index.yaml#/OperationResult"
           example:
             success: true
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"
     '409':

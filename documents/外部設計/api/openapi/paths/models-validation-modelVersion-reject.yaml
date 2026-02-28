@@ -12,7 +12,7 @@ post:
         schema:
           "$ref": "../components/schemas/index.yaml#/ModelDecisionRequest"
         example:
-          reasonCode: MANUAL_OPERATION
+          actionReasonCode: MANUAL_OPERATION
   responses:
     '200':
       description: Rejected
@@ -22,7 +22,7 @@ post:
             "$ref": "../components/schemas/index.yaml#/OperationResult"
           example:
             success: true
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"
     '409':

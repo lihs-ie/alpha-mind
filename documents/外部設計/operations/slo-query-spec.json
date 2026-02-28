@@ -18,7 +18,7 @@
         "filter": "resource.labels.service_name=\"bff\""
       },
       "exclusions": [
-        "/health"
+        "/healthz"
       ]
     },
     {

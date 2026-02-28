@@ -1,4 +1,4 @@
-address: operationKillSwitchChanged
+address: operation.kill_switch.changed
 messages:
   operationKillSwitchChanged:
     "$ref": "../components/messages/index.yaml#/OperationKillSwitchChanged"

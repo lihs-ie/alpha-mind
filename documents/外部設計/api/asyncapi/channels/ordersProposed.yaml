@@ -1,4 +1,4 @@
-address: ordersProposed
+address: orders.proposed
 messages:
   ordersProposed:
     "$ref": "../components/messages/index.yaml#/OrdersProposed"

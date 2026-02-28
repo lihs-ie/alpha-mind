@@ -1,13 +1,13 @@
 type: object
 required:
-- reasonCode
+- actionReasonCode
 x-compliance-guard:
   mnpiDlpCheck: true
   onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
 properties:
-  reasonCode:
+  actionReasonCode:
     "$ref": "./index.yaml#/OperatorActionReasonCode"
   comment:
     "$ref": "./index.yaml#/SafeComment"
 example:
-  reasonCode: MANUAL_OPERATION
+  actionReasonCode: MANUAL_OPERATION

@@ -63,12 +63,11 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "firestore_transient_error",
-      "broker_read_timeout"
+      "DEPENDENCY_UNAVAILABLE",
+      "DEPENDENCY_TIMEOUT"
     ],
     "nonRetryableErrors": [
-      "missing_signal_payload",
-      "invalid_strategy_setting"
+      "REQUEST_VALIDATION_FAILED"
     ]
   },
   "slo": {

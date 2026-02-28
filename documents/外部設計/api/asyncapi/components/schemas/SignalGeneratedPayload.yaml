@@ -23,3 +23,4 @@ example:
   storagePath: string
   modelDiagnostics:
     degradationFlag: normal
+    requiresComplianceReview: false

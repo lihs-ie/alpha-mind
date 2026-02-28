@@ -1,12 +1,12 @@
 # agent-orchestrator 外部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 
 ## 1. サービス概要
 
 - 役割: Skillを実行して定性/定量情報を仮説へ変換する。
 - 主な責務: Skill選択、Markdown指示書適用、仮説生成、重複抑止、実行履歴管理。
-- 主な利用者: `hypothesis-lab`。
+- 主な利用者: `hypothesis-lab`, `audit-log`。
 
 ## 2. 採用技術と比較
 
@@ -30,7 +30,7 @@
 
 ### 3.3 外部依存
 
-- Firestore（skill_registry, instruction_profiles, code_reference_templates, failure_knowledge）
+- Firestore（skill_registry, instruction_profiles, code_reference_templates, failure_knowledge, hypothesis_registry, idempotency_keys, audit_logs）
 - Cloud Storage（生成レポート）
 - LLM実行基盤
 
@@ -57,7 +57,7 @@
 ## 5. 非機能要件
 
 - 完了目標: 1サイクル `10分以内`。
-- 品質: 仮説に `identifier`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion` を必須付与。
+- 品質: 仮説に `identifier`, `symbol`, `instrumentType`, `title`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion` を必須付与。
 - 品質: 失敗知見はMarkdown要約（原因、再発防止、適用条件）として必須保存する。
 - 安全性: 出力は原則人手承認を通過させる。昇格は無条件自動を禁止し、ETF低リスク条件のみ自動昇格を許可する。
 - 監査: 実行プロンプトハッシュと結果を追跡可能にする。

@@ -53,13 +53,13 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "broker_timeout",
-      "broker_5xx"
+      "EXECUTION_BROKER_TIMEOUT",
+      "DEPENDENCY_UNAVAILABLE"
     ],
     "nonRetryableErrors": [
-      "insufficient_funds",
-      "broker_rejected",
-      "market_closed"
+      "EXECUTION_INSUFFICIENT_FUNDS",
+      "EXECUTION_BROKER_REJECTED",
+      "EXECUTION_MARKET_CLOSED"
     ]
   },
   "slo": {

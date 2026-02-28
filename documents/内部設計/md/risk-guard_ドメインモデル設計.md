@@ -43,9 +43,9 @@
 | 相手Context | 関係 | インターフェース | 変換方針 |
 |---|---|---|---|
 | `portfolio-planner` | Upstream (`Customer-Supplier`) | `orders.proposed` | 提案payloadを審査対象へ正規化 |
-| `bff` | Upstream (`Customer-Supplier`) | `POST /orders/{identifier}/approve`, `POST /orders/{identifier}/reject`, `POST /operations/kill-switch` | APIコマンドを審査/停止状態へ反映 |
+| `bff` | Upstream (`Customer-Supplier`) | `POST /internal/orders/{identifier}/approve`, `POST /internal/orders/{identifier}/reject`（BFF委譲）, `POST /operations/kill-switch` | APIコマンドを審査/停止状態へ反映 |
 | `execution` | Downstream (`OHS+PL`) | `orders.approved` | 承認済み注文のみ公開 |
-| `audit-log` | Downstream (`OHS+PL`) | `orders.approved`, `orders.rejected` | `trace`, `reasonCode` を必須伝播 |
+| `audit-log` | Downstream (`OHS+PL`) | `orders.approved`, `orders.rejected` | `trace` は必須、`orders.rejected` は `reasonCode` 必須、手動判断理由は `actionReasonCode` を伝播 |
 
 ## 3. 仕様駆動（Specification-Driven）
 
@@ -195,7 +195,7 @@ Feature: risk-guard order screening
 | `CompliancePolicy` | `restrictedSymbols`, `partnerRestrictedSymbols`, `blackoutWindows` | 値比較 | immutable |
 | `RiskExposure` | `dailyLossRate`, `positionConcentrationRate`, `dailyOrderCount` | 値比較 | immutable |
 | `DecisionRecord` | `decision`, `reasonCode`, `actionReasonCode`, `evaluatedAt`, `trace` | 値比較 | immutable |
-| `BlackoutWindow` | `symbol`, `startAt`, `endAt`, `reasonCode` | 値比較 | immutable |
+| `BlackoutWindow` | `symbol`, `startAt`, `endAt`, `actionReasonCode` | 値比較 | immutable |
 
 #### Value Object詳細: `RiskLimits`
 
@@ -238,7 +238,7 @@ Feature: risk-guard order screening
 | `symbol` | `string` | 対象銘柄 | `1` |
 | `startAt` | `datetime` | 開始日時 | `1` |
 | `endAt` | `datetime` | 終了日時 | `1` |
-| `reasonCode` | `string` | 設定理由 | `1` |
+| `actionReasonCode` | `enum(OperatorActionReasonCode)` | 設定理由 | `1` |
 
 ### 4.4 Domain Service / Application Service
 
@@ -316,8 +316,8 @@ Feature: risk-guard order screening
 | ユースケース | Command/Query | OpenAPI | AsyncAPI | 備考 |
 |---|---|---|---|---|
 | 提案注文審査 | `EvaluateOrderRisk` | なし | `orders.proposed`（受信） | 主フロー |
-| 手動承認 | `EvaluateOrderRisk` | `POST /orders/{identifier}/approve` | `orders.approved`（発行） | `PROPOSED` のみ |
-| 手動却下 | `RejectOrder` | `POST /orders/{identifier}/reject` | `orders.rejected`（発行） | 理由コード必須 |
+| 手動承認 | `EvaluateOrderRisk` | `POST /internal/orders/{identifier}/approve`（BFF委譲） | `orders.approved`（発行） | `PROPOSED` のみ |
+| 手動却下 | `RejectOrder` | `POST /internal/orders/{identifier}/reject`（BFF委譲） | `orders.rejected`（発行） | 理由コード必須 |
 | kill switch反映 | `SyncKillSwitchState` | `POST /operations/kill-switch` | `operation.kill_switch.changed`（受信） | 審査ガード更新 |
 | 制約設定反映 | `LoadCompliancePolicy` | `GET/PUT /compliance/controls` | なし | 参照モデル更新 |
 

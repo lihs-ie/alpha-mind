@@ -2,5 +2,6 @@ in: query
 name: trace
 schema:
   type: string
-example: id-001
+  pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
+example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
 required: false

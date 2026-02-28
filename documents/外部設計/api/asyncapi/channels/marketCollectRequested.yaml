@@ -1,4 +1,4 @@
-address: marketCollectRequested
+address: market.collect.requested
 messages:
   marketCollectRequested:
     "$ref": "../components/messages/index.yaml#/MarketCollectRequested"

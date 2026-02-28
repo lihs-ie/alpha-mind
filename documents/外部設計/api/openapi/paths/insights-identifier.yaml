@@ -22,6 +22,6 @@ get:
             theme: ai-momentum
             sentiment: positive
             evidenceSnippet: 09:31時点で需給改善を示唆するコメントが増加
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '404':
       "$ref": "../components/responses/index.yaml#/NotFound"

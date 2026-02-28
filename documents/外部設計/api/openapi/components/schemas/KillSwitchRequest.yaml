@@ -7,7 +7,7 @@ x-compliance-guard:
 properties:
   enabled:
     type: boolean
-  reasonCode:
+  actionReasonCode:
     "$ref": "./index.yaml#/OperatorActionReasonCode"
   comment:
     "$ref": "./index.yaml#/SafeComment"

@@ -41,7 +41,7 @@ JSON対応: `内部設計/json/hypothesis-lab.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回
-- 非再試行: `invalid_hypothesis_payload`, `insufficient_backtest_data`
+- 非再試行: `REQUEST_VALIDATION_FAILED`, `OPERATION_NOT_ALLOWED`
 
 ## 7. 品質ゲート
 

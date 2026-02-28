@@ -18,10 +18,20 @@
 - `内部設計/内部設計書_作成ガイド.md`
 - `内部設計/共通設計.md`
 - `内部設計/md/DDD仕様駆動ドメインモデルテンプレート.md`
+- `内部設計/md/bff_ドメインモデル設計.md`
+- `内部設計/md/data-collector_ドメインモデル設計.md`
 - `内部設計/md/execution_ドメインモデル設計.md`
+- `内部設計/md/feature-engineering_ドメインモデル設計.md`
 - `内部設計/md/hypothesis-lab_ドメインモデル設計.md`
+- `内部設計/md/insight-collector_ドメインモデル設計.md`
 - `内部設計/md/portfolio-planner_ドメインモデル設計.md`
 - `内部設計/md/risk-guard_ドメインモデル設計.md`
+- `内部設計/md/signal-generator_ドメインモデル設計.md`
+- `内部設計/md/audit-log_ドメインモデル設計.md`
+- `内部設計/md/agent-orchestrator_ドメインモデル設計.md`
+
+補足:
+- ドメインモデル設計は「業務ルールを持つサービス（core/supporting）」を優先し、横断ルールを担う generic（例: `audit-log`）も対象に含める。
 
 ## 4. サービス別内部設計
 

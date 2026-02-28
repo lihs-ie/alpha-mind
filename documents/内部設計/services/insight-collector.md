@@ -1,6 +1,6 @@
 # insight-collector 内部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/insight-collector.json`
 
 ## 1. サービス概要
@@ -41,7 +41,7 @@ JSON対応: `内部設計/json/insight-collector.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `source_not_allowed`, `source_terms_not_allowed`, `invalid_source_payload`
+- 非再試行: `COMPLIANCE_SOURCE_UNAPPROVED`, `REQUEST_VALIDATION_FAILED`
 
 ## 7. 品質ゲート
 

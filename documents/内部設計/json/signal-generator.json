@@ -1,6 +1,6 @@
 {
   "serviceId": "signal-generator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "role": "承認済みモデルを使って銘柄シグナルを推論し、注文計画へ渡す。",
   "aiResponsibility": true,
   "runtime": {
@@ -50,7 +50,8 @@
           "payload.modelVersion",
           "payload.featureVersion",
           "payload.signalVersion",
-          "payload.storagePath"
+          "payload.storagePath",
+          "payload.modelDiagnostics.requiresComplianceReview"
         ]
       }
     }
@@ -64,12 +65,12 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "model_registry_timeout",
-      "storage_transient_error"
+      "DEPENDENCY_TIMEOUT",
+      "DEPENDENCY_UNAVAILABLE"
     ],
     "nonRetryableErrors": [
-      "approved_model_not_found",
-      "invalid_feature_version"
+      "MODEL_NOT_APPROVED",
+      "REQUEST_VALIDATION_FAILED"
     ]
   },
   "qualityGates": [

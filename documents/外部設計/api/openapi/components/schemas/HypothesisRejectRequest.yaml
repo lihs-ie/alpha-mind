@@ -1,14 +1,14 @@
 type: object
 required:
-- reasonCode
+- actionReasonCode
 x-compliance-guard:
   mnpiDlpCheck: true
   onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
 properties:
-  reasonCode:
+  actionReasonCode:
     "$ref": "./index.yaml#/OperatorActionReasonCode"
   comment:
     "$ref": "./index.yaml#/SafeComment"
 example:
-  reasonCode: POLICY_COMPLIANCE_HOLD
+  actionReasonCode: POLICY_COMPLIANCE_HOLD
   comment: デモ成績が昇格基準に未達

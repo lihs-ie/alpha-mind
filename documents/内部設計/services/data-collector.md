@@ -1,6 +1,6 @@
 # data-collector 内部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/data-collector.json`
 
 ## 1. サービス概要
@@ -42,8 +42,8 @@ JSON対応: `内部設計/json/data-collector.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 再試行対象: `source_timeout`, `source_5xx`, `temporary_network_error`
-- 非再試行: `invalid_payload`, `unsupported_schema`
+- 再試行対象: `DATA_SOURCE_TIMEOUT`, `DATA_SOURCE_UNAVAILABLE`, `DEPENDENCY_TIMEOUT`
+- 非再試行: `REQUEST_VALIDATION_FAILED`, `DATA_SCHEMA_INVALID`
 
 ## 7. SLO・監視
 

@@ -9,12 +9,12 @@ examples:
     identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     eventType: hypothesis.promoted
     occurredAt: '2026-01-15T09:00:00Z'
-    trace: id-001
+    trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     schemaVersion: 1.0.0
     payload:
       identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
       decision: promoted
-      reasonCode: AUTO_PROMOTION_POLICY_MATCH
+      actionReasonCode: AUTO_PROMOTION_POLICY_MATCH
       promotionMode: auto
       mnpiSelfDeclared: true
       insiderRisk: low

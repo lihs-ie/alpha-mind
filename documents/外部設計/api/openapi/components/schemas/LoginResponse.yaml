@@ -20,7 +20,7 @@ example:
   tokenType: Bearer
   expiresIn: 3600
   user:
-    id: id-001
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     email: user@example.com
     role: admin
     permissions:

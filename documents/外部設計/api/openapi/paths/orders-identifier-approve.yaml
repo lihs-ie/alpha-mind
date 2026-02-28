@@ -12,7 +12,7 @@ post:
         schema:
           "$ref": "../components/schemas/index.yaml#/ApproveOrderRequest"
         example:
-          reasonCode: MANUAL_OPERATION
+          actionReasonCode: MANUAL_OPERATION
           comment: operator comment
   responses:
     '200':
@@ -23,6 +23,6 @@ post:
             "$ref": "../components/schemas/index.yaml#/OperationResult"
           example:
             success: true
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '409':
       "$ref": "../components/responses/index.yaml#/Conflict"

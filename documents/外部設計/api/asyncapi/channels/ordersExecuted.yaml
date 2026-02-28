@@ -1,4 +1,4 @@
-address: ordersExecuted
+address: orders.executed
 messages:
   ordersExecuted:
     "$ref": "../components/messages/index.yaml#/OrdersExecuted"

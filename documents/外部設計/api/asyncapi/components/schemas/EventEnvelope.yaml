@@ -18,6 +18,8 @@ properties:
     format: date-time
   trace:
     type: string
+    description: Trace identifier (ULID)
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   schemaVersion:
     type: string
     example: 1.0.0
@@ -28,7 +30,7 @@ example:
   identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   eventType: string
   occurredAt: '2026-01-15T09:00:00Z'
-  trace: id-001
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   schemaVersion: 1.0.0
   payload:
     key: value

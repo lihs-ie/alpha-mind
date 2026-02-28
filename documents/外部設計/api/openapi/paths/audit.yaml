@@ -24,6 +24,6 @@ get:
               eventType: string
               service: string
               result: success
-              trace: id-001
+              trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"

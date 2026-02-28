@@ -1,12 +1,12 @@
 # audit-log 外部設計書
 
-最終更新日: 2026-02-12
+最終更新日: 2026-02-28
 
 ## 1. サービス概要
 
 - 役割: 全業務イベントの監査記録を一元管理する。
 - 主な責務: イベント受信、監査ストア永続化、検索用メタデータ整備。
-- 主な利用者: 運用者、障害対応担当。
+- 主な利用者: `bff`（監査参照API）, 運用者, 障害対応担当。
 
 ## 2. 採用技術と比較
 
@@ -20,11 +20,30 @@
 
 ### 3.1 購読イベント
 
-- `market.*`
-- `features.*`
-- `signal.*`
-- `orders.*`
-- `operation.*`
+- `market.collect.requested`
+- `market.collected`
+- `market.collect.failed`
+- `features.generated`
+- `features.generation.failed`
+- `signal.generated`
+- `signal.generation.failed`
+- `orders.proposed`
+- `orders.proposal.failed`
+- `orders.approved`
+- `orders.rejected`
+- `orders.executed`
+- `orders.execution.failed`
+- `operation.kill_switch.changed`
+- `insight.collect.requested`
+- `insight.collected`
+- `insight.collect.failed`
+- `hypothesis.retest.requested`
+- `hypothesis.proposed`
+- `hypothesis.proposal.failed`
+- `hypothesis.demo.completed`
+- `hypothesis.backtested`
+- `hypothesis.promoted`
+- `hypothesis.rejected`
 
 ### 3.2 発行イベント
 
@@ -32,7 +51,7 @@
 
 ### 3.3 外部依存
 
-- Firestore（監査インデックス）
+- Firestore（`audit_logs`, `idempotency_keys`）
 - Cloud Logging（長期保管）
 
 ## 4. ユースケース
@@ -53,11 +72,11 @@
 
 - 記録遅延目標: 受信から`5秒以内`。
 - 欠損許容: 監査イベント欠損率`0.1%未満`。
-- 保持期間: Firestore短期、Cloud Logging長期（期間は運用規約で定義）。
+- 品質: 監査レコードは `identifier`, `eventType`, `occurredAt`, `trace`, `service`, `result` を必須化する。
+- 保持期間: Firestore短期（90日）、Cloud Logging長期（7年）。
 
 ## 6. スコープ外
 
 - 業務意思決定。
 - 注文執行制御。
 - モデル評価計算。
-

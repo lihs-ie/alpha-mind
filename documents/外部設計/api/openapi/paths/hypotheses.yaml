@@ -29,6 +29,7 @@ get:
               symbol: 1306.T
               instrumentType: ETF
               status: draft
+              title: 低ボラETFの押し目反発仮説
               updatedAt: '2026-01-15T09:00:00Z'
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"

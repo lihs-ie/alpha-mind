@@ -9,6 +9,13 @@
     "networkExposure": "private"
   },
   "interfaces": {
+    "http": {
+      "basePath": "/internal",
+      "endpoints": [
+        {"method": "POST", "path": "/orders/{identifier}/approve", "auth": "service-account-jwt"},
+        {"method": "POST", "path": "/orders/{identifier}/reject", "auth": "service-account-jwt"}
+      ]
+    },
     "events": {
       "subscribe": [
         "orders.proposed",
@@ -58,10 +65,10 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "retryableErrors": [
-      "firestore_transient_error"
+      "DEPENDENCY_UNAVAILABLE"
     ],
     "nonRetryableErrors": [
-      "invalid_order_payload"
+      "REQUEST_VALIDATION_FAILED"
     ]
   },
   "failureMode": "fail-closed",

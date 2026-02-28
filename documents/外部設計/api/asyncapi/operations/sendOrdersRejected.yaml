@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/ordersRejected.yaml"
+messages:
+- "$ref": "../channels/ordersRejected.yaml#/messages/ordersRejected"
+summary: risk-guardが注文却下イベントを発行する。

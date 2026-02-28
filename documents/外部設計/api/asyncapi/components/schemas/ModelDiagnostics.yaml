@@ -1,6 +1,7 @@
 type: object
 required:
 - degradationFlag
+- requiresComplianceReview
 properties:
   degradationFlag:
     "$ref": "./index.yaml#/DegradationFlag"
@@ -15,3 +16,4 @@ properties:
     description: true の場合は昇格判定前に運用者レビューが必要
 example:
   degradationFlag: normal
+  requiresComplianceReview: false

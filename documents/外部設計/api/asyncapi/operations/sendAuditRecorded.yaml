@@ -1,0 +1,6 @@
+action: send
+channel:
+  "$ref": "../channels/auditRecorded.yaml"
+messages:
+- "$ref": "../channels/auditRecorded.yaml#/messages/auditRecorded"
+summary: audit-logが監査記録イベントを発行する。

@@ -1,6 +1,6 @@
 # feature-engineering 内部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/feature-engineering.json`
 
 ## 1. サービス概要
@@ -43,11 +43,13 @@ JSON対応: `内部設計/json/feature-engineering.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `future_data_leak_detected`, `invalid_input_schema`
+- 再試行対象: `DEPENDENCY_UNAVAILABLE`
+- 非再試行: `REQUEST_VALIDATION_FAILED`, `DATA_QUALITY_LEAK_DETECTED`, `DATA_SCHEMA_INVALID`
 
 ## 7. 品質ゲート
 
 - 将来情報リークなし
+- `insight_records` は `collectedAt <= targetDate` のみ採用
 - 必須特徴量欠損率が閾値以内
 - 定性特徴量の根拠リンク欠損率が閾値以内
 

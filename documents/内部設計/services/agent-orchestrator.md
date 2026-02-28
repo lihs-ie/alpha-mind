@@ -1,6 +1,6 @@
 # agent-orchestrator 内部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/agent-orchestrator.json`
 
 ## 1. サービス概要
@@ -33,15 +33,16 @@ JSON対応: `内部設計/json/agent-orchestrator.json`
 1. インサイトイベント受信
 2. Skill/指示書/コード参照テンプレートを解決
 3. 失敗知見との類似照合（Markdown知見含む）
-4. 仮説生成
-5. 仮説台帳へ保存
-6. `hypothesis.proposed` 発行
+4. 仮説生成（`symbol`, `instrumentType`, `title`, `sourceEvidence`, `skillVersion`, `instructionProfileVersion` 必須検証）
+5. 判定分岐
+6. 成功時: 仮説台帳へ保存して `hypothesis.proposed` を発行
+7. 失敗時: `failure_knowledge` へ Markdown 要約を保存して `hypothesis.proposal.failed` を発行
 
 ## 6. 冪等性・リトライ
 
-- 冪等性キー: `identifier`
+- 冪等性キー: 受信イベントエンベロープ `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `skill_not_found`, `instruction_profile_invalid`
+- 非再試行: `RESOURCE_NOT_FOUND`, `REQUEST_VALIDATION_FAILED`
 
 ## 7. 品質ゲート
 

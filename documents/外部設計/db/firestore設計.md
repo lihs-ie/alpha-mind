@@ -134,7 +134,7 @@
 主要フィールド:
 - `restrictedSymbols` (array<string>)
 - `partnerRestrictedSymbols` (array<string>)
-- `blackoutWindows` (array<map{symbol,startAt,endAt,reasonCode}>)
+- `blackoutWindows` (array<map{symbol,startAt,endAt,actionReasonCode}>)
 - `mnpiKeywordVersion` (string)
 - `sourcePolicyVersion` (string)
 - `autoPromotionEnabled` (boolean, default: false)
@@ -213,7 +213,8 @@
 - `mnpiSelfDeclared` (boolean)
 - `autoPromotionEligible` (boolean)
 - `promotionMode` (`manual` / `auto`)
-- `sourceInsights` (array<string>)
+- `sourceEvidence` (array<string>)
+- `skillVersion`
 - `instructionProfileVersion`
 - `createdAt`
 - `updatedAt`
@@ -363,7 +364,7 @@ TTL対象:
 - `insight_records.expiresAt`（365日、必要に応じて延長）
 
 補足:
-- 監査の長期保管はCloud Logging側（365日）を正とする。
+- 監査の長期保管はCloud Logging/アーカイブ側（7年）を正とする。
 
 ## 7. 整合性と同時更新
 

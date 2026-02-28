@@ -1,4 +1,4 @@
-address: marketCollectFailed
+address: market.collect.failed
 messages:
   marketCollectFailed:
     "$ref": "../components/messages/index.yaml#/MarketCollectFailed"

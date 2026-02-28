@@ -2,7 +2,7 @@ type: object
 required:
 - identifier
 - decision
-- reasonCode
+- actionReasonCode
 - promotionMode
 - mnpiSelfDeclared
 - insiderRisk
@@ -15,7 +15,7 @@ properties:
     enum:
     - promoted
     - rejected
-  reasonCode:
+  actionReasonCode:
     "$ref": "./index.yaml#/OperatorActionReasonCode"
   promotionMode:
     type: string
@@ -33,7 +33,7 @@ properties:
 example:
   identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   decision: promoted
-  reasonCode: AUTO_PROMOTION_POLICY_MATCH
+  actionReasonCode: AUTO_PROMOTION_POLICY_MATCH
   promotionMode: auto
   mnpiSelfDeclared: true
   insiderRisk: low

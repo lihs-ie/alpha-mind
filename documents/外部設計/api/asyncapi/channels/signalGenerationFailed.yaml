@@ -1,4 +1,4 @@
-address: signalGenerationFailed
+address: signal.generation.failed
 messages:
   signalGenerationFailed:
     "$ref": "../components/messages/index.yaml#/SignalGenerationFailed"

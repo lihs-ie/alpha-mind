@@ -38,9 +38,9 @@
     "insight.collected受信",
     "Skill/指示書/コード参照テンプレート解決",
     "失敗知見照合(Markdown要約含む)",
-    "仮説生成",
-    "仮説台帳保存",
-    "hypothesis.proposed発行"
+    "仮説生成(必須属性検証: symbol/instrumentType/title/sourceEvidence/skillVersion/instructionProfileVersion)",
+    "成功時: 仮説台帳保存 + hypothesis.proposed発行",
+    "失敗時: failure_knowledgeへMarkdown要約保存 + hypothesis.proposal.failed発行"
   ],
   "idempotency": {
     "enabled": true,
@@ -51,12 +51,15 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "nonRetryableErrors": [
-      "skill_not_found",
-      "instruction_profile_invalid"
+      "RESOURCE_NOT_FOUND",
+      "REQUEST_VALIDATION_FAILED"
     ]
   },
   "qualityGates": [
     "identifier必須",
+    "symbol必須",
+    "instrumentType必須",
+    "title必須",
     "sourceEvidence必須",
     "skillVersion必須",
     "instructionProfileVersion必須",

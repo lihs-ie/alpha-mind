@@ -22,7 +22,7 @@
 - 認証・認可の正本は `外部設計/security/認証認可設計.md` と `外部設計/security/authz-matrix.json` とする。
 - モデル検証APIは `degradationFlag` とコスト控除指標（`costAdjustedReturn`, `slippageAdjustedSharpe`）を含む。
 - `signal.generated` イベントは `modelDiagnostics` を含み、劣化判定とコンプライアンスレビュー要否を伝播する。
-- 更新系APIの手動入力は `reasonCode` + `comment`（最大120文字）に制限し、MNPI疑義は拒否する。
+- 更新系APIの手動入力は `actionReasonCode` + `comment`（最大120文字）に制限し、MNPI疑義は拒否する。
 - 仮説昇格API（`POST /hypotheses/{identifier}/promote`）は `mnpiSelfDeclared=true` を必須とする。
 - MNPI自己申告は `PUT /hypotheses/{identifier}/mnpi-self-declaration` で事前更新できる。
 - コンプライアンス拒否は `COMPLIANCE_*` 系 `reasonCode` で統一する。
@@ -70,6 +70,8 @@
 - その型が保持する他関心ごとの識別子は、`{entity}Identifier` ではなく `{entity}` フィールド名を使う。
 - 例: `EventPayload` の自分自身の識別子は `identifier` を使用する。
 - 例: `EventPayload` がユーザー識別子を保持する場合は `userIdentifier` ではなく `user`。
+- `reasonCode` は失敗理由（`ReasonCode`）専用とする。
+- 運用者操作や自動昇格判定の理由は `actionReasonCode`（`OperatorActionReasonCode`）を使う。
 - 識別子の生成規約:
   - ドメイン識別子（`identifier`）は `ULID` を使用する。
   - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ使用する。

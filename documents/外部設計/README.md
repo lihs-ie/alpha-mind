@@ -75,8 +75,6 @@
 
 ## 次の更新対象
 
-- OpenAPI examples の拡充
-- AsyncAPI examples の拡充
 - Terraformモジュール雛形（`.tf`）の作成
 - 補助モニタ（`MON-001`〜`MON-003`）の実測メトリクス送信実装
 - OpenAPI/AsyncAPI 互換性テストの自動化

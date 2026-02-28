@@ -1,6 +1,6 @@
 # signal-generator 内部設計書
 
-最終更新日: 2026-02-12
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/signal-generator.json`
 
 ## 1. サービス概要
@@ -42,16 +42,16 @@ JSON対応: `内部設計/json/signal-generator.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `approved_model_not_found`, `invalid_feature_version`
+- 非再試行: `MODEL_NOT_APPROVED`, `REQUEST_VALIDATION_FAILED`
 
 ## 7. 品質ゲート
 
 - approvedモデルのみ利用
 - 推論件数がユニバース件数と一致
+- `signal.generated.payload.modelDiagnostics.requiresComplianceReview` を必須で伝播
 
 ## 8. SLO・監視
 
 - 1ジョブ完了: 10分以内
 - 成功率: 99.0%
 - メトリクス: `signal_generation_success_total`, `signal_generation_failure_total`, `signal_generation_duration_ms`
-

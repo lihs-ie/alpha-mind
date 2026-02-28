@@ -83,7 +83,7 @@ Feature: execution dispatch
   Rule: 非再試行エラーは即時失敗にする
     Example: market closed で失敗
       Given status が APPROVED の注文が存在する
-      And ブローカー応答が market_closed である
+      And ブローカー応答が EXECUTION_MARKET_CLOSED である
       When orders.approved を受信する
       Then 注文は FAILED になる
       And reasonCode は EXECUTION_MARKET_CLOSED になる
@@ -334,9 +334,9 @@ Feature: demo completion publish
 | `APPROVED` | `DispatchToBroker` | `EXECUTED` | ブローカー発注成功 | - |
 | `APPROVED` | `DispatchToBroker` | `APPROVED` | リトライ可能エラーかつ `attemptCount < 3` | `EXECUTION_BROKER_TIMEOUT` |
 | `APPROVED` | `DispatchToBroker` | `FAILED` | リトライ上限到達 | `EXECUTION_BROKER_TIMEOUT` |
-| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: market_closed） | `EXECUTION_MARKET_CLOSED` |
-| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: insufficient_funds） | `EXECUTION_INSUFFICIENT_FUNDS` |
-| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: broker_rejected） | `EXECUTION_BROKER_REJECTED` |
+| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: `EXECUTION_MARKET_CLOSED`） | `EXECUTION_MARKET_CLOSED` |
+| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: `EXECUTION_INSUFFICIENT_FUNDS`） | `EXECUTION_INSUFFICIENT_FUNDS` |
+| `APPROVED` | `DispatchToBroker` | `FAILED` | 非再試行エラー（例: `EXECUTION_BROKER_REJECTED`） | `EXECUTION_BROKER_REJECTED` |
 | `EXECUTED` | `DispatchToBroker` | `EXECUTED` | 同一イベントidentifier重複受信 | `IDEMPOTENCY_DUPLICATE_EVENT` |
 | `FAILED` | `DispatchToBroker` | `FAILED` | 終端状態への再実行 | `STATE_CONFLICT` |
 | `active` | `CompleteDemoRun` | `completed` | 完了条件を満たし未発行 | - |

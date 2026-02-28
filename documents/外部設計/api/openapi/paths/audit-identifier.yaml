@@ -18,9 +18,9 @@ get:
             eventType: string
             service: string
             result: success
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             payload:
               key: value
-            reason: MANUAL
+            reason: MANUAL_OPERATION
     '404':
       "$ref": "../components/responses/index.yaml#/NotFound"

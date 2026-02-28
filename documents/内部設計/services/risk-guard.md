@@ -22,6 +22,12 @@ JSON対応: `内部設計/json/risk-guard.json`
 - Subscribe: `orders.proposed`, `operation.kill_switch.changed`
 - Publish: `orders.approved`, `orders.rejected`
 
+### 3.1 Private HTTP（内部通信用）
+
+- `POST /internal/orders/{identifier}/approve`
+- `POST /internal/orders/{identifier}/reject`
+- 認可: Service Account JWT（内部通信のみ）
+
 ## 4. 依存関係
 
 - Firestore: `settings`, `operations`, `compliance_controls`, `orders`, `idempotency_keys`, `audit_logs`
@@ -29,7 +35,7 @@ JSON対応: `内部設計/json/risk-guard.json`
 
 ## 5. 処理フロー
 
-1. `orders.proposed` 受信
+1. `orders.proposed` 受信または private command API 受信
 2. kill switch状態確認
 3. リスク制約評価
 4. 承認/却下判定

@@ -5,6 +5,7 @@ content:
       "$ref": "../schemas/index.yaml#/Problem"
     example:
       type: about:blank
-      title: string
-      status: 1
+      title: Unauthorized
+      status: 401
+      trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
       reasonCode: AUTH_INVALID_CREDENTIALS

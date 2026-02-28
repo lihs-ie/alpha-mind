@@ -1,11 +1,11 @@
 type: object
 required:
-- id
+- identifier
 - email
 - role
 - permissions
 properties:
-  id:
+  identifier:
     type: string
   email:
     type: string
@@ -20,7 +20,7 @@ properties:
     items:
       type: string
 example:
-  id: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   email: user@example.com
   role: admin
   permissions:

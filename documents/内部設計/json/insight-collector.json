@@ -52,9 +52,8 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "nonRetryableErrors": [
-      "source_not_allowed",
-      "source_terms_not_allowed",
-      "invalid_source_payload"
+      "COMPLIANCE_SOURCE_UNAPPROVED",
+      "REQUEST_VALIDATION_FAILED"
     ]
   },
   "qualityGates": [

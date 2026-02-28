@@ -16,6 +16,7 @@ allOf:
       type: string
     trace:
       type: string
+      pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
 example:
   identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   sourceType: youtube
@@ -26,4 +27,4 @@ example:
   theme: ai-momentum
   sentiment: positive
   evidenceSnippet: 09:31時点で需給改善を示唆するコメントが増加
-  trace: id-001
+  trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV

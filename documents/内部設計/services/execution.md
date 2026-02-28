@@ -41,7 +41,7 @@ JSON対応: `内部設計/json/execution.json`
 - 冪等性キー: `identifier`
 - ガード: 同一identifierで外部発注を再実行しない
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `insufficient_funds`, `broker_rejected`, `market_closed`
+- 非再試行: `EXECUTION_INSUFFICIENT_FUNDS`, `EXECUTION_BROKER_REJECTED`, `EXECUTION_MARKET_CLOSED`
 
 ## 7. SLO・監視
 

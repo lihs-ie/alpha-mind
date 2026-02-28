@@ -5,6 +5,8 @@ required:
 - instrumentType
 - title
 - sourceEvidence
+- skillVersion
+- instructionProfileVersion
 properties:
   identifier:
     type: string
@@ -44,3 +46,5 @@ example:
   sourceEvidence:
   - insight-20260115-001
   mnpiSelfDeclared: false
+  skillVersion: skill-cross-sectional@1.4.0
+  instructionProfileVersion: conservative-jp-equity@2.1.0

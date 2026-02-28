@@ -1,4 +1,4 @@
-address: featuresGenerationFailed
+address: features.generation.failed
 messages:
   featuresGenerationFailed:
     "$ref": "../components/messages/index.yaml#/FeaturesGenerationFailed"

@@ -52,8 +52,8 @@
     "maxAttempts": 3,
     "backoff": "exponential",
     "nonRetryableErrors": [
-      "invalid_hypothesis_payload",
-      "insufficient_backtest_data"
+      "REQUEST_VALIDATION_FAILED",
+      "OPERATION_NOT_ALLOWED"
     ]
   },
   "qualityGates": [

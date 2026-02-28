@@ -25,6 +25,7 @@
 - 参照関係は相対パス `$ref` を利用する。
 - 識別子命名は `Id` を使わず `Identifier` を採用する。
 - 関心ごと自身の識別子は `identifier`、他関心ごとの識別子は `{entity}` を使う（例: `user`）。
+- `reasonCode` は失敗理由（`ReasonCode`）専用とし、運用者/自動判定の理由は `actionReasonCode`（`OperatorActionReasonCode`）を使う。
 - 識別子の生成規約は以下を適用する。
   - ドメイン識別子（`identifier`）は `ULID`
   - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ利用

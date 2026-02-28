@@ -9,7 +9,7 @@ example:
   - symbol: AAPL
     startAt: '2026-01-15T09:00:00Z'
     endAt: '2026-01-15T09:00:00Z'
-    reasonCode: MANUAL
+    actionReasonCode: MANUAL_OPERATION
   sourcePolicies:
   - sourceType: youtube
     enabled: true

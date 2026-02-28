@@ -1,6 +1,6 @@
 # portfolio-planner 内部設計書
 
-最終更新日: 2026-02-12
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/portfolio-planner.json`
 
 ## 1. サービス概要
@@ -40,11 +40,10 @@ JSON対応: `内部設計/json/portfolio-planner.json`
 
 - 冪等性キー: `identifier`
 - リトライ: 最大3回、指数バックオフ
-- 非再試行: `missing_signal_payload`, `invalid_strategy_setting`
+- 非再試行: `REQUEST_VALIDATION_FAILED`
 
 ## 7. SLO・監視
 
 - 1ジョブ完了: 5分以内
 - 成功率: 99.0%
 - メトリクス: `proposal_success_total`, `proposal_failure_total`, `proposal_duration_ms`
-

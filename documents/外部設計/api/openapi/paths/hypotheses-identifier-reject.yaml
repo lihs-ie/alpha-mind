@@ -12,7 +12,7 @@ post:
         schema:
           "$ref": "../components/schemas/index.yaml#/HypothesisRejectRequest"
         example:
-          reasonCode: POLICY_COMPLIANCE_HOLD
+          actionReasonCode: POLICY_COMPLIANCE_HOLD
           comment: デモ成績が昇格基準に未達
   responses:
     '200':
@@ -23,7 +23,7 @@ post:
             "$ref": "../components/schemas/index.yaml#/OperationResult"
           example:
             success: true
-            trace: id-001
+            trace: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"
     '409':

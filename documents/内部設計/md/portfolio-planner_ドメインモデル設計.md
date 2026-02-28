@@ -171,7 +171,7 @@ Feature: portfolio-planner proposal planning
 - 削除/無効化コマンド: `TerminateDispatch`
 - 不変条件:
 1. 同一イベント `identifier` は1回のみ `completed` へ遷移できる。
-2. `dispatchStatus=completed` のとき `orderCount` は `orderIdentifiers` 件数と一致する。
+2. `dispatchStatus=completed` のとき `orderCount` は `orders` 件数と一致する。
 3. `dispatchStatus=failed` のとき `reasonCode` 必須。
 
 #### 4.1.1 Aggregate Rootフィールド定義（ProposalDispatch）
@@ -181,7 +181,7 @@ Feature: portfolio-planner proposal planning
 | `identifier` | `string` | 入力イベント識別子（ULID） | `1` |
 | `dispatchStatus` | `enum(pending, completed, failed)` | 配信処理状態 | `1` |
 | `orderCount` | `integer` | 発行対象注文数 | `0..1` |
-| `orderIdentifiers` | `array<string>` | 発行対象注文識別子 | `0..n` |
+| `orders` | `array<string>` | 発行対象注文識別子 | `0..n` |
 | `reasonCode` | `enum(ReasonCode)` | 失敗理由コード | `0..1` |
 | `trace` | `string` | トレース識別子 | `1` |
 | `processedAt` | `datetime` | 処理完了時刻 | `0..1` |
@@ -219,7 +219,7 @@ Feature: portfolio-planner proposal planning
 | `identifier` | `string` | 入力イベント識別子 | `1` |
 | `dispatchStatus` | `enum(pending, completed, failed)` | 配信状態 | `1` |
 | `orderCount` | `integer` | 発行注文件数 | `0..1` |
-| `orderIdentifiers` | `array<string>` | 発行注文識別子 | `0..n` |
+| `orders` | `array<string>` | 発行注文識別子 | `0..n` |
 | `reasonCode` | `enum(ReasonCode)` | 失敗理由 | `0..1` |
 | `trace` | `string` | トレース識別子 | `1` |
 
@@ -315,7 +315,7 @@ Feature: portfolio-planner proposal planning
 |---|---|---|---|---|
 | なし | `CreateOrderProposal` | `PROPOSED` | `qty>0` かつ必須項目あり | `REQUEST_VALIDATION_FAILED` |
 | `PROPOSED` | `CreateOrderProposal` | `PROPOSED` | 同一イベントidentifier重複受信 | `IDEMPOTENCY_DUPLICATE_EVENT` |
-| `pending` | `CompleteDispatch` | `completed` | `orderCount == len(orderIdentifiers)` | - |
+| `pending` | `CompleteDispatch` | `completed` | `orderCount == len(orders)` | - |
 | `pending` | `FailDispatch` | `failed` | `requiresComplianceReview=true` | `COMPLIANCE_REVIEW_REQUIRED` |
 | `pending` | `FailDispatch` | `failed` | 依存取得失敗 | `DEPENDENCY_TIMEOUT` / `DEPENDENCY_UNAVAILABLE` |
 | `completed` | `CompleteDispatch` | `completed` | 同一イベントidentifier重複処理 | `IDEMPOTENCY_DUPLICATE_EVENT` |
@@ -338,7 +338,7 @@ Feature: portfolio-planner proposal planning
 | eventType | 発行主体 | 発行タイミング | payload | 冪等キー |
 |---|---|---|---|---|
 | `order.proposal.created` | `OrderProposal` | 注文候補保存後 | `identifier`, `symbol`, `side`, `qty`, `trace` | `identifier` |
-| `proposal.dispatch.completed` | `ProposalDispatch` | 配信完了確定時 | `identifier`, `orderCount`, `orderIdentifiers`, `trace` | `identifier` |
+| `proposal.dispatch.completed` | `ProposalDispatch` | 配信完了確定時 | `identifier`, `orderCount`, `orders`, `trace` | `identifier` |
 | `proposal.dispatch.failed` | `ProposalDispatch` | 配信失敗確定時 | `identifier`, `reasonCode`, `trace` | `identifier` |
 
 ### 6.2 Integration Event（境界外）

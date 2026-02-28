@@ -1,4 +1,4 @@
-address: insightCollectRequested
+address: insight.collect.requested
 messages:
   insightCollectRequested:
     "$ref": "../components/messages/index.yaml#/InsightCollectRequested"

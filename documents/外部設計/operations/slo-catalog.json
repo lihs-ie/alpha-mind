@@ -10,7 +10,7 @@
       "objective": 0.995,
       "latencyTargetMsP95": 500,
       "exclusions": [
-        "/health"
+        "/healthz"
       ]
     },
     {

@@ -1,4 +1,4 @@
-address: ordersExecutionFailed
+address: orders.execution.failed
 messages:
   ordersExecutionFailed:
     "$ref": "../components/messages/index.yaml#/OrdersExecutionFailed"

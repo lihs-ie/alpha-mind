@@ -56,7 +56,7 @@
 - 安全性: `requiresComplianceReview=true` は昇格禁止。
 - 安全性: 無条件の自動昇格は禁止し、ETF低リスク条件を満たす場合のみ自動昇格を許可する。
 - 安全性: 個別株の昇格は `POST /hypotheses/{identifier}/promote` の手動承認を必須とする。
-- 監査: 昇格時に `mnpiSelfDeclared`, `reasonCode`, `trace` を必須保存する。
+- 監査: 昇格時に `mnpiSelfDeclared`, `actionReasonCode`, `trace` を必須保存する。
 - 監査: `partnerRestrictedSymbols` 該当銘柄は自動昇格対象外とする。
 - 監査: 失敗時は原因分類を必須入力し、Markdown要約付きで `failure_knowledge` へ保存。
 
