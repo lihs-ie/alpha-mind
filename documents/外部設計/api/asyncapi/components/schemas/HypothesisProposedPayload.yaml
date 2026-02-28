@@ -1,23 +1,45 @@
 type: object
 required:
 - identifier
+- symbol
+- instrumentType
 - title
 - sourceEvidence
 properties:
   identifier:
     type: string
+  symbol:
+    type: string
+  instrumentType:
+    type: string
+    enum:
+    - ETF
+    - STOCK
+  insiderRisk:
+    type: string
+    enum:
+    - low
+    - medium
+    - high
   title:
     type: string
   sourceEvidence:
     type: array
     items:
       type: string
+  mnpiSelfDeclared:
+    type: boolean
+    default: false
   skillVersion:
     type: string
   instructionProfileVersion:
     type: string
 example:
   identifier: id-001
-  title: string
+  symbol: 1306.T
+  instrumentType: ETF
+  insiderRisk: low
+  title: 低ボラETFの押し目反発仮説
   sourceEvidence:
-  - id-001
+  - insight-20260115-001
+  mnpiSelfDeclared: false

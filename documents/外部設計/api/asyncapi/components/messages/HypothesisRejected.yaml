@@ -13,4 +13,8 @@ examples:
     schemaVersion: 1.0.0
     payload:
       identifier: id-001
-      decision: promoted
+      decision: rejected
+      reasonCode: POLICY_COMPLIANCE_HOLD
+      promotionMode: manual
+      mnpiSelfDeclared: true
+      insiderRisk: medium

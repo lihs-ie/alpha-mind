@@ -14,6 +14,8 @@ get:
             "$ref": "../components/schemas/index.yaml#/HypothesisDetail"
           example:
             identifier: id-001
+            symbol: 1306.T
+            instrumentType: ETF
             status: demo
             title: 逆日歩未発生×低PBRクラスターのリバウンド仮説
             updatedAt: '2026-01-15T09:00:00Z'
@@ -21,7 +23,11 @@ get:
             dsr: 1.14
             pbo: 0.08
             demoPeriod: 45d
+            insiderRisk: low
             requiresComplianceReview: false
+            mnpiSelfDeclared: true
+            autoPromotionEligible: true
+            promotionMode: auto
             sourceEvidence:
             - insight-20260115-001
             skillVersion: skill-cross-sectional@1.4.0

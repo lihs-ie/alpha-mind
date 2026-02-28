@@ -1,6 +1,6 @@
 # Firestore設計
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 
 ## 1. 目的
 
@@ -71,17 +71,17 @@
 - 注文候補〜執行結果の状態管理
 
 ドキュメントID:
-- `orderId` (UUID)
+- `identifier` (UUID)
 
 主要フィールド:
-- `orderId`
+- `identifier`
 - `symbol`
 - `side` (`BUY` / `SELL`)
 - `qty`
 - `status` (`PROPOSED` / `APPROVED` / `REJECTED` / `EXECUTED` / `FAILED`)
 - `reasonCode` (string, optional)
-- `proposalId` (string)
-- `brokerOrderId` (string, optional)
+- `proposal` (string)
+- `brokerOrder` (string, optional)
 - `trace` (string)
 - `createdAt` (timestamp)
 - `updatedAt` (timestamp)
@@ -110,10 +110,9 @@
 - 監査ログ索引（長期はCloud Logging）
 
 ドキュメントID:
-- `logId`
+- `identifier`
 
 主要フィールド:
-- `logId`
 - `identifier`
 - `eventType`
 - `service`
@@ -134,9 +133,11 @@
 
 主要フィールド:
 - `restrictedSymbols` (array<string>)
+- `partnerRestrictedSymbols` (array<string>)
 - `blackoutWindows` (array<map{symbol,startAt,endAt,reasonCode}>)
 - `mnpiKeywordVersion` (string)
 - `sourcePolicyVersion` (string)
+- `autoPromotionEnabled` (boolean, default: false)
 - `maxCommentLength` (number, default: 120)
 - `updatedAt` (timestamp)
 - `updatedBy` (string)
@@ -162,10 +163,10 @@
 - Claude Code Skillの定義・版管理
 
 ドキュメントID:
-- `skillId`
+- `identifier`
 
 主要フィールド:
-- `skillId`
+- `identifier`
 - `name`
 - `version`
 - `status` (`active` / `deprecated`)
@@ -180,10 +181,10 @@
 - 定性インサイト（X/YouTube/論文/GitHub）保存
 
 ドキュメントID:
-- `insightId`
+- `identifier`
 
 主要フィールド:
-- `insightId`
+- `identifier`
 - `symbol` (optional)
 - `theme`
 - `sentiment` (`positive` / `neutral` / `negative`)
@@ -200,13 +201,19 @@
 - 仮説ライフサイクル管理
 
 ドキュメントID:
-- `hypothesisId`
+- `identifier`
 
 主要フィールド:
-- `hypothesisId`
+- `identifier`
+- `symbol`
 - `title`
 - `status` (`draft` / `backtested` / `demo` / `live` / `rejected`)
-- `sourceInsightIds` (array<string>)
+- `instrumentType` (`ETF` / `STOCK`)
+- `insiderRisk` (`low` / `medium` / `high`)
+- `mnpiSelfDeclared` (boolean)
+- `autoPromotionEligible` (boolean)
+- `promotionMode` (`manual` / `auto`)
+- `sourceInsights` (array<string>)
 - `instructionProfileVersion`
 - `createdAt`
 - `updatedAt`
@@ -218,11 +225,11 @@
 - 仮説のバックテスト結果保存
 
 ドキュメントID:
-- `runId`
+- `identifier`
 
 主要フィールド:
-- `runId`
-- `hypothesisId`
+- `identifier`
+- `hypothesis`
 - `datasetVersion`
 - `metrics` (`oosReturn`, `costAdjustedReturn`, `sharpe`, `pbo`, `dsr`)
 - `passed` (boolean)
@@ -234,11 +241,11 @@
 - デモトレード結果保存
 
 ドキュメントID:
-- `demoRunId`
+- `identifier`
 
 主要フィールド:
-- `demoRunId`
-- `hypothesisId`
+- `identifier`
+- `hypothesis`
 - `startAt`
 - `endAt`
 - `metrics`
@@ -251,11 +258,11 @@
 - 失敗仮説と失敗理由の知見化
 
 ドキュメントID:
-- `failureId`
+- `identifier`
 
 主要フィールド:
-- `failureId`
-- `hypothesisId`
+- `identifier`
+- `hypothesis`
 - `failureType`
 - `reasonCode`
 - `summary`
@@ -270,10 +277,10 @@
 - Markdown指示書プロトコル管理
 
 ドキュメントID:
-- `profileId`
+- `identifier`
 
 主要フィールド:
-- `profileId`
+- `identifier`
 - `name`
 - `version`
 - `contentPath`

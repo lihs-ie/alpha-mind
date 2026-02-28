@@ -1,6 +1,6 @@
 # risk-guard 内部設計書
 
-最終更新日: 2026-02-15
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/risk-guard.json`
 
 ## 1. サービス概要
@@ -24,7 +24,7 @@ JSON対応: `内部設計/json/risk-guard.json`
 
 ## 4. 依存関係
 
-- Firestore: `settings`, `operations`, `orders`, `idempotency_keys`, `audit_logs`
+- Firestore: `settings`, `operations`, `compliance_controls`, `orders`, `idempotency_keys`, `audit_logs`
 - Messaging: Pub/Sub
 
 ## 5. 処理フロー
@@ -40,7 +40,7 @@ JSON対応: `内部設計/json/risk-guard.json`
 
 - `dailyLossLimit`
 - `positionConcentrationLimit`
-- `dailyOrderCountLimit`
+- `dailyOrderLimit`
 - `killSwitchGuard`
 - `restrictedSymbolsGuard`
 - `blackoutWindowGuard`

@@ -17,3 +17,7 @@ example:
   payload:
     identifier: id-001
     decision: promoted
+    reasonCode: AUTO_PROMOTION_POLICY_MATCH
+    promotionMode: auto
+    mnpiSelfDeclared: true
+    insiderRisk: low

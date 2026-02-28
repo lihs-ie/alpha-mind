@@ -1,6 +1,6 @@
 # execution 内部設計書
 
-最終更新日: 2026-02-12
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/execution.json`
 
 ## 1. サービス概要
@@ -20,7 +20,7 @@ JSON対応: `内部設計/json/execution.json`
 ## 3. イベントIF
 
 - Subscribe: `orders.approved`
-- Publish: `orders.executed`, `orders.execution.failed`
+- Publish: `orders.executed`, `orders.execution.failed`, `hypothesis.demo.completed`（デモ運用モード時）
 
 ## 4. 依存関係
 
@@ -34,6 +34,7 @@ JSON対応: `内部設計/json/execution.json`
 3. ブローカー発注
 4. 執行結果保存
 5. 結果イベント発行
+6. （デモ運用時）期間完了で `hypothesis.demo.completed` 発行
 
 ## 6. 冪等性・リトライ
 
@@ -47,4 +48,3 @@ JSON対応: `内部設計/json/execution.json`
 - 受信から執行完了: 30秒以内
 - 成功率: 99.0%
 - メトリクス: `execution_success_total`, `execution_failure_total`, `broker_api_latency_ms`
-

@@ -16,5 +16,6 @@ example:
   schemaVersion: 1.0.0
   payload:
     identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-    decision: approved
-    reasonCode: AUTH_INVALID_CREDENTIALS
+    decision: rejected
+    reasonCode: RISK_LIMIT_EXCEEDED
+    actionReasonCode: RISK_REJECTION

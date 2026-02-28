@@ -1,6 +1,6 @@
 {
   "serviceId": "risk-guard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "role": "注文候補をリスク制約で検証し、承認または却下する。",
   "aiResponsibility": false,
   "runtime": {
@@ -24,6 +24,7 @@
     "datastores": [
       "Firestore:settings",
       "Firestore:operations",
+      "Firestore:compliance_controls",
       "Firestore:orders",
       "Firestore:idempotency_keys",
       "Firestore:audit_logs"
@@ -43,7 +44,7 @@
   "riskRules": [
     "dailyLossLimit",
     "positionConcentrationLimit",
-    "dailyOrderCountLimit",
+    "dailyOrderLimit",
     "killSwitchGuard",
     "restrictedSymbolsGuard",
     "blackoutWindowGuard"
@@ -77,7 +78,6 @@
     "logFields": [
       "trace",
       "identifier",
-      "orderId",
       "decision",
       "reasonCode"
     ]

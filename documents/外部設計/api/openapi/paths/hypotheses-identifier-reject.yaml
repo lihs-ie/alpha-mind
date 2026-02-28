@@ -10,7 +10,10 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "../components/schemas/index.yaml#/HypothesisDecisionRequest"
+          "$ref": "../components/schemas/index.yaml#/HypothesisRejectRequest"
+        example:
+          reasonCode: POLICY_COMPLIANCE_HOLD
+          comment: デモ成績が昇格基準に未達
   responses:
     '200':
       description: Hypothesis reject result
@@ -25,3 +28,5 @@ post:
       "$ref": "../components/responses/index.yaml#/BadRequest"
     '409':
       "$ref": "../components/responses/index.yaml#/Conflict"
+    '422':
+      "$ref": "../components/responses/index.yaml#/UnprocessableEntity"

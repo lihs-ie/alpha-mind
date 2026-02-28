@@ -1,6 +1,6 @@
 # hypothesis-lab 外部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 
 ## 1. サービス概要
 
@@ -46,13 +46,18 @@
 
 - 事前条件: バックテスト合格、デモ期間（1〜2か月）終了。
 - トリガー: `hypothesis.demo.completed` 受信。
-- 成果: 合格時 `hypothesis.promoted`、不合格時 `hypothesis.rejected` を発行。
+- 成果: 評価値を保存し、昇格可否フラグを更新する。`promotable=false` の場合は `hypothesis.rejected` を発行。
+- 成果: `instrumentType=ETF` かつ `insiderRisk=low` 等の条件を満たす場合のみ `hypothesis.promoted` を自動発行する。
 
 ## 5. 非機能要件
 
 - 検証再現性: 入力データ版、Skill版、評価コード版を必須保存。
 - 合格基準: コスト控除後指標とリスク指標を同時に満たす。
 - 安全性: `requiresComplianceReview=true` は昇格禁止。
+- 安全性: 無条件の自動昇格は禁止し、ETF低リスク条件を満たす場合のみ自動昇格を許可する。
+- 安全性: 個別株の昇格は `POST /hypotheses/{identifier}/promote` の手動承認を必須とする。
+- 監査: 昇格時に `mnpiSelfDeclared`, `reasonCode`, `trace` を必須保存する。
+- 監査: `partnerRestrictedSymbols` 該当銘柄は自動昇格対象外とする。
 - 監査: 失敗時は原因分類を必須入力し、Markdown要約付きで `failure_knowledge` へ保存。
 
 ## 6. スコープ外

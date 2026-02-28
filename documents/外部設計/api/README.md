@@ -1,6 +1,6 @@
 # API設計
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 
 ## 1. OpenAPI
 
@@ -23,8 +23,12 @@
 - モデル検証APIは `degradationFlag` とコスト控除指標（`costAdjustedReturn`, `slippageAdjustedSharpe`）を含む。
 - `signal.generated` イベントは `modelDiagnostics` を含み、劣化判定とコンプライアンスレビュー要否を伝播する。
 - 更新系APIの手動入力は `reasonCode` + `comment`（最大120文字）に制限し、MNPI疑義は拒否する。
+- 仮説昇格API（`POST /hypotheses/{identifier}/promote`）は `mnpiSelfDeclared=true` を必須とする。
+- MNPI自己申告は `PUT /hypotheses/{identifier}/mnpi-self-declaration` で事前更新できる。
 - コンプライアンス拒否は `COMPLIANCE_*` 系 `reasonCode` で統一する。
-- `GET/PUT /compliance/controls` で制限銘柄とブラックアウト期間を管理する。
+- `orders.approved/rejected` は判定結果理由を `reasonCode`、手動操作理由を `actionReasonCode` で表現する。
+- `GET/PUT /compliance/controls` で制限銘柄・取引先関連銘柄・ブラックアウト期間を管理する。
+- 自動昇格は `instrumentType=ETF` かつ `insiderRisk=low` かつ `partnerRestrictedSymbols` 非該当時のみ許可する。
 - インサイト/仮説系APIを追加し、定性分析結果から仮説検証までをBFF経由で一貫操作できるようにする。
 - AsyncAPIに `insight.*` と `hypothesis.*` ドメインイベントを追加し、既存イベントチェーンと疎結合に連携する。
 - コンプライアンス制御に `sourcePolicies` を含め、許可ソース・利用規約チェックをAPI契約化する。

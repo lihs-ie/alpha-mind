@@ -42,7 +42,6 @@
   "dataModels": {
     "auditRecord": {
       "required": [
-        "logId",
         "identifier",
         "eventType",
         "trace",

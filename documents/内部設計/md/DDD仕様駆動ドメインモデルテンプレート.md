@@ -33,6 +33,7 @@
 |---|---|---|---|
 | `<upstream/downstream>` | `Customer-Supplier / OHS+PL / ACL / Separate Ways` | `OpenAPI/AsyncAPI` | `<translation rules>` |
 
+
 ## 3. 仕様駆動（Specification-Driven）
 
 ### 3.1 ビジネスルール一覧（Rule）
@@ -77,17 +78,45 @@ Feature: <bounded-context feature>
 1. `<invariant 1>`
 2. `<invariant 2>`
 
+#### 4.1.1 Aggregate Rootフィールド定義
+
+| フィールド名 | 型 | 説明 | 保持数 |
+|---|---|---|---|
+| `identifier` | `<type>` | `<rootの識別子>` | `1` |
+| `<field>` | `<type>` | `<description>` | `<cardinality: 1 / 0..1 / 1..n / 0..n / x..y>` |
+
+#### 4.1.2 集約内要素の保持（Entity/Value Object）
+
+| フィールド名 | 型 | 説明 | 保持数 |
+|---|---|---|---|
+| `<entities>` | `List<<Entity>>` | `<集約内エンティティ>` | `0..n` |
+| `<valueObjects>` | `List<<ValueObject>>` | `<集約内値オブジェクト>` | `0..n` |
+| `<singleValueObject>` | `<ValueObject>` | `<単一値オブジェクト>` | `0..1` |
+
 ### 4.2 Entity
 
 | Entity | 識別子 | ライフサイクル | 主な振る舞い |
 |---|---|---|---|
 | `<entity>` | `identifier` | `<state model>` | `<methods>` |
 
+#### Entity詳細: `<entity>`
+
+| フィールド名 | 型 | 説明 | 保持数 |
+|---|---|---|---|
+| `identifier` | `<type>` | `<entityの識別子>` | `1` |
+| `<field>` | `<type>` | `<description>` | `<cardinality: 1 / 0..1 / 1..n / 0..n / x..y>` |
+
 ### 4.3 Value Object
 
 | Value Object | 属性 | 等価性 | 不変性 |
 |---|---|---|---|
 | `<vo>` | `<attributes>` | `<value equality>` | `immutable` |
+
+#### Value Object詳細: `<vo>`
+
+| フィールド名 | 型 | 説明 | 保持数 |
+|---|---|---|---|
+| `<field>` | `<type>` | `<description>` | `<cardinality: 1 / 0..1 / 1..n / 0..n / x..y>` |
 
 ### 4.4 Domain Service / Application Service
 
@@ -102,6 +131,17 @@ Feature: <bounded-context feature>
 | Repository | `<name>` | `<aggregate永続化>` | `<interface signature>` |
 | Factory | `<name>` | `<複雑生成>` | `<factory method>` |
 | Specification | `<name>` | `<合成可能ルール>` | `isSatisfiedBy(candidate)` |
+
+#### 4.5.1 interface signature
+
+| 役割 | 命名規則 | 用途 |
+| - | - | - |
+| 永続化 | Persist | 集約・エンティティを永続化する |
+| 削除 | Terminate | 集約・エンティティを削除する |
+| Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
+
 
 ## 5. 状態遷移と不変条件
 

@@ -46,6 +46,8 @@
   "$ref": "./hypotheses-identifier.yaml"
 "/hypotheses/{identifier}/promote":
   "$ref": "./hypotheses-identifier-promote.yaml"
+"/hypotheses/{identifier}/mnpi-self-declaration":
+  "$ref": "./hypotheses-identifier-mnpi-self-declaration.yaml"
 "/hypotheses/{identifier}/reject":
   "$ref": "./hypotheses-identifier-reject.yaml"
 "/hypotheses/{identifier}/retest":

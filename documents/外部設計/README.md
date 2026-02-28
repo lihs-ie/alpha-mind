@@ -1,6 +1,6 @@
 # 外部設計ドキュメント一覧
 
-最終更新日: 2026-02-24
+最終更新日: 2026-02-28
 
 ## 目的
 
@@ -34,6 +34,8 @@
 - `外部設計/screens/SCR-003_注文管理.md`
 - `外部設計/screens/SCR-004_監査ログ.md`
 - `外部設計/screens/SCR-005_モデル検証.md`
+- `外部設計/screens/SCR-006_インサイト管理.md`
+- `外部設計/screens/SCR-007_仮説ラボ.md`
 
 ## API設計
 
@@ -59,6 +61,7 @@
 ## 認証・認可設計
 
 - `外部設計/security/認証認可設計.md`
+- `外部設計/security/条件付き自動昇格設計.md`
 - `外部設計/security/authz-matrix.json`
 
 ## 運用設計
@@ -76,4 +79,4 @@
 - AsyncAPI examples の拡充
 - Terraformモジュール雛形（`.tf`）の作成
 - 補助モニタ（`MON-001`〜`MON-003`）の実測メトリクス送信実装
-- インサイト管理/仮説ラボ向けAPI・イベント契約の追加
+- OpenAPI/AsyncAPI 互換性テストの自動化

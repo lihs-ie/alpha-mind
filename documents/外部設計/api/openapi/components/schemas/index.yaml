@@ -62,6 +62,10 @@ HypothesisDetail:
   "$ref": "./HypothesisDetail.yaml"
 HypothesisDecisionRequest:
   "$ref": "./HypothesisDecisionRequest.yaml"
+HypothesisRejectRequest:
+  "$ref": "./HypothesisRejectRequest.yaml"
+HypothesisMnpiSelfDeclarationUpdate:
+  "$ref": "./HypothesisMnpiSelfDeclarationUpdate.yaml"
 ModelValidationListResponse:
   "$ref": "./ModelValidationListResponse.yaml"
 ModelValidationSummary:

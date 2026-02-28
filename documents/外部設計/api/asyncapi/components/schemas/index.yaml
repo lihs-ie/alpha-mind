@@ -92,3 +92,5 @@ DegradationFlag:
   "$ref": "./DegradationFlag.yaml"
 ReasonCode:
   "$ref": "./ReasonCode.yaml"
+OperatorActionReasonCode:
+  "$ref": "./OperatorActionReasonCode.yaml"

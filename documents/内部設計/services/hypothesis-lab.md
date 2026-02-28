@@ -1,6 +1,6 @@
 # hypothesis-lab 内部設計書
 
-最終更新日: 2026-02-27
+最終更新日: 2026-02-28
 JSON対応: `内部設計/json/hypothesis-lab.json`
 
 ## 1. サービス概要
@@ -33,8 +33,9 @@ JSON対応: `内部設計/json/hypothesis-lab.json`
 2. バックテスト実行（Walk-forward/DSR/PBO）
 3. コスト控除評価
 4. 合格時はデモ運用へ遷移
-5. デモ結果で昇格/却下判定
-6. 結果イベント発行
+5. デモ結果で昇格可否フラグ更新
+6. 条件充足時のみ自動昇格（ETF低リスク）または手動昇格待ちへ遷移
+7. 結果イベント発行
 
 ## 6. 冪等性・リトライ
 
@@ -46,6 +47,9 @@ JSON対応: `内部設計/json/hypothesis-lab.json`
 
 - コスト控除後指標が閾値以上
 - `requiresComplianceReview=true` は昇格拒否
+- 無条件の自動昇格は禁止
+- 自動昇格は `instrumentType=ETF` かつ `insiderRisk=low` かつ `mnpiSelfDeclared=true` かつ `partnerRestrictedSymbols` 非該当時のみ許可
+- 個別株は `POST /hypotheses/{identifier}/promote` の手動承認のみ許可
 - 失敗時は `failure_knowledge` へMarkdown要約登録を必須化
 
 ## 8. SLO・監視

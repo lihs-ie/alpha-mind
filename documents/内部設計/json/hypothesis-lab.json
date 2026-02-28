@@ -38,6 +38,8 @@
     "バックテスト実行",
     "コスト控除評価",
     "デモトレード評価",
+    "ETF低リスク条件なら自動昇格判定",
+    "個別株は手動昇格待ち判定",
     "昇格/却下判定",
     "結果イベント発行"
   ],
@@ -57,6 +59,8 @@
   "qualityGates": [
     "コスト控除後指標の閾値達成",
     "requiresComplianceReview=trueは昇格禁止",
+    "自動昇格はinstrumentType=ETFかつinsiderRisk=lowかつmnpiSelfDeclared=trueかつpartnerRestrictedSymbols非該当時のみ",
+    "個別株は手動昇格のみ",
     "失敗時failure_knowledgeへMarkdown要約登録"
   ],
   "slo": {

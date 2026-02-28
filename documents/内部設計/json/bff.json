@@ -103,7 +103,7 @@
     "logFields": [
       "trace",
       "identifier",
-      "userId",
+      "user",
       "endpoint",
       "result"
     ],

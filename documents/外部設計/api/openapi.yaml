@@ -89,6 +89,8 @@ paths:
     $ref: "./openapi/paths/hypotheses-identifier.yaml"
   /hypotheses/{identifier}/promote:
     $ref: "./openapi/paths/hypotheses-identifier-promote.yaml"
+  /hypotheses/{identifier}/mnpi-self-declaration:
+    $ref: "./openapi/paths/hypotheses-identifier-mnpi-self-declaration.yaml"
   /hypotheses/{identifier}/reject:
     $ref: "./openapi/paths/hypotheses-identifier-reject.yaml"
   /hypotheses/{identifier}/retest:
@@ -167,6 +169,10 @@ components:
       $ref: "./openapi/components/schemas/HypothesisDetail.yaml"
     HypothesisDecisionRequest:
       $ref: "./openapi/components/schemas/HypothesisDecisionRequest.yaml"
+    HypothesisRejectRequest:
+      $ref: "./openapi/components/schemas/HypothesisRejectRequest.yaml"
+    HypothesisMnpiSelfDeclarationUpdate:
+      $ref: "./openapi/components/schemas/HypothesisMnpiSelfDeclarationUpdate.yaml"
     ModelValidationListResponse:
       $ref: "./openapi/components/schemas/ModelValidationListResponse.yaml"
     ModelValidationSummary:
@@ -198,6 +204,8 @@ components:
       $ref: "./openapi/components/responses/NotFound.yaml"
     Conflict:
       $ref: "./openapi/components/responses/Conflict.yaml"
+    UnprocessableEntity:
+      $ref: "./openapi/components/responses/UnprocessableEntity.yaml"
     ServiceUnavailable:
       $ref: "./openapi/components/responses/ServiceUnavailable.yaml"
   parameters:

@@ -13,6 +13,8 @@ get:
           example:
             restrictedSymbols:
             - AAPL
+            partnerRestrictedSymbols:
+            - 7203.T
             blackoutWindows:
             - symbol: AAPL
               startAt: '2026-01-15T09:00:00Z'
@@ -25,6 +27,7 @@ get:
               redistributionAllowed: false
               dailyQuota: 500
             maxCommentLength: 120
+            autoPromotionEnabled: true
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"
 put:
@@ -41,6 +44,8 @@ put:
         example:
           restrictedSymbols:
           - AAPL
+          partnerRestrictedSymbols:
+          - 7203.T
           blackoutWindows:
           - symbol: AAPL
             startAt: '2026-01-15T09:00:00Z'
@@ -53,6 +58,7 @@ put:
             redistributionAllowed: false
             dailyQuota: 500
           maxCommentLength: 120
+          autoPromotionEnabled: true
   responses:
     '200':
       description: Update result

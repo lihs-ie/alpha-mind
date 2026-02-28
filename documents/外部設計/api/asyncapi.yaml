@@ -165,6 +165,8 @@ components:
       "$ref": "./asyncapi/components/schemas/DegradationFlag.yaml"
     ReasonCode:
       "$ref": "./asyncapi/components/schemas/ReasonCode.yaml"
+    OperatorActionReasonCode:
+      "$ref": "./asyncapi/components/schemas/OperatorActionReasonCode.yaml"
   securitySchemes:
     serviceAccountJwt:
       type: http

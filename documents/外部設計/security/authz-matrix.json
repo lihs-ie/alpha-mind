@@ -1,6 +1,6 @@
 {
-  "version": "1.3.0",
-  "updatedAt": "2026-02-27",
+  "version": "1.3.1",
+  "updatedAt": "2026-02-28",
   "roles": [
     {
       "role": "admin",
@@ -56,6 +56,7 @@
     {"method": "GET", "path": "/hypotheses", "permission": "hypotheses:read"},
     {"method": "GET", "path": "/hypotheses/{identifier}", "permission": "hypotheses:read"},
     {"method": "POST", "path": "/hypotheses/{identifier}/promote", "permission": "hypotheses:decide"},
+    {"method": "PUT", "path": "/hypotheses/{identifier}/mnpi-self-declaration", "permission": "hypotheses:decide"},
     {"method": "POST", "path": "/hypotheses/{identifier}/reject", "permission": "hypotheses:decide"},
     {"method": "POST", "path": "/hypotheses/{identifier}/retest", "permission": "hypotheses:retest"},
     {"method": "GET", "path": "/settings/strategy", "permission": "settings:read"},

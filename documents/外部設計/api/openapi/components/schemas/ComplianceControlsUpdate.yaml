@@ -3,6 +3,8 @@ allOf:
 example:
   restrictedSymbols:
   - AAPL
+  partnerRestrictedSymbols:
+  - 7203.T
   blackoutWindows:
   - symbol: AAPL
     startAt: '2026-01-15T09:00:00Z'
@@ -15,3 +17,4 @@ example:
     redistributionAllowed: false
     dailyQuota: 500
   maxCommentLength: 120
+  autoPromotionEnabled: true

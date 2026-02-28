@@ -13,6 +13,10 @@ examples:
     schemaVersion: 1.0.0
     payload:
       identifier: id-001
-      title: string
+      symbol: 1306.T
+      instrumentType: ETF
+      insiderRisk: low
+      title: 低ボラETFの押し目反発仮説
       sourceEvidence:
-      - id-001
+      - insight-20260115-001
+      mnpiSelfDeclared: false

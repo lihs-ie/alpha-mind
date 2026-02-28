@@ -15,7 +15,8 @@
       ],
       "publish": [
         "orders.executed",
-        "orders.execution.failed"
+        "orders.execution.failed",
+        "hypothesis.demo.completed"
       ]
     }
   },
@@ -72,8 +73,7 @@
     "logFields": [
       "trace",
       "identifier",
-      "orderId",
-      "brokerOrderId",
+      "brokerOrder",
       "result"
     ],
     "alerts": [

@@ -1,8 +1,8 @@
-post:
+put:
   tags:
   - Hypotheses
-  summary: 仮説昇格申請
-  operationId: postHypothesisPromote
+  summary: 仮説MNPI自己申告更新
+  operationId: putHypothesisMnpiSelfDeclaration
   parameters:
   - "$ref": "../components/parameters/index.yaml#/Identifier"
   requestBody:
@@ -10,10 +10,14 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "../components/schemas/index.yaml#/HypothesisDecisionRequest"
+          "$ref": "../components/schemas/index.yaml#/HypothesisMnpiSelfDeclarationUpdate"
+        example:
+          mnpiSelfDeclared: true
+          reasonCode: MANUAL_OPERATION
+          comment: 昇格前に自己申告を更新
   responses:
     '200':
-      description: Hypothesis promote result
+      description: Update result
       content:
         application/json:
           schema:

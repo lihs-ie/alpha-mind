@@ -8,5 +8,7 @@ NotFound:
   "$ref": "./NotFound.yaml"
 Conflict:
   "$ref": "./Conflict.yaml"
+UnprocessableEntity:
+  "$ref": "./UnprocessableEntity.yaml"
 ServiceUnavailable:
   "$ref": "./ServiceUnavailable.yaml"

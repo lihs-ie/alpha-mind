@@ -2,7 +2,6 @@ type: object
 required:
 - identifier
 - decision
-- reasonCode
 properties:
   identifier:
     type: string
@@ -14,7 +13,17 @@ properties:
     - rejected
   reasonCode:
     "$ref": "./index.yaml#/ReasonCode"
+  actionReasonCode:
+    "$ref": "./index.yaml#/OperatorActionReasonCode"
+allOf:
+- if:
+    properties:
+      decision:
+        const: rejected
+  then:
+    required:
+    - reasonCode
 example:
   identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
   decision: approved
-  reasonCode: AUTH_INVALID_CREDENTIALS
+  actionReasonCode: MANUAL_OPERATION

@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "updatedAt": "2026-02-15",
+  "version": "1.2.0",
+  "updatedAt": "2026-02-28",
   "codes": [
     {"code": "AUTH_INVALID_CREDENTIALS", "category": "AUTH", "defaultHttpStatus": 401, "retryable": false, "owner": "bff", "description": "ログイン資格情報が不正"},
     {"code": "AUTH_TOKEN_EXPIRED", "category": "AUTH", "defaultHttpStatus": 401, "retryable": false, "owner": "bff", "description": "JWTの有効期限切れ"},
@@ -11,6 +11,7 @@
     {"code": "OPERATION_NOT_ALLOWED", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "bff", "description": "現在状態では操作不可"},
     {"code": "KILL_SWITCH_ENABLED", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "risk-guard", "description": "kill switch有効により処理拒否"},
     {"code": "RISK_LIMIT_EXCEEDED", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "risk-guard", "description": "リスク制約超過"},
+    {"code": "RISK_EVALUATION_UNAVAILABLE", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "risk-guard", "description": "判定コンテキスト取得失敗のため安全側で処理拒否"},
     {"code": "MODEL_NOT_FOUND", "category": "BUSINESS", "defaultHttpStatus": 404, "retryable": false, "owner": "signal-generator", "description": "モデルが存在しない"},
     {"code": "MODEL_NOT_APPROVED", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "signal-generator", "description": "モデルがapprovedではない"},
     {"code": "MODEL_DECISION_INVALID", "category": "BUSINESS", "defaultHttpStatus": 409, "retryable": false, "owner": "bff", "description": "モデル状態遷移が不正"},

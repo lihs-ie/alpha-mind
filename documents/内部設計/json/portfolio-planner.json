@@ -45,7 +45,7 @@
   "dataModels": {
     "orderProposal": {
       "required": [
-        "orderId",
+        "identifier",
         "symbol",
         "side",
         "qty",

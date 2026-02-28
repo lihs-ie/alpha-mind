@@ -1,21 +1,19 @@
 type: object
 required:
-- reasonCode
 - mnpiSelfDeclared
+- reasonCode
 x-compliance-guard:
   mnpiDlpCheck: true
   onDetectionReasonCode: COMPLIANCE_MNPI_SUSPECTED
 properties:
+  mnpiSelfDeclared:
+    type: boolean
+    description: MNPIを知らない自己申告状態。昇格時はtrueが必須。
   reasonCode:
     "$ref": "./index.yaml#/OperatorActionReasonCode"
   comment:
     "$ref": "./index.yaml#/SafeComment"
-  mnpiSelfDeclared:
-    type: boolean
-    enum:
-    - true
-    description: 昇格時のMNPI未保有自己申告。trueのみ許可。
 example:
-  reasonCode: MODEL_REVIEW_DECISION
-  comment: デモ期間1か月超と劣化フラグなしを確認
   mnpiSelfDeclared: true
+  reasonCode: MANUAL_OPERATION
+  comment: 昇格前に自己申告を更新
