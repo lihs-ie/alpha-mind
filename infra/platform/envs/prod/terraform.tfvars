@@ -1,0 +1,5 @@
+project_id                      = "alpha-mind-prod"
+region                          = "asia-northeast1"
+environment                     = "prod"
+artifact_registry_repository_id = "alpha-mind-app"
+placeholder_image               = "us-docker.pkg.dev/cloudrun/container/hello"

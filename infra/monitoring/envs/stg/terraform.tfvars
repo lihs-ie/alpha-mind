@@ -1,0 +1,5 @@
+project_id         = "alpha-mind-stg"
+region             = "asia-northeast1"
+environment        = "stg"
+alert_email_page   = "ops-page@alpha-mind.dev"
+alert_email_ticket = "ops-ticket@alpha-mind.dev"
