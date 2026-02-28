@@ -1,0 +1,19 @@
+# Dockerfile.firestore-emulator
+# Firestore エミュレータ用イメージ。
+# google/cloud-sdk には Java 21 が含まれないため、Adoptium Temurin JRE 21 を追加する。
+
+FROM google/cloud-sdk:latest
+
+# Adoptium リポジトリを追加して Temurin JRE 21 をインストールする
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+  && wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg \
+  && echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list \
+  && apt-get update && apt-get install -y --no-install-recommends \
+    temurin-21-jre \
+  && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 8080
+
+CMD ["gcloud", "beta", "emulators", "firestore", "start", "--host-port=0.0.0.0:8080", "--project=alpha-mind-local"]

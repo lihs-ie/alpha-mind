@@ -10,11 +10,10 @@ services:
   # =========================================================================
 
   firestore:
-    image: google/cloud-sdk:latest
-    command: >
-      gcloud beta emulators firestore start
-      --host-port=0.0.0.0:8080
-      --project=alpha-mind-local
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.firestore-emulator
+    # Java 21 を含むカスタムイメージを使用する（google/cloud-sdk:latest には Java 未同梱）
     ports:
       - "8080:8080"
     networks:
@@ -100,10 +99,11 @@ services:
   # Application Services
   # =========================================================================
 
-  frontend-sol:
+  frontend:
+    platform: linux/amd64
     build:
       context: ../
-      dockerfile: docker/dockerfiles/Dockerfile.frontend-sol
+      dockerfile: docker/dockerfiles/Dockerfile.frontend
     ports:
       - "3000:8080"
     networks:

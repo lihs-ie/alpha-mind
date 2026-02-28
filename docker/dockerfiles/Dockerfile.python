@@ -11,7 +11,7 @@ ARG SERVICE_NAME
 # ===========================================================================
 # Stage 1: builder
 # ===========================================================================
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 ARG SERVICE_NAME
 RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
@@ -39,7 +39,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ===========================================================================
 # Stage 2: runner
 # ===========================================================================
-FROM python:3.12-slim AS runner
+FROM python:3.14-slim AS runner
 
 ARG SERVICE_NAME
 

@@ -109,15 +109,37 @@ app/
 
 対象: svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log
 
-主要ライブラリ: Servant (REST API), Warp (HTTP), aeson (JSON), jose (JWT RS256), gogol-pubsub/firestore (GCP), katip (ログ), hspec + QuickCheck (テスト)
+| 区分 | 技術 | バージョン |
+|------|------|-----------|
+| コンパイラ | GHC | 9.12.2 |
+| ビルドツール | Cabal | 3.16.1.0 |
+| Web フレームワーク | Servant (servant-server) | 0.20.3.0 |
+| HTTP サーバー | Warp | 3.4.12 |
+| JSON | aeson | 2.2.3.0 |
+| JWT | jose | 0.12 |
+| GCP 連携 | gogol-pubsub / gogol-firestore | 1.0.0 |
+| ログ | katip | 0.8.8.0 |
+| テスト | hspec + QuickCheck | - |
 
 ### バックエンド — Python 学習/推論（設計済み・未実装）
 
-対象: svc-signal-generator, svc-feature-engineering。scikit-learn + LightGBM + MLflow。
+対象: svc-signal-generator, svc-feature-engineering
+
+| 区分 | 技術 | バージョン |
+|------|------|-----------|
+| ランタイム | Python | 3.14 |
+| 学習 | scikit-learn + LightGBM | - |
+| 実験管理 | MLflow | - |
 
 ### インフラ
 
 Cloud Run (`min instances=0`) / Pub/Sub / Cloud Scheduler / Firestore / Cloud Storage (Parquet) / Secret Manager / Cloud Logging
+
+| 区分 | 技術 | バージョン |
+|------|------|-----------|
+| IaC | Terraform | >= 1.14 |
+| GCP Provider | hashicorp/google | ~> 7.0 |
+| Node.js (frontend) | Node.js | 24 LTS (Krypton) |
 
 ## コーディングルール
 

@@ -2,7 +2,7 @@
 # Multi-stage build for Haskell backend services.
 # Usage: docker build --build-arg SERVICE_NAME=bff -f Dockerfile.haskell ../../
 #
-# Builder stage: Ubuntu + ghcup で GHC 9.14.1 + Cabal 3.16 をインストール（CLAUDE.md 準拠）。
+# Builder stage: Ubuntu + ghcup で GHC 9.12.2 + Cabal 3.16.1.0 をインストール。
 # Runner stage: minimal Debian for a small production image.
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
@@ -27,19 +27,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
   && rm -rf /var/lib/apt/lists/*
 
-# ghcup をインストールし、GHC 9.14.1 と Cabal 3.16 をセットアップする
+# ghcup をインストールし、GHC 9.12.2 と Cabal 3.16.1.0 をセットアップする
 ENV GHCUP_INSTALL_BASE_PREFIX="/opt"
 ENV PATH="/opt/.ghcup/bin:${PATH}"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | \
     BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
-    BOOTSTRAP_HASKELL_GHC_VERSION=9.14.1 \
-    BOOTSTRAP_HASKELL_CABAL_VERSION=3.16.0.0 \
+    BOOTSTRAP_HASKELL_GHC_VERSION=9.12.2 \
+    BOOTSTRAP_HASKELL_CABAL_VERSION=3.16.1.0 \
     BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 \
     BOOTSTRAP_HASKELL_INSTALL_NO_STACK_HOOK=1 \
     sh
 
 # ghcup でインストールしたバージョンを有効化する
-RUN ghcup set ghc 9.14.1 && ghcup set cabal 3.16.0.0
+RUN ghcup set ghc 9.12.2 && ghcup set cabal 3.16.1.0
 
 WORKDIR /workspace
 
@@ -47,19 +47,20 @@ WORKDIR /workspace
 RUN cabal update
 
 # .cabal ファイルのみ先にコピーして依存関係をキャッシュする
-COPY backend/cabal.project /workspace/
+# cabal.project はサービスごとに動的生成する（共有 cabal.project はローカル開発用）
 COPY backend/${SERVICE_NAME}/${SERVICE_NAME}.cabal /workspace/${SERVICE_NAME}/
+RUN echo "packages: ${SERVICE_NAME}/" > /workspace/cabal.project
 
 # 依存関係のみビルド（ソースなし）
-RUN cd /workspace && cabal build --only-dependencies all 2>&1 | tail -5
+RUN cd /workspace && cabal build --only-dependencies all
 
 # ソースコードをコピーしてビルドする
 COPY backend/${SERVICE_NAME}/ /workspace/${SERVICE_NAME}/
-RUN cd /workspace && cabal build -O2 all 2>&1 | tail -5
+RUN cd /workspace && cabal build -O2 all
 
 # 実行ファイルをステージングディレクトリへコピーする
 RUN mkdir -p /dist && \
-    cp "$(cabal list-bin ${SERVICE_NAME})" /dist/service
+    cp "$(find /workspace/dist-newstyle -name "${SERVICE_NAME}" -type f -executable)" /dist/service
 
 # ===========================================================================
 # Stage 2: runner

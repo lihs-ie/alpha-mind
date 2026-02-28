@@ -292,7 +292,8 @@
 ### 10.3 パイプライン（必須）
 
 1. `validate`:
-- `pnpm type-check`
+- Haskell APIサービスのビルド/テスト（例: `cabal build` / `cabal test`）
+- Python学習/推論サービスの静的検査/テスト（例: `ruff` / `pytest`）
 - `pnpm --package=@redocly/cli dlx redocly lint documents/外部設計/api/openapi.yaml`
 - `pnpm --package=@asyncapi/cli dlx asyncapi validate documents/外部設計/api/asyncapi.yaml`
 - Terraform差分がある場合は `terraform fmt -check` と `terraform validate`
