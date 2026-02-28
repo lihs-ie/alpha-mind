@@ -14,11 +14,11 @@ allOf:
       type: string
       format: date-time
 example:
-  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   symbol: AAPL
   side: BUY
   qty: 1.0
-  status: PROPOSED
+  status: FAILED
   createdAt: '2026-01-15T09:00:00Z'
-  reasonCode: AUTH_INVALID_CREDENTIALS
+  reasonCode: EXECUTION_BROKER_TIMEOUT
   trace: id-001

@@ -4,7 +4,7 @@ post:
   summary: 注文却下
   operationId: postOrderReject
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
   requestBody:
     required: true
     content:

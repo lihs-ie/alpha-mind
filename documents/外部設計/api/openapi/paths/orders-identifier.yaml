@@ -4,7 +4,7 @@ get:
   summary: 注文詳細取得
   operationId: getOrderByIdentifier
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
   responses:
     '200':
       description: Order detail
@@ -13,13 +13,13 @@ get:
           schema:
             "$ref": "../components/schemas/index.yaml#/OrderDetail"
           example:
-            identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             symbol: AAPL
             side: BUY
             qty: 1.0
-            status: PROPOSED
+            status: FAILED
             createdAt: '2026-01-15T09:00:00Z'
-            reasonCode: AUTH_INVALID_CREDENTIALS
+            reasonCode: EXECUTION_BROKER_TIMEOUT
             trace: id-001
     '404':
       "$ref": "../components/responses/index.yaml#/NotFound"

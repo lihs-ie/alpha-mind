@@ -9,7 +9,7 @@ allOf:
     payload:
       "$ref": "./index.yaml#/FailedPayload"
 example:
-  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   eventType: hypothesis.proposal.failed
   occurredAt: '2026-01-15T09:00:00Z'
   trace: id-001

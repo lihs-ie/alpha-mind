@@ -4,7 +4,7 @@ put:
   summary: 仮説MNPI自己申告更新
   operationId: putHypothesisMnpiSelfDeclaration
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
   requestBody:
     required: true
     content:

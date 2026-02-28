@@ -203,6 +203,10 @@ Feature: <bounded-context feature>
 - 当該関心ごとの識別子は `identifier`
 - 他関心ごとの識別子は `{entity}`（例: `user`）
 - 集約外参照はID参照のみ（オブジェクト参照禁止）
+- 識別子生成は以下を標準とする
+  - ドメイン識別子（`identifier`）: `ULID`
+  - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ利用
+  - イベントエンベロープ `identifier`（イベント識別子/冪等性キー）: `ULID`
 
 ## 11. レビュー観点
 

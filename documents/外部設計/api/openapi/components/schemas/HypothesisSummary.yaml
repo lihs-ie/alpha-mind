@@ -8,6 +8,7 @@ required:
 properties:
   identifier:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   symbol:
     type: string
   instrumentType:
@@ -29,7 +30,7 @@ properties:
     type: string
     format: date-time
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   symbol: 1306.T
   instrumentType: ETF
   status: draft

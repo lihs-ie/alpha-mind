@@ -1,5 +1,13 @@
 Identifier:
   "$ref": "./Identifier.yaml"
+OrderIdentifier:
+  "$ref": "./OrderIdentifier.yaml"
+HypothesisIdentifier:
+  "$ref": "./HypothesisIdentifier.yaml"
+InsightIdentifier:
+  "$ref": "./InsightIdentifier.yaml"
+AuditIdentifier:
+  "$ref": "./AuditIdentifier.yaml"
 ModelVersion:
   "$ref": "./ModelVersion.yaml"
 OrderStatus:

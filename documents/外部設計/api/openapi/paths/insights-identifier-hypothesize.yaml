@@ -4,7 +4,7 @@ post:
   summary: インサイトから仮説化
   operationId: postInsightHypothesize
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/InsightIdentifier"
   requestBody:
     required: false
     content:
@@ -20,7 +20,7 @@ post:
             "$ref": "../components/schemas/index.yaml#/CommandAccepted"
           example:
             accepted: true
-            identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             trace: id-001
     '400':
       "$ref": "../components/responses/index.yaml#/BadRequest"

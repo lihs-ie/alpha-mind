@@ -31,7 +31,7 @@
 ### 3.3 外部依存
 
 - ブローカー注文API
-- Firestore（注文状態、約定履歴）
+- Firestore（注文状態、約定履歴、demo_trade_runs）
 
 ## 4. ユースケース
 

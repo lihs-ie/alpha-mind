@@ -25,7 +25,7 @@ get:
             "$ref": "../components/schemas/index.yaml#/HypothesisListResponse"
           example:
             items:
-            - identifier: id-001
+            - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
               symbol: 1306.T
               instrumentType: ETF
               status: draft

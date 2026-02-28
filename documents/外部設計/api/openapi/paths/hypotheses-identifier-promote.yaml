@@ -4,7 +4,7 @@ post:
   summary: 仮説昇格申請
   operationId: postHypothesisPromote
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
   requestBody:
     required: true
     content:

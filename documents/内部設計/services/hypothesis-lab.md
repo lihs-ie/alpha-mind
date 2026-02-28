@@ -40,7 +40,7 @@ JSON対応: `内部設計/json/hypothesis-lab.json`
 ## 6. 冪等性・リトライ
 
 - 冪等性キー: `identifier`
-- リトライ: 最大2回（長時間ジョブのため）
+- リトライ: 最大3回
 - 非再試行: `invalid_hypothesis_payload`, `insufficient_backtest_data`
 
 ## 7. 品質ゲート

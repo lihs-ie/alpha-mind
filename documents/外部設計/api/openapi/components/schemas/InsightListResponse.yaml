@@ -12,7 +12,7 @@ properties:
     - 'null'
 example:
   items:
-  - identifier: id-001
+  - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     sourceType: x
     summary: string
     sourceUrl: https://example.com/resource

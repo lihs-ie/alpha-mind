@@ -9,6 +9,7 @@ required:
 properties:
   identifier:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   decision:
     type: string
     enum:
@@ -30,7 +31,7 @@ properties:
     - medium
     - high
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   decision: promoted
   reasonCode: AUTO_PROMOTION_POLICY_MATCH
   promotionMode: auto

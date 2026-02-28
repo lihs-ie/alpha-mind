@@ -4,7 +4,7 @@ post:
   summary: 注文承認
   operationId: postOrderApprove
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/OrderIdentifier"
   requestBody:
     required: false
     content:

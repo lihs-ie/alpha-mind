@@ -4,7 +4,7 @@ post:
   summary: 仮説却下
   operationId: postHypothesisReject
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
   requestBody:
     required: true
     content:

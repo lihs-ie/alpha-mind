@@ -71,7 +71,7 @@
 - 注文候補〜執行結果の状態管理
 
 ドキュメントID:
-- `identifier` (UUID)
+- `identifier` (ULID)
 
 主要フィールド:
 - `identifier`

@@ -8,9 +8,10 @@ properties:
     type: string
   sourceEvent:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   service:
     type: string
 example:
   sourceEventType: string
-  sourceEvent: id-001
+  sourceEvent: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   service: string

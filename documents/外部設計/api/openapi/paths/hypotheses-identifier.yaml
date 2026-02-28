@@ -4,7 +4,7 @@ get:
   summary: 仮説詳細取得
   operationId: getHypothesisByIdentifier
   parameters:
-  - "$ref": "../components/parameters/index.yaml#/Identifier"
+  - "$ref": "../components/parameters/index.yaml#/HypothesisIdentifier"
   responses:
     '200':
       description: Hypothesis detail
@@ -13,7 +13,7 @@ get:
           schema:
             "$ref": "../components/schemas/index.yaml#/HypothesisDetail"
           example:
-            identifier: id-001
+            identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             symbol: 1306.T
             instrumentType: ETF
             status: demo

@@ -6,6 +6,7 @@ required:
 properties:
   identifier:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   orderCount:
     type: integer
   orders:
@@ -13,10 +14,10 @@ properties:
     items:
       "$ref": "./index.yaml#/OrderItem"
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   orderCount: 1
   orders:
-  - identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  - identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     symbol: AAPL
     side: BUY
     qty: 1.0

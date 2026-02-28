@@ -9,13 +9,13 @@ allOf:
     payload:
       "$ref": "./index.yaml#/HypothesisDemoCompletedPayload"
 example:
-  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   eventType: hypothesis.demo.completed
   occurredAt: '2026-01-15T09:00:00Z'
   trace: id-001
   schemaVersion: 1.0.0
   payload:
-    identifier: id-001
+    identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     demoRun: demo-20260115-001
     symbol: 1306.T
     instrumentType: ETF

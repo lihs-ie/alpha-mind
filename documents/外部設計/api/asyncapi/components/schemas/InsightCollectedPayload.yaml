@@ -6,11 +6,12 @@ required:
 properties:
   identifier:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   count:
     type: integer
   storagePath:
     type: string
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   count: 1
   storagePath: string

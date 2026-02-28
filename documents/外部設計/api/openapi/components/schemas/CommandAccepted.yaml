@@ -9,10 +9,10 @@ properties:
     example: true
   identifier:
     type: string
-    format: uuid
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   trace:
     type: string
 example:
   accepted: true
-  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   trace: id-001

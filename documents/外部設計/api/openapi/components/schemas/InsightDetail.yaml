@@ -17,7 +17,7 @@ allOf:
     trace:
       type: string
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   sourceType: youtube
   summary: 生成AI関連銘柄の短期モメンタムが継続
   sourceUrl: https://example.com/live/stream

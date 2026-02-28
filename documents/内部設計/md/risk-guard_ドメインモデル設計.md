@@ -355,6 +355,9 @@ Feature: risk-guard order screening
 - 当該関心ごとの識別子は `identifier`。
 - 他関心ごとの識別子は `{entity}`（例: `user`）。
 - 集約外参照はID参照のみ（オブジェクト参照禁止）。
+- 識別子生成は `ULID` を使用する。
+- `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ利用する。
+- イベントエンベロープ `identifier` は `ULID` を使用する。
 
 ## 11. レビュー観点
 

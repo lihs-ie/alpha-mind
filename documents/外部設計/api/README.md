@@ -70,3 +70,18 @@
 - その型が保持する他関心ごとの識別子は、`{entity}Identifier` ではなく `{entity}` フィールド名を使う。
 - 例: `EventPayload` の自分自身の識別子は `identifier` を使用する。
 - 例: `EventPayload` がユーザー識別子を保持する場合は `userIdentifier` ではなく `user`。
+- 識別子の生成規約:
+  - ドメイン識別子（`identifier`）は `ULID` を使用する。
+  - `UUIDv4` はトークン等、推測耐性のために高いランダム性が必要な用途でのみ使用する。
+  - イベントエンベロープの `identifier`（イベント識別子/冪等性キー）は `ULID` を使用する。
+
+## 7. 識別子採番表（固定）
+
+| 対象 | フィールド | 形式 | 理由 |
+|---|---|---|---|
+| Orders | `identifier` | `ULID` | 時系列追跡と運用可読性を優先 |
+| Hypotheses | `identifier` | `ULID` | 時系列での検索/運用追跡を優先 |
+| Insights | `identifier` | `ULID` | 収集時系列の可読性を優先 |
+| Audit Logs | `identifier` | `ULID` | 監査時系列の追跡性を優先 |
+| API Command Accepted | `identifier` | `ULID` | 受付イベントと冪等管理を統一 |
+| Event Envelope | `identifier` | `ULID` | イベント識別子兼冪等性キーとして統一 |

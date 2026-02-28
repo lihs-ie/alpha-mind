@@ -14,6 +14,7 @@ required:
 properties:
   identifier:
     type: string
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   demoRun:
     type: string
   symbol:
@@ -51,7 +52,7 @@ properties:
   pbo:
     type: number
 example:
-  identifier: id-001
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   demoRun: demo-20260115-001
   symbol: 1306.T
   instrumentType: ETF

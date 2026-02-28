@@ -9,7 +9,8 @@ required:
 properties:
   identifier:
     type: string
-    format: uuid
+    description: Event identifier and idempotency key (ULID)
+    pattern: "^[0-9A-HJKMNP-TV-Z]{26}$"
   eventType:
     type: string
   occurredAt:
@@ -24,7 +25,7 @@ properties:
     type: object
     additionalProperties: true
 example:
-  identifier: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+  identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   eventType: string
   occurredAt: '2026-01-15T09:00:00Z'
   trace: id-001

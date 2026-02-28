@@ -16,4 +16,4 @@ properties:
       requiresHumanReview:
         type: boolean
 example:
-  reasonCode: AUTH_INVALID_CREDENTIALS
+  reasonCode: EXECUTION_BROKER_TIMEOUT
