@@ -111,6 +111,20 @@ resource "google_pubsub_subscription" "subscriptions" {
   }
 }
 
+# Pub/Sub サービスエージェントが DLQ トピックにメッセージを転送するための IAM 付与
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
+resource "google_pubsub_topic_iam_member" "dlq_publisher" {
+  for_each = local.subscriptions_map
+
+  project = var.project_id
+  topic   = google_pubsub_topic.dlq[each.key].name
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
 # DLQ subscriptions (for manual inspection and replay)
 resource "google_pubsub_subscription" "dlq_subscriptions" {
   for_each = local.subscriptions_map

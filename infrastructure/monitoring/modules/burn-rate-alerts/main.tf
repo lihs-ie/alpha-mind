@@ -33,20 +33,18 @@ resource "google_monitoring_alert_policy" "burn_rate_alerts" {
   display_name = "SLO Burn Rate: ${each.value.slo_id} ${each.value.policy_id}"
   combiner     = "AND"
 
-  # Short window condition
+  # Short window condition (MQL: select_slo_burn_rate は MQL 関数のため condition_monitoring_query_language を使用)
   conditions {
     display_name = "Burn rate >= ${each.value.threshold} (short: ${each.value.short_window})"
 
-    condition_threshold {
-      filter          = "select_slo_burn_rate(\"${each.value.slo_name}\", \"${each.value.short_window}\")"
-      comparison      = "COMPARISON_GT"
-      threshold_value = each.value.threshold
-      duration        = "0s"
-
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_MEAN"
-      }
+    condition_monitoring_query_language {
+      duration = "0s"
+      query    = <<-EOT
+        fetch consumed_api
+        | metric serviceruntime.googleapis.com/api/request_count
+        | select_slo_burn_rate("${each.value.slo_name}", "${each.value.short_window}")
+        | condition val() > ${each.value.threshold}
+      EOT
     }
   }
 
@@ -54,16 +52,14 @@ resource "google_monitoring_alert_policy" "burn_rate_alerts" {
   conditions {
     display_name = "Burn rate >= ${each.value.threshold} (long: ${each.value.long_window})"
 
-    condition_threshold {
-      filter          = "select_slo_burn_rate(\"${each.value.slo_name}\", \"${each.value.long_window}\")"
-      comparison      = "COMPARISON_GT"
-      threshold_value = each.value.threshold
-      duration        = "0s"
-
-      aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_MEAN"
-      }
+    condition_monitoring_query_language {
+      duration = "0s"
+      query    = <<-EOT
+        fetch consumed_api
+        | metric serviceruntime.googleapis.com/api/request_count
+        | select_slo_burn_rate("${each.value.slo_name}", "${each.value.long_window}")
+        | condition val() > ${each.value.threshold}
+      EOT
     }
   }
 

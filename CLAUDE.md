@@ -11,7 +11,7 @@ alpha-mind は AI 投資運用 MVP。日本株を売買対象とし、日本+米
 ### フロントエンド (Sol / MoonBit)
 
 ```bash
-cd applications/frontend-sol
+cd applications/frontend
 
 # Sol CLI はリファレンスからビルドした版を使用（npm公開版は使用しない）
 # CLI パス: references/sol.mbt/_build/js/debug/build/cli/cli.js
@@ -84,7 +84,7 @@ Web Console → svc-bff (API Gateway) → Firestore / Event Bus
 | バンドラ | Rolldown |
 | リアクティビティ | mizchi/signals 0.6.3 (alien-signals ベース) |
 
-**Sol プロジェクト構造** (`applications/frontend-sol/`):
+**Sol プロジェクト構造** (`applications/frontend/`):
 
 ```
 app/
@@ -277,7 +277,7 @@ CloudEvents 互換 JSON。必須属性: `eventId`(冪等性キー), `eventType`,
 | 共通内部設計 | `documents/内部設計/共通設計.md` |
 | Sol 実装ガイド | `documents/sol-insstruction.md` |
 | Next.js→Sol 比較 | `documents/nextjs-vs-sol-comparison.md` |
-| Sol フレームワーク参照 | `references/sol.mbt/` |
+| Sol フレームワーク参照 | `references/sol.mbt/` (git-ignored、ローカルクローン必要) |
 
 ## 安全性・コンプライアンス
 

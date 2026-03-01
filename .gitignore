@@ -4,6 +4,8 @@ references
 
 # Terraform
 **/.terraform/
+# モジュール内の lock file は Terraform に無視されるためルートスタックのみ管理する
+infrastructure/**/modules/**/.terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
 *.tfstate.*.backup

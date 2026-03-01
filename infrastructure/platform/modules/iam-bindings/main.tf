@@ -162,3 +162,15 @@ resource "google_project_iam_member" "scheduler_run_invoker" {
   role    = "roles/run.invoker"
   member  = "serviceAccount:${var.service_account_emails["scheduler"]}"
 }
+
+# Cloud Scheduler サービスエージェントが SA を impersonate するために必要
+# OAuth token 生成時に serviceAccountTokenCreator 権限が必要
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
+resource "google_service_account_iam_member" "scheduler_token_creator" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${var.service_account_emails["scheduler"]}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-cloudscheduler.iam.gserviceaccount.com"
+}

@@ -47,7 +47,8 @@ resource "google_firestore_field" "ttl_fields" {
 
   ttl_config {}
 
-  index_config {
-    # Disable default indexes on TTL field to avoid write amplification
-  }
+  # 空の index_config ブロックで単一フィールドインデックスを無効化する。
+  # TTL フィールドはクエリ対象外のため、書き込み増幅を回避する。
+  # ref: https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/firestore_field
+  index_config {}
 }

@@ -24,10 +24,11 @@ module "project_services" {
 }
 
 module "artifact_registry" {
-  source      = "../../modules/artifact-registry"
-  project_id  = var.project_id
-  region      = var.region
-  environment = var.environment
+  source        = "../../modules/artifact-registry"
+  project_id    = var.project_id
+  region        = var.region
+  environment   = var.environment
+  repository_id = var.artifact_registry_repository_id
 }
 
 module "service_accounts" {
