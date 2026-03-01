@@ -113,13 +113,16 @@ jobs:
   ci-docker-result:
     name: CI Docker Result
     runs-on: ubuntu-latest
-    needs: [build-haskell-docker, build-python-docker, build-frontend-docker]
+    needs: [detect-changes, build-haskell-docker, build-python-docker, build-frontend-docker]
     if: always()
     steps:
       - name: Check result
         run: |
-          if [[ "${{ needs.build-haskell-docker.result }}" == "failure" || "${{ needs.build-python-docker.result }}" == "failure" || "${{ needs.build-frontend-docker.result }}" == "failure" ]]; then
-            echo "CI Docker failed"
-            exit 1
-          fi
+          results=("${{ needs.detect-changes.result }}" "${{ needs.build-haskell-docker.result }}" "${{ needs.build-python-docker.result }}" "${{ needs.build-frontend-docker.result }}")
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "CI Docker failed"
+              exit 1
+            fi
+          done
           echo "CI Docker passed (or skipped)"

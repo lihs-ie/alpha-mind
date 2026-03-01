@@ -120,13 +120,16 @@ jobs:
   ci-terraform-result:
     name: CI Terraform Result
     runs-on: ubuntu-latest
-    needs: [validate, tflint]
+    needs: [detect-changes, validate, tflint]
     if: always()
     steps:
       - name: Check result
         run: |
-          if [[ "${{ needs.validate.result }}" == "failure" || "${{ needs.tflint.result }}" == "failure" ]]; then
-            echo "CI Terraform failed"
-            exit 1
-          fi
+          results=("${{ needs.detect-changes.result }}" "${{ needs.validate.result }}" "${{ needs.tflint.result }}")
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "CI Terraform failed"
+              exit 1
+            fi
+          done
           echo "CI Terraform passed (or skipped)"

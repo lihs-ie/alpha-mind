@@ -82,10 +82,11 @@ jobs:
       - name: Clone and build Sol CLI
         if: steps.cache-sol-cli.outputs.cache-hit != 'true'
         run: |
-          mkdir -p references
-          git clone https://github.com/mizchi/sol.mbt references/sol.mbt
+          git init references/sol.mbt
           cd references/sol.mbt
-          git checkout "$SOL_COMMIT"
+          git remote add origin https://github.com/mizchi/sol.mbt
+          git fetch --depth 1 origin "$SOL_COMMIT"
+          git checkout FETCH_HEAD
           pnpm install
           moon update
           moon build --target js
@@ -113,13 +114,16 @@ jobs:
   ci-frontend-result:
     name: CI Frontend Result
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [detect-changes, build-and-test]
     if: always()
     steps:
       - name: Check result
         run: |
-          if [[ "${{ needs.build-and-test.result }}" == "failure" ]]; then
-            echo "CI Frontend failed"
-            exit 1
-          fi
+          results=("${{ needs.detect-changes.result }}" "${{ needs.build-and-test.result }}")
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "CI Frontend failed"
+              exit 1
+            fi
+          done
           echo "CI Frontend passed (or skipped)"

@@ -54,10 +54,13 @@ jobs:
         id: project
         run: |
           if [[ "${{ inputs.environment }}" == "prod" ]]; then
-            echo "gcp_project_id=alpha-mind-prod" >> "$GITHUB_OUTPUT"
+            echo "gcp_project_id=${GCP_PROJECT_ID_PROD:-alpha-mind-prod}" >> "$GITHUB_OUTPUT"
           else
-            echo "gcp_project_id=alpha-mind-stg" >> "$GITHUB_OUTPUT"
+            echo "gcp_project_id=${GCP_PROJECT_ID_STG:-alpha-mind-stg}" >> "$GITHUB_OUTPUT"
           fi
+        env:
+          GCP_PROJECT_ID_PROD: ${{ vars.GCP_PROJECT_ID_PROD }}
+          GCP_PROJECT_ID_STG: ${{ vars.GCP_PROJECT_ID_STG }}
 
       - name: Generate service matrix
         id: matrix
