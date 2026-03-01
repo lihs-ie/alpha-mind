@@ -19,6 +19,7 @@ jobs:
 
   label-by-branch:
     name: Label by branch name
+    needs: label-by-path
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
