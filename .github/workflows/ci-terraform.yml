@@ -8,18 +8,17 @@ on:
 permissions:
   contents: read
 
+env:
+  TERRAFORM_DIRS: >-
+    infrastructure/bootstrap
+    infrastructure/platform/envs/stg
+    infrastructure/platform/envs/prod
+    infrastructure/monitoring/envs/stg
+
 jobs:
   validate:
-    name: Validate (${{ matrix.directory }})
+    name: Validate
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory:
-          - infrastructure/bootstrap
-          - infrastructure/platform/envs/stg
-          - infrastructure/platform/envs/prod
-          - infrastructure/monitoring/envs/stg
 
     steps:
       - uses: actions/checkout@v6
@@ -42,29 +41,30 @@ jobs:
           mkdir -p ~/.terraform.d/plugin-cache
           echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraformrc
 
-      - name: terraform fmt check
-        working-directory: ${{ matrix.directory }}
-        run: terraform fmt -check -recursive
-
-      - name: terraform init
-        working-directory: ${{ matrix.directory }}
-        run: terraform init -backend=false
-
-      - name: terraform validate
-        working-directory: ${{ matrix.directory }}
-        run: terraform validate
+      - name: terraform fmt / init / validate
+        run: |
+          failed=0
+          for dir in $TERRAFORM_DIRS; do
+            echo "::group::$dir"
+            echo "--- fmt check: $dir ---"
+            if ! terraform -chdir="$dir" fmt -check -recursive; then
+              echo "::error::terraform fmt failed in $dir"
+              failed=1
+            fi
+            echo "--- init: $dir ---"
+            terraform -chdir="$dir" init -backend=false
+            echo "--- validate: $dir ---"
+            if ! terraform -chdir="$dir" validate; then
+              echo "::error::terraform validate failed in $dir"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
 
   tflint:
-    name: TFLint (${{ matrix.directory }})
+    name: TFLint
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory:
-          - infrastructure/bootstrap
-          - infrastructure/platform/envs/stg
-          - infrastructure/platform/envs/prod
-          - infrastructure/monitoring/envs/stg
 
     steps:
       - uses: actions/checkout@v6
@@ -81,12 +81,21 @@ jobs:
         uses: terraform-linters/setup-tflint@v6
 
       - name: Init TFLint
-        working-directory: ${{ matrix.directory }}
         run: tflint --init --config "${{ github.workspace }}/infrastructure/.tflint.hcl"
 
       - name: Run TFLint
-        working-directory: ${{ matrix.directory }}
-        run: tflint --config "${{ github.workspace }}/infrastructure/.tflint.hcl"
+        run: |
+          failed=0
+          for dir in $TERRAFORM_DIRS; do
+            echo "::group::$dir"
+            echo "--- tflint: $dir ---"
+            if ! tflint --config "${{ github.workspace }}/infrastructure/.tflint.hcl" --chdir="$dir"; then
+              echo "::error::tflint failed in $dir"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
 
   ci-terraform-result:
     name: CI Terraform Result
