@@ -43,8 +43,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Sol CLI を GitHub からクローンしてビルドする
 RUN git clone --depth 1 --branch ${SOL_REF} https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt
 
+# sol.mbt リポジトリに pnpm-lock.yaml が含まれないため --no-frozen-lockfile を使用する
 RUN cd /workspace/sol.mbt && \
-    pnpm install --frozen-lockfile && \
+    pnpm install --no-frozen-lockfile && \
     moon update && \
     moon build --target js
 
