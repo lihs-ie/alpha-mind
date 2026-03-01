@@ -48,7 +48,7 @@ jobs:
 
       - name: terraform init
         working-directory: ${{ matrix.directory }}
-        run: terraform init -backend=false
+        run: terraform init -backend=false -upgrade
 
       - name: terraform validate
         working-directory: ${{ matrix.directory }}

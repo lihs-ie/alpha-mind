@@ -1,11 +1,13 @@
 """Hypothesis Lab service - minimal skeleton for Docker build verification."""
 
 import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    """Minimal HTTP handler with /healthz endpoint."""
+
+    def do_GET(self) -> None:
         if self.path == "/healthz":
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
@@ -17,11 +19,11 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"not found")
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: object) -> None:
         print(f"[hypothesis-lab] {args[0]}")
 
 
-def main():
+def main() -> None:
     port = int(os.environ.get("PORT", "8080"))
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     print(f"Hypothesis Lab starting on port {port}")
