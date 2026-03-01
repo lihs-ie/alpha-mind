@@ -66,7 +66,6 @@ jobs:
         with:
           path: ~/.local/bin/fourmolu
           key: fourmolu-${{ runner.os }}-${{ env.FOURMOLU_VERSION }}
-          save-always: true
 
       - name: Cache HLint binary
         id: cache-hlint
@@ -74,7 +73,6 @@ jobs:
         with:
           path: ~/.local/bin/hlint
           key: hlint-${{ runner.os }}-${{ env.HLINT_VERSION }}
-          save-always: true
 
       - name: Setup Haskell
         if: steps.cache-fourmolu.outputs.cache-hit != 'true'
@@ -89,13 +87,12 @@ jobs:
           key: cabal-store-lint-${{ runner.os }}-fourmolu-${{ env.FOURMOLU_VERSION }}
           restore-keys: |
             cabal-store-lint-${{ runner.os }}-fourmolu-
-          save-always: true
 
       - name: Install fourmolu
         if: steps.cache-fourmolu.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/.local/bin
-          cabal install fourmolu-${{ env.FOURMOLU_VERSION }} --installdir=$HOME/.local/bin --overwrite-policy=always
+          cabal install fourmolu-${{ env.FOURMOLU_VERSION }} --installdir=$HOME/.local/bin --install-method=copy --overwrite-policy=always
 
       - name: Setup HLint
         if: steps.cache-hlint.outputs.cache-hit != 'true'
