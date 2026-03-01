@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Bash(wc:*)",
@@ -28,12 +29,19 @@
       "Bash(source:*)",
       "Bash(moon update:*)",
       "Bash(export:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git pull:*)",
+      "Bash(git commit:*)",
+      "Skill(tdd-workflow)",
+      "Bash(terraform init:*)",
+      "Bash(terraform validate:*)",
+      "Bash(terraform fmt:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "cc-workflow-studio"
-  ],
-  "includeCoAuthoredBy": false
+  ]
 }

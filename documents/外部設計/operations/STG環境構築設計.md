@@ -147,10 +147,10 @@
 
 ### 7.1 命名規則
 
-1. topic: `evt-{event-type-dash}-v1`
-2. subscription: `sub-{consumer}-evt-{event-type-dash}-v1`
-3. DLQ topic: `dlq-{consumer}-evt-{event-type-dash}-v1`
-4. DLQ subscription: `sub-dlq-{consumer}-evt-{event-type-dash}-v1`
+1. topic: `event-{event-type-dash}-v1`
+2. subscription: `sub-{consumer}-event-{event-type-dash}-v1`
+3. DLQ topic: `dlq-{consumer}-event-{event-type-dash}-v1`
+4. DLQ subscription: `sub-dlq-{consumer}-event-{event-type-dash}-v1`
 
 補足:
 
@@ -257,7 +257,7 @@
 | `GCP_PROJECT_ID` | `alpha-mind-stg` | GCPプロジェクト |
 | `GCP_REGION` | `asia-northeast1` | リージョン |
 | `FIRESTORE_DATABASE` | `(default)` | Firestore接続先 |
-| `PUBSUB_TOPIC_PREFIX` | `evt-` | topic命名プレフィックス |
+| `PUBSUB_TOPIC_PREFIX` | `event-` | topic命名プレフィックス |
 
 ### 9.4 運用ルール
 
@@ -292,7 +292,8 @@
 ### 10.3 パイプライン（必須）
 
 1. `validate`:
-- `pnpm type-check`
+- Haskell APIサービスのビルド/テスト（例: `cabal build` / `cabal test`）
+- Python学習/推論サービスの静的検査/テスト（例: `ruff` / `pytest`）
 - `pnpm --package=@redocly/cli dlx redocly lint documents/外部設計/api/openapi.yaml`
 - `pnpm --package=@asyncapi/cli dlx asyncapi validate documents/外部設計/api/asyncapi.yaml`
 - Terraform差分がある場合は `terraform fmt -check` と `terraform validate`

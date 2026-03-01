@@ -1,0 +1,45 @@
+{
+  "documents": [
+    {
+      "collection": "settings",
+      "documentId": "strategy",
+      "fields": {
+        "market": { "stringValue": "JP" },
+        "rebalanceFrequency": { "stringValue": "daily" },
+        "symbols": { "arrayValue": { "values": [] } },
+        "dailyLossLimit": { "doubleValue": 50000.0 },
+        "positionConcentrationLimit": { "doubleValue": 0.3 },
+        "dailyOrderLimit": { "integerValue": "10" },
+        "version": { "integerValue": "1" },
+        "updatedAt": { "timestampValue": "2026-01-01T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "operations",
+      "documentId": "runtime",
+      "fields": {
+        "runtimeState": { "stringValue": "STOPPED" },
+        "killSwitchEnabled": { "booleanValue": false },
+        "reason": { "stringValue": "Initial local environment setup" },
+        "updatedAt": { "timestampValue": "2026-01-01T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "compliance_controls",
+      "documentId": "trading",
+      "fields": {
+        "restrictedSymbols": { "arrayValue": { "values": [] } },
+        "partnerRestrictedSymbols": { "arrayValue": { "values": [] } },
+        "blackoutWindows": { "arrayValue": { "values": [] } },
+        "mnpiKeywordVersion": { "stringValue": "1.0.0" },
+        "sourcePolicyVersion": { "stringValue": "1.0.0" },
+        "autoPromotionEnabled": { "booleanValue": false },
+        "maxCommentLength": { "integerValue": "120" },
+        "updatedAt": { "timestampValue": "2026-01-01T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    }
+  ]
+}

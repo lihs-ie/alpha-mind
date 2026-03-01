@@ -1,3 +1,22 @@
 .mcp.json
 
 references
+
+# Terraform
+**/.terraform/
+# モジュール内の lock file は Terraform に無視されるためルートスタックのみ管理する
+infrastructure/**/modules/**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# direnv
+.envrc

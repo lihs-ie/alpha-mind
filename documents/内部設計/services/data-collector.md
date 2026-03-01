@@ -14,7 +14,7 @@ JSON対応: `内部設計/json/data-collector.json`
 | 項目 | 値 |
 |---|---|
 | Platform | Cloud Run Job |
-| Language | TypeScript |
+| Language | Haskell |
 | Exposure | private |
 
 ## 3. イベントIF

@@ -1,0 +1,8 @@
+# direnv 設定ファイル — Terraform 機密変数
+# 使い方:
+#   1. cp .envrc.example .envrc
+#   2. .envrc 内の値を実際の値に書き換える
+#   3. direnv allow
+
+export TF_VAR_billing_account_id="YOUR_BILLING_ACCOUNT_ID"
+export TF_VAR_budget_notification_email="YOUR_EMAIL@example.com"

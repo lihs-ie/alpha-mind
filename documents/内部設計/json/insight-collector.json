@@ -5,7 +5,7 @@
   "aiResponsibility": true,
   "runtime": {
     "platform": "Cloud Run Job",
-    "language": "TypeScript",
+    "language": "Python",
     "networkExposure": "private"
   },
   "interfaces": {

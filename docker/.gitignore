@@ -1,0 +1,16 @@
+# JWT key pair and other secrets — never commit to version control
+secrets/
+
+# PEM files (safety net in case secrets/ is bypassed)
+*.pem
+
+# Local environment overrides (user-specific secret values)
+.env.local.override
+.env.*.override
+
+# Docker build cache
+.docker/
+
+# Temporary files
+*.tmp
+*.log

@@ -1,0 +1,76 @@
+# Dockerfile.python
+# Multi-stage build for Python ML/inference services.
+# Usage: docker build --build-arg SERVICE_NAME=signal-generator -f Dockerfile.python ../../
+#
+# Target services: feature-engineering, signal-generator, hypothesis-lab
+# Includes scientific computing libraries: numpy, pandas, scikit-learn, lightgbm
+# Compatible with Cloud Run: listens on $PORT, runs as non-root.
+
+ARG SERVICE_NAME
+
+# ===========================================================================
+# Stage 1: builder
+# ===========================================================================
+FROM python:3.14-slim AS builder
+
+ARG SERVICE_NAME
+RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
+
+WORKDIR /workspace
+
+# 依存ライブラリのビルドに必要なコンパイラ等をインストールする
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    libgomp1 \
+  && rm -rf /var/lib/apt/lists/*
+
+# venv を使ってアプリケーション依存を分離する
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+# requirements をコピーして依存関係をキャッシュする
+# NOTE: numpy, pandas, scikit-learn, lightgbm 等の科学計算ライブラリは
+# 各サービスの requirements.txt に含めること（ここでは二重インストールしない）
+COPY backend/${SERVICE_NAME}/requirements.txt /workspace/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /workspace/requirements.txt
+
+# ===========================================================================
+# Stage 2: runner
+# ===========================================================================
+FROM python:3.14-slim AS runner
+
+ARG SERVICE_NAME
+
+# LightGBM の実行に必要なライブラリをインストールする
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    ca-certificates \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Cloud Run のセキュリティ要件: 非rootユーザーで実行する
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/sh --create-home appuser
+
+WORKDIR /app
+
+# venv とアプリケーションコードをコピーする
+COPY --from=builder /opt/venv /opt/venv
+COPY backend/${SERVICE_NAME}/src/ /app/src/
+
+ENV PATH="/opt/venv/bin:${PATH}"
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+# Cloud Run は PORT 環境変数でポートを注入する
+ENV PORT=8080
+EXPOSE 8080
+
+# /healthz エンドポイントによるヘルスチェック
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -f "http://localhost:${PORT}/healthz" || exit 1
+
+CMD ["python", "-m", "src.main"]

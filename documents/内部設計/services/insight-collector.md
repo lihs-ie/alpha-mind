@@ -14,7 +14,7 @@ JSON対応: `内部設計/json/insight-collector.json`
 | 項目 | 値 |
 |---|---|
 | Platform | Cloud Run Job |
-| Language | TypeScript |
+| Language | Python |
 | Exposure | private |
 
 ## 3. イベントIF

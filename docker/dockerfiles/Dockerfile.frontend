@@ -1,0 +1,88 @@
+# Dockerfile.frontend
+# Multi-stage build for the Sol (MoonBit) frontend application.
+# Usage: docker build -f Dockerfile.frontend ../../
+#
+# NOTE: このDockerfileのビルドには以下が必要:
+#   - applications/frontend/ (Sol アプリケーション)
+#
+# Stage 1 (moonbit-builder): MoonBit SDK をインストールし、
+#   Sol CLI を GitHub からクローン・ビルドし、
+#   applications/frontend を Sol CLI 経由でビルドする。
+# Stage 2 (runner): Node.js ランタイムのみを含む最小イメージ。
+# Compatible with Cloud Run: listens on $PORT, runs as non-root.
+
+# Sol CLI の commit SHA をピン留めする (v0.8.0)
+ARG SOL_COMMIT=bdc573edcfd50aa455d1b17ca8964cee1a69e443
+
+# ===========================================================================
+# Stage 1: moonbit-builder
+# ===========================================================================
+FROM node:24-bookworm AS moonbit-builder
+
+ARG SOL_COMMIT
+
+# Docker ビルドは非インタラクティブ環境のため CI=true を設定する
+ENV CI=true
+
+WORKDIR /workspace
+
+# MoonBit SDK のインストールと Sol CLI のクローンに必要なパッケージ
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+  && rm -rf /var/lib/apt/lists/*
+
+# MoonBit toolchain をインストールする
+RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+ENV PATH="/root/.moon/bin:${PATH}"
+
+# pnpm をインストールする
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+
+# Sol CLI を GitHub から特定 commit SHA でクローンする
+RUN git clone https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt && \
+    cd /workspace/sol.mbt && \
+    git checkout ${SOL_COMMIT}
+
+# sol.mbt リポジトリに pnpm-lock.yaml が含まれないため --no-frozen-lockfile を使用する
+RUN cd /workspace/sol.mbt && \
+    pnpm install --no-frozen-lockfile && \
+    moon update && \
+    moon build --target js
+
+# frontend アプリをコピーしてビルドする
+COPY applications/frontend/ /workspace/frontend/
+
+RUN cd /workspace/frontend && \
+    pnpm install --frozen-lockfile && \
+    node /workspace/sol.mbt/_build/js/debug/build/cli/cli.js build
+
+# ===========================================================================
+# Stage 2: runner
+# ===========================================================================
+FROM node:24-alpine AS runner
+
+# Cloud Run のセキュリティ要件: 非rootユーザーで実行する
+RUN addgroup --gid 1001 appgroup && \
+    adduser --uid 1001 --ingroup appgroup --shell /bin/sh --disabled-password appuser
+
+WORKDIR /app
+
+# Sol ビルド成果物をコピーする
+COPY --from=moonbit-builder /workspace/frontend/.sol/prod/ /app/.sol/prod/
+COPY --from=moonbit-builder /workspace/frontend/_build/js/release/build/ /app/_build/js/release/build/
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+# Cloud Run は PORT 環境変数でポートを注入する
+ENV PORT=8080
+EXPOSE 8080
+
+# ヘルスチェック
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- "http://localhost:${PORT}/api/health" || exit 1
+
+CMD ["node", ".sol/prod/server/main.js"]
