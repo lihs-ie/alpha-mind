@@ -1,0 +1,98 @@
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # Frontend (pnpm)
+  - package-ecosystem: "npm"
+    directory: "/applications/frontend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(frontend)"
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Python — feature-engineering
+  - package-ecosystem: "pip"
+    directory: "/backend/feature-engineering"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(feature-engineering)"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Python — signal-generator
+  - package-ecosystem: "pip"
+    directory: "/backend/signal-generator"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(signal-generator)"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Python — hypothesis-lab
+  - package-ecosystem: "pip"
+    directory: "/backend/hypothesis-lab"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(hypothesis-lab)"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Terraform
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/bootstrap"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(infra)"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/platform/envs/stg"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(infra)"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/platform/envs/prod"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(infra)"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/monitoring/envs/stg"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(infra)"
+    labels:
+      - "dependencies"
+      - "infrastructure"
