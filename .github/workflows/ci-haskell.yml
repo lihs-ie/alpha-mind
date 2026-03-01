@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Haskell
         uses: haskell-actions/setup@v2
@@ -28,7 +28,7 @@ jobs:
           cabal-version: "3.16.1.0"
 
       - name: Cache cabal store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
           key: cabal-store-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project') }}
@@ -36,7 +36,7 @@ jobs:
             cabal-store-${{ runner.os }}-
 
       - name: Cache dist-newstyle
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: backend/dist-newstyle
           key: dist-newstyle-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project', 'backend/**/*.hs') }}
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Haskell (for fourmolu)
         uses: haskell-actions/setup@v2
@@ -67,7 +67,7 @@ jobs:
           cabal-version: "3.16.1.0"
 
       - name: Cache cabal store (lint)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.setup-haskell-lint.outputs.cabal-store }}
           key: cabal-store-lint-${{ runner.os }}-fourmolu

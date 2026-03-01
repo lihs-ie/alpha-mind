@@ -17,7 +17,7 @@ jobs:
       SOL_COMMIT: bdc573edcfd50aa455d1b17ca8964cee1a69e443
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -25,7 +25,7 @@ jobs:
           version: latest
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "pnpm"
@@ -33,7 +33,7 @@ jobs:
 
       - name: Cache MoonBit SDK
         id: cache-moonbit-sdk
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.moon
           key: moonbit-sdk-${{ runner.os }}
@@ -47,7 +47,7 @@ jobs:
         run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
       - name: Cache MoonBit packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: applications/frontend/.mooncakes
           key: mooncakes-${{ hashFiles('applications/frontend/moon.mod.json') }}
@@ -56,7 +56,7 @@ jobs:
 
       - name: Cache Sol CLI build output
         id: cache-sol-cli
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: references/sol.mbt/_build
           key: sol-cli-build-${{ env.SOL_COMMIT }}

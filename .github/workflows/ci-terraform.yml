@@ -22,7 +22,7 @@ jobs:
           - infrastructure/monitoring/envs/stg
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -30,7 +30,7 @@ jobs:
           terraform_version: "1.14.6"
 
       - name: Cache Terraform plugins
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.terraform.d/plugin-cache
           key: terraform-plugins-${{ runner.os }}-${{ hashFiles('infrastructure/**/.terraform.lock.hcl') }}
@@ -67,10 +67,10 @@ jobs:
           - infrastructure/monitoring/envs/stg
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache tflint plugins
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.tflint.d/plugins
           key: tflint-plugins-${{ runner.os }}-${{ hashFiles('infrastructure/.tflint.hcl') }}
@@ -78,7 +78,7 @@ jobs:
             tflint-plugins-${{ runner.os }}-
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@v6
 
       - name: Init TFLint
         working-directory: ${{ matrix.directory }}
