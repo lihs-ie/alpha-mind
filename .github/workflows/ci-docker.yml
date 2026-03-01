@@ -2,10 +2,6 @@ name: CI Docker
 
 on:
   pull_request:
-    paths:
-      - "docker/dockerfiles/**"
-      - "backend/**"
-      - "applications/frontend/**"
 
 permissions:
   contents: read

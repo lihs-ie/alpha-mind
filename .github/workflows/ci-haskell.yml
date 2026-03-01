@@ -2,20 +2,38 @@ name: CI Haskell
 
 on:
   pull_request:
-    paths:
-      - "backend/**"
-      - "!backend/feature-engineering/**"
-      - "!backend/signal-generator/**"
-      - "!backend/hypothesis-lab/**"
-      - "!backend/pyproject.toml"
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      haskell: ${{ steps.filter.outputs.haskell }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            haskell:
+              - "backend/**"
+              - "!backend/feature-engineering/**"
+              - "!backend/signal-generator/**"
+              - "!backend/hypothesis-lab/**"
+              - "!backend/pyproject.toml"
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.haskell == 'true'
 
     steps:
       - uses: actions/checkout@v6
@@ -52,6 +70,8 @@ jobs:
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.haskell == 'true'
 
     env:
       FOURMOLU_VERSION: "0.18.0.0"
