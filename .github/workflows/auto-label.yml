@@ -1,0 +1,50 @@
+name: Auto Label PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  label-by-path:
+    name: Label by file path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          sync-labels: true
+
+  label-by-branch:
+    name: Label by branch name
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const prefixToLabel = {
+              'feat/': 'type:feat',
+              'fix/': 'type:fix',
+              'refactor/': 'type:refactor',
+              'docs/': 'type:docs',
+              'chore/': 'type:chore',
+              'test/': 'type:test',
+              'perf/': 'type:perf',
+            };
+
+            for (const [prefix, label] of Object.entries(prefixToLabel)) {
+              if (branch.startsWith(prefix)) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: [label],
+                });
+                core.info(`Added label "${label}" for branch prefix "${prefix}"`);
+                break;
+              }
+            }
