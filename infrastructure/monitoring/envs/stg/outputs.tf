@@ -18,6 +18,11 @@ output "burn_rate_alert_policy_names" {
   value       = module.burn_rate_alerts.alert_policy_names
 }
 
+output "billing_budget_name" {
+  description = "The resource name of the billing budget"
+  value       = module.billing_budget.budget_name
+}
+
 output "supplemental_warning_alert_policy_names" {
   description = "Map of monitor ID to warning alert policy resource name"
   value       = module.supplemental_monitor_alerts.warning_alert_policy_names

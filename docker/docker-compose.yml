@@ -13,13 +13,14 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.firestore-emulator
-    # Java 21 を含むカスタムイメージを使用する（google/cloud-sdk:latest には Java 未同梱）
+    # Java 21 を含むカスタムイメージを使用する（google/cloud-sdk:558.0.0 には Java 未同梱）
     ports:
       - "8080:8080"
     networks:
       - alpha-mind-network
     environment:
       CLOUDSDK_CORE_PROJECT: alpha-mind-local
+      GCP_PROJECT_ID: alpha-mind-local
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 5s
@@ -28,7 +29,7 @@ services:
       start_period: 20s
 
   pubsub:
-    image: google/cloud-sdk:latest
+    image: google/cloud-sdk:558.0.0
     command: >
       gcloud beta emulators pubsub start
       --host-port=0.0.0.0:8085
@@ -47,7 +48,7 @@ services:
       start_period: 20s
 
   gcs:
-    image: fsouza/fake-gcs-server:latest
+    image: fsouza/fake-gcs-server:1.54.0
     command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
     ports:
       - "4443:4443"
@@ -65,7 +66,7 @@ services:
   # =========================================================================
 
   init:
-    image: google/cloud-sdk:latest
+    image: google/cloud-sdk:558.0.0
     depends_on:
       firestore:
         condition: service_healthy

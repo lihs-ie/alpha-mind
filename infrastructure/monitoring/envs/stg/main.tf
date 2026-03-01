@@ -37,6 +37,13 @@ module "notification_channels" {
         email_address = var.alert_email_ticket
       }
     }
+    billing = {
+      display_name = "Alpha Mind Billing Alert (${var.environment})"
+      type         = "email"
+      labels = {
+        email_address = var.budget_notification_email
+      }
+    }
   }
 }
 
@@ -94,6 +101,20 @@ module "burn_rate_alerts" {
   ticket_channel_names = [module.notification_channels.channel_names["ticket"]]
 
   depends_on = [module.slos]
+}
+
+# ── Billing Budget ────────────────────────────────────────────────────────────
+
+module "billing_budget" {
+  source     = "../../modules/billing-budget"
+  project_id = var.project_id
+
+  billing_account_id         = var.billing_account_id
+  environment                = var.environment
+  budget_amount              = var.monthly_budget_amount
+  currency_code              = var.budget_currency_code
+  threshold_percentages      = var.budget_threshold_percentages
+  notification_channel_names = [module.notification_channels.channel_names["billing"]]
 }
 
 # ── Supplemental Monitor Alerts ────────────────────────────────────────────────

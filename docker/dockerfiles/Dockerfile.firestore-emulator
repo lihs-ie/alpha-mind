@@ -2,7 +2,7 @@
 # Firestore エミュレータ用イメージ。
 # google/cloud-sdk には Java 21 が含まれないため、Adoptium Temurin JRE 21 を追加する。
 
-FROM google/cloud-sdk:latest
+FROM google/cloud-sdk:558.0.0
 
 # Adoptium リポジトリを追加して Temurin JRE 21 をインストールする
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,4 +16,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 EXPOSE 8080
 
-CMD ["gcloud", "beta", "emulators", "firestore", "start", "--host-port=0.0.0.0:8080", "--project=alpha-mind-local"]
+CMD ["sh", "-c", "gcloud beta emulators firestore start --host-port=0.0.0.0:8080 --project=${GCP_PROJECT_ID:-alpha-mind-local}"]

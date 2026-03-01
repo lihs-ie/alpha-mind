@@ -3,7 +3,7 @@ region                       = "asia-northeast1"
 environment                  = "stg"
 alert_email_page             = "ops-page@alpha-mind.dev"
 alert_email_ticket           = "ops-ticket@alpha-mind.dev"
-budget_notification_email    = "lihs.dev@gmail.com"
+# budget_notification_email is set via direnv (.envrc)
 monthly_budget_amount        = 10000
 budget_currency_code         = "JPY"
 budget_threshold_percentages = [20, 50, 80, 100]

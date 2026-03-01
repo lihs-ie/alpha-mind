@@ -12,7 +12,7 @@
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
 # Sol CLI のブランチまたはタグを指定する
-ARG SOL_REF=main
+ARG SOL_REF=v0.8.0
 
 # ===========================================================================
 # Stage 1: moonbit-builder
@@ -38,7 +38,7 @@ RUN curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
 ENV PATH="/root/.moon/bin:${PATH}"
 
 # pnpm をインストールする
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 
 # Sol CLI を GitHub からクローンしてビルドする
 RUN git clone --depth 1 --branch ${SOL_REF} https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt
