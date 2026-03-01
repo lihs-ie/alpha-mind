@@ -53,32 +53,64 @@ jobs:
     name: Lint and Format Check
     runs-on: ubuntu-latest
 
+    env:
+      FOURMOLU_VERSION: "0.18.0.0"
+      HLINT_VERSION: "3.8"
+
     steps:
       - uses: actions/checkout@v6
 
+      - name: Cache fourmolu binary
+        id: cache-fourmolu
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/fourmolu
+          key: fourmolu-${{ runner.os }}-${{ env.FOURMOLU_VERSION }}
+
+      - name: Cache HLint binary
+        id: cache-hlint
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/hlint
+          key: hlint-${{ runner.os }}-${{ env.HLINT_VERSION }}
+
       - name: Setup Haskell
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
         id: setup-haskell
         uses: ./.github/actions/setup-haskell
 
       - name: Cache cabal store (lint)
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
         uses: actions/cache@v5
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
-          key: cabal-store-lint-${{ runner.os }}-fourmolu
+          key: cabal-store-lint-${{ runner.os }}-fourmolu-${{ env.FOURMOLU_VERSION }}
           restore-keys: |
-            cabal-store-lint-${{ runner.os }}-
+            cabal-store-lint-${{ runner.os }}-fourmolu-
 
       - name: Install fourmolu
-        run: cabal install fourmolu --installdir=/usr/local/bin --overwrite-policy=always
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          cabal install fourmolu-${{ env.FOURMOLU_VERSION }} --installdir=$HOME/.local/bin --overwrite-policy=always
 
       - name: Setup HLint
+        if: steps.cache-hlint.outputs.cache-hit != 'true'
         uses: haskell-actions/hlint-setup@v2
+        with:
+          version: ${{ env.HLINT_VERSION }}
+
+      - name: Copy HLint to cache path
+        if: steps.cache-hlint.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          cp "$(which hlint)" ~/.local/bin/hlint
+
+      - name: Add tools to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run HLint
-        uses: haskell-actions/hlint-run@v2
-        with:
-          path: backend/
-          fail-on: warning
+        run: hlint backend/ --fail-on=warning
 
       - name: Check formatting (fourmolu)
         working-directory: backend
