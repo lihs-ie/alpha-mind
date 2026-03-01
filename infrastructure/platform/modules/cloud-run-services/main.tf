@@ -1,6 +1,6 @@
 # cloud-run-services: Cloud Run Service definitions
 # Parameters per INF-002 section 5.1
-# Services: bff, audit-log, portfolio-planner, risk-guard, execution, agent-orchestrator, frontend-sol
+# Services: bff, audit-log, portfolio-planner, risk-guard, execution, agent-orchestrator, frontend
 
 resource "google_cloud_run_v2_service" "services" {
   for_each = var.services

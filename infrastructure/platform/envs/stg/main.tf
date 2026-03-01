@@ -186,7 +186,7 @@ module "cloud_run_services" {
         PUBSUB_TOPIC_PREFIX = "evt-"
       }
     }
-    frontend-sol = {
+    frontend = {
       cpu                     = "1"
       memory                  = "512Mi"
       request_timeout_seconds = 30
@@ -194,7 +194,7 @@ module "cloud_run_services" {
       min_instances           = 0
       max_instances           = 10
       ingress                 = "INGRESS_TRAFFIC_ALL"
-      service_account_email   = module.service_accounts.emails["frontend-sol"]
+      service_account_email   = module.service_accounts.emails["frontend"]
       image                   = var.placeholder_image
       env_vars = {
         APP_ENV      = var.environment

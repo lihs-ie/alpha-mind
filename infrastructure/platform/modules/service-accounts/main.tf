@@ -49,9 +49,9 @@ locals {
       display_name = "Hypothesis Lab"
       description  = "Service account for hypothesis-lab Cloud Run Job"
     }
-    frontend-sol = {
-      display_name = "Frontend SOL"
-      description  = "Service account for frontend-sol Cloud Run service"
+    frontend = {
+      display_name = "Frontend"
+      description  = "Service account for frontend Cloud Run service"
     }
     scheduler = {
       display_name = "Scheduler"
