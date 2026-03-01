@@ -1,0 +1,5 @@
+indentation: 2
+comma-style: leading
+record-brace-space: false
+diff-friendly-import-export: true
+column-limit: 120

@@ -18,3 +18,14 @@ variable "environment" {
     error_message = "environment must be stg or prod."
   }
 }
+
+variable "github_repository" {
+  description = "GitHub repository in owner/repo format for Workload Identity Federation"
+  type        = string
+  default     = "lihs-ie/alpha-mind"
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$", var.github_repository))
+    error_message = "github_repository must be in 'owner/repo' format (e.g. 'lihs-ie/alpha-mind')."
+  }
+}

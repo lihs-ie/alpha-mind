@@ -1,0 +1,129 @@
+name: CI Docker
+
+on:
+  pull_request:
+    paths:
+      - "docker/dockerfiles/**"
+      - "backend/**"
+      - "applications/frontend/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      haskell: ${{ steps.filter.outputs.haskell }}
+      python: ${{ steps.filter.outputs.python }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            haskell:
+              - "docker/dockerfiles/Dockerfile.haskell"
+              - "backend/bff/**"
+              - "backend/audit-log/**"
+              - "backend/portfolio-planner/**"
+              - "backend/risk-guard/**"
+              - "backend/execution/**"
+              - "backend/data-collector/**"
+              - "backend/insight-collector/**"
+              - "backend/agent-orchestrator/**"
+            python:
+              - "docker/dockerfiles/Dockerfile.python"
+              - "backend/feature-engineering/**"
+              - "backend/signal-generator/**"
+              - "backend/hypothesis-lab/**"
+            frontend:
+              - "docker/dockerfiles/Dockerfile.frontend"
+              - "applications/frontend/**"
+
+  build-haskell-docker:
+    name: Build Haskell Docker Image (bff)
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.haskell == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (bff — smoke test)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/dockerfiles/Dockerfile.haskell
+          build-args: |
+            SERVICE_NAME=bff
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-python-docker:
+    name: Build Python Docker Image (feature-engineering)
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (feature-engineering — smoke test)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/dockerfiles/Dockerfile.python
+          build-args: |
+            SERVICE_NAME=feature-engineering
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend-docker:
+    name: Build Frontend Docker Image
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/dockerfiles/Dockerfile.frontend
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  ci-docker-result:
+    name: CI Docker Result
+    runs-on: ubuntu-latest
+    needs: [build-haskell-docker, build-python-docker, build-frontend-docker]
+    if: always()
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ needs.build-haskell-docker.result }}" == "failure" || "${{ needs.build-python-docker.result }}" == "failure" || "${{ needs.build-frontend-docker.result }}" == "failure" ]]; then
+            echo "CI Docker failed"
+            exit 1
+          fi
+          echo "CI Docker passed (or skipped)"
