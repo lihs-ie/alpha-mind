@@ -27,19 +27,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
   && rm -rf /var/lib/apt/lists/*
 
-# ghcup をインストールし、GHC 9.12.2 と Cabal 3.16.1.0 をセットアップする
+# ghcup バイナリをバージョン固定でダウンロードし SHA256 チェックサムを検証する
+ARG GHCUP_VERSION=0.1.50.2
+ARG GHCUP_SHA256=ff6288df9758211372d8242fe830d8e6be6a8365d9406f1c9bde144b7e744143
 ENV GHCUP_INSTALL_BASE_PREFIX="/opt"
 ENV PATH="/opt/.ghcup/bin:${PATH}"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | \
-    BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
-    BOOTSTRAP_HASKELL_GHC_VERSION=9.12.2 \
-    BOOTSTRAP_HASKELL_CABAL_VERSION=3.16.1.0 \
-    BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 \
-    BOOTSTRAP_HASKELL_INSTALL_NO_STACK_HOOK=1 \
-    sh
-
-# ghcup でインストールしたバージョンを有効化する
-RUN ghcup set ghc 9.12.2 && ghcup set cabal 3.16.1.0
+RUN curl --proto '=https' --tlsv1.2 -sSfL \
+      "https://downloads.haskell.org/~ghcup/${GHCUP_VERSION}/x86_64-linux-ghcup-${GHCUP_VERSION}" \
+      -o /usr/local/bin/ghcup && \
+    echo "${GHCUP_SHA256}  /usr/local/bin/ghcup" | sha256sum -c - && \
+    chmod +x /usr/local/bin/ghcup && \
+    ghcup install ghc 9.12.2 --set && \
+    ghcup install cabal 3.16.1.0 --set
 
 WORKDIR /workspace
 

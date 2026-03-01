@@ -11,15 +11,15 @@
 # Stage 2 (runner): Node.js ランタイムのみを含む最小イメージ。
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
-# Sol CLI のブランチまたはタグを指定する
-ARG SOL_REF=v0.8.0
+# Sol CLI の commit SHA をピン留めする (v0.8.0)
+ARG SOL_COMMIT=bdc573edcfd50aa455d1b17ca8964cee1a69e443
 
 # ===========================================================================
 # Stage 1: moonbit-builder
 # ===========================================================================
 FROM node:24-bookworm AS moonbit-builder
 
-ARG SOL_REF
+ARG SOL_COMMIT
 
 # Docker ビルドは非インタラクティブ環境のため CI=true を設定する
 ENV CI=true
@@ -40,8 +40,10 @@ ENV PATH="/root/.moon/bin:${PATH}"
 # pnpm をインストールする
 RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 
-# Sol CLI を GitHub からクローンしてビルドする
-RUN git clone --depth 1 --branch ${SOL_REF} https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt
+# Sol CLI を GitHub から特定 commit SHA でクローンする
+RUN git clone https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt && \
+    cd /workspace/sol.mbt && \
+    git checkout ${SOL_COMMIT}
 
 # sol.mbt リポジトリに pnpm-lock.yaml が含まれないため --no-frozen-lockfile を使用する
 RUN cd /workspace/sol.mbt && \

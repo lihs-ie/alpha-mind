@@ -15,8 +15,13 @@ variable "environment" {
 }
 
 variable "budget_amount" {
-  description = "Monthly budget amount in the specified currency"
+  description = "Monthly budget amount in the specified currency (integer, e.g. 10000 for ¥10,000)"
   type        = number
+
+  validation {
+    condition     = var.budget_amount == floor(var.budget_amount) && var.budget_amount > 0
+    error_message = "budget_amount must be a positive integer."
+  }
 }
 
 variable "currency_code" {

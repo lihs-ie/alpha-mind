@@ -122,7 +122,7 @@ resource "google_monitoring_alert_policy" "formula_warnings" {
   combiner     = "OR"
 
   conditions {
-    display_name = "${each.value.name} >= warning threshold"
+    display_name = "${each.value.name} below warning threshold"
 
     condition_monitoring_query_language {
       duration = "0s"
@@ -165,7 +165,7 @@ resource "google_monitoring_alert_policy" "formula_criticals" {
   combiner     = "OR"
 
   conditions {
-    display_name = "${each.value.name} >= critical threshold"
+    display_name = "${each.value.name} below critical threshold"
 
     condition_monitoring_query_language {
       duration = "0s"
