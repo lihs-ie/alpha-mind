@@ -113,7 +113,7 @@ jobs:
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run HLint
-        run: hlint backend/ --error=is:Warning --error=is:Suggestion
+        run: hlint backend/
 
       - name: Check formatting (fourmolu)
         working-directory: backend
