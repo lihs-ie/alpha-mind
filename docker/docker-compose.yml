@@ -99,8 +99,8 @@ services:
   # Application Services
   # =========================================================================
 
-  # NOTE: frontend のビルドには references/sol.mbt/ と applications/frontend/ が必要。
-  # これらはリポジトリに含まれないため、profile で分離し明示起動とする。
+  # NOTE: frontend のビルドには applications/frontend/ が必要。
+  # リポジトリに含まれないため、profile で分離し明示起動とする。
   # 起動方法: docker compose --profile frontend up
   frontend:
     profiles: [frontend]

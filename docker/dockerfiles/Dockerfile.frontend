@@ -3,29 +3,34 @@
 # Usage: docker build -f Dockerfile.frontend ../../
 #
 # NOTE: このDockerfileのビルドには以下が必要:
-#   1. references/sol.mbt/ (Sol CLI ソースリポジトリ)
-#   2. applications/frontend/ (Sol アプリケーション)
+#   - applications/frontend/ (Sol アプリケーション)
 #
 # Stage 1 (moonbit-builder): MoonBit SDK をインストールし、
-#   references/sol.mbt から Sol CLI をビルドし、
+#   Sol CLI を GitHub からクローン・ビルドし、
 #   applications/frontend を Sol CLI 経由でビルドする。
 # Stage 2 (runner): Node.js ランタイムのみを含む最小イメージ。
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
+
+# Sol CLI のバージョンを固定するコミットハッシュ
+ARG SOL_COMMIT=6bef4fa
 
 # ===========================================================================
 # Stage 1: moonbit-builder
 # ===========================================================================
 FROM node:24-bookworm AS moonbit-builder
 
+ARG SOL_COMMIT
+
 # Docker ビルドは非インタラクティブ環境のため CI=true を設定する
 ENV CI=true
 
 WORKDIR /workspace
 
-# MoonBit SDK のインストールに必要なパッケージ
+# MoonBit SDK のインストールと Sol CLI のクローンに必要なパッケージ
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    git \
   && rm -rf /var/lib/apt/lists/*
 
 # MoonBit toolchain をインストールする
@@ -35,10 +40,12 @@ ENV PATH="/root/.moon/bin:${PATH}"
 # pnpm をインストールする
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Sol CLI のソース全体をコピーしてビルドする
-# references/sol.mbt は Sol CLI のソースリポジトリ
-# moon build には moon.mod.json, src/ 配下の全 moon.pkg ファイルが必要なため全体をコピーする
-COPY references/sol.mbt/ /workspace/sol.mbt/
+# Sol CLI を GitHub からクローンしてビルドする（コミット固定の shallow clone）
+RUN git init /workspace/sol.mbt && \
+    cd /workspace/sol.mbt && \
+    git remote add origin https://github.com/mizchi/sol.mbt.git && \
+    git fetch --depth 1 origin ${SOL_COMMIT} && \
+    git checkout FETCH_HEAD
 
 RUN cd /workspace/sol.mbt && \
     pnpm install --frozen-lockfile && \
