@@ -147,10 +147,10 @@
 
 ### 7.1 命名規則
 
-1. topic: `evt-{event-type-dash}-v1`
-2. subscription: `sub-{consumer}-evt-{event-type-dash}-v1`
-3. DLQ topic: `dlq-{consumer}-evt-{event-type-dash}-v1`
-4. DLQ subscription: `sub-dlq-{consumer}-evt-{event-type-dash}-v1`
+1. topic: `event-{event-type-dash}-v1`
+2. subscription: `sub-{consumer}-event-{event-type-dash}-v1`
+3. DLQ topic: `dlq-{consumer}-event-{event-type-dash}-v1`
+4. DLQ subscription: `sub-dlq-{consumer}-event-{event-type-dash}-v1`
 
 補足:
 
@@ -257,7 +257,7 @@
 | `GCP_PROJECT_ID` | `alpha-mind-stg` | GCPプロジェクト |
 | `GCP_REGION` | `asia-northeast1` | リージョン |
 | `FIRESTORE_DATABASE` | `(default)` | Firestore接続先 |
-| `PUBSUB_TOPIC_PREFIX` | `evt-` | topic命名プレフィックス |
+| `PUBSUB_TOPIC_PREFIX` | `event-` | topic命名プレフィックス |
 
 ### 9.4 運用ルール
 

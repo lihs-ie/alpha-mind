@@ -93,7 +93,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     audit-log = {
@@ -111,7 +111,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     portfolio-planner = {
@@ -129,7 +129,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     risk-guard = {
@@ -147,7 +147,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     execution = {
@@ -165,7 +165,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     agent-orchestrator = {
@@ -183,7 +183,7 @@ module "cloud_run_services" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     frontend = {
@@ -227,7 +227,7 @@ module "cloud_run_jobs" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     feature-engineering = {
@@ -244,7 +244,7 @@ module "cloud_run_jobs" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     signal-generator = {
@@ -261,7 +261,7 @@ module "cloud_run_jobs" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     insight-collector = {
@@ -278,7 +278,7 @@ module "cloud_run_jobs" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
     hypothesis-lab = {
@@ -295,7 +295,7 @@ module "cloud_run_jobs" {
         GCP_PROJECT_ID      = var.project_id
         GCP_REGION          = var.region
         FIRESTORE_DATABASE  = "(default)"
-        PUBSUB_TOPIC_PREFIX = "evt-"
+        PUBSUB_TOPIC_PREFIX = "event-"
       }
     }
   }

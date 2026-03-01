@@ -146,23 +146,23 @@ echo ""
 # サブスクライバーなしトピックを作成する
 echo "--- Subscriber-less topics ---"
 for event_type in "${SUBSCRIBER_LESS_TOPICS[@]}"; do
-  topic_name="evt-${event_type}-v1"
+  topic_name="event-${event_type}-v1"
   create_topic "${topic_name}"
 done
 echo ""
 
 # イベント配線のトピックとサブスクリプションを作成する
 for event_type in "${!EVENT_SUBSCRIBERS[@]}"; do
-  topic_name="evt-${event_type}-v1"
+  topic_name="event-${event_type}-v1"
   echo "--- ${topic_name} ---"
   create_topic "${topic_name}"
 
   subscribers_str="${EVENT_SUBSCRIBERS[${event_type}]}"
   read -ra subscribers <<< "${subscribers_str}"
   for subscriber in "${subscribers[@]}"; do
-    sub_name="sub-${subscriber}-evt-${event_type}-v1"
-    dlq_topic_name="dlq-${subscriber}-evt-${event_type}-v1"
-    dlq_sub_name="sub-dlq-${subscriber}-evt-${event_type}-v1"
+    sub_name="sub-${subscriber}-event-${event_type}-v1"
+    dlq_topic_name="dlq-${subscriber}-event-${event_type}-v1"
+    dlq_sub_name="sub-dlq-${subscriber}-event-${event_type}-v1"
     push_endpoint=$(resolve_push_url "${subscriber}")
 
     # DLQトピックを先に作成する（サブスクリプションのDLQポリシーが参照するため）

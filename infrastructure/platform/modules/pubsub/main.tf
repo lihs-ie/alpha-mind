@@ -1,9 +1,9 @@
 # pubsub: Pub/Sub topics, subscriptions, and DLQs per INF-004
 # Naming:
-#   topic:       evt-{event-type-dash}-v1
-#   subscription: sub-{consumer}-evt-{event-type-dash}-v1
-#   DLQ topic:   dlq-{consumer}-evt-{event-type-dash}-v1
-#   DLQ sub:     sub-dlq-{consumer}-evt-{event-type-dash}-v1
+#   topic:       event-{event-type-dash}-v1
+#   subscription: sub-{consumer}-event-{event-type-dash}-v1
+#   DLQ topic:   dlq-{consumer}-event-{event-type-dash}-v1
+#   DLQ sub:     sub-dlq-{consumer}-event-{event-type-dash}-v1
 
 locals {
   # Event wiring per INF-004 section 7.2
@@ -48,10 +48,10 @@ locals {
       for subscriber in subscribers : {
         event_type     = event_type
         subscriber     = subscriber
-        topic_name     = "evt-${event_type}-v1"
-        sub_name       = "sub-${subscriber}-evt-${event_type}-v1"
-        dlq_topic_name = "dlq-${subscriber}-evt-${event_type}-v1"
-        dlq_sub_name   = "sub-dlq-${subscriber}-evt-${event_type}-v1"
+        topic_name     = "event-${event_type}-v1"
+        sub_name       = "sub-${subscriber}-event-${event_type}-v1"
+        dlq_topic_name = "dlq-${subscriber}-event-${event_type}-v1"
+        dlq_sub_name   = "sub-dlq-${subscriber}-event-${event_type}-v1"
         key            = "${subscriber}__${event_type}"
       }
     ]
@@ -73,7 +73,7 @@ resource "google_pubsub_topic" "events" {
   for_each = local.all_topic_names
 
   project = var.project_id
-  name    = "evt-${each.key}-v1"
+  name    = "event-${each.key}-v1"
 
   message_retention_duration = "604800s" # 7 days
 }
