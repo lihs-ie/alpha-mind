@@ -41,11 +41,11 @@ resource "google_monitoring_alert_policy" "ratio_warnings" {
     display_name = "${each.value.name} >= warning threshold"
 
     condition_threshold {
-      filter          = "metric.type=\"${each.value.numerator.metricType}\" AND resource.type=\"${each.value.numerator.resourceType}\""
+      filter             = "metric.type=\"${each.value.numerator.metricType}\" AND resource.type=\"${each.value.numerator.resourceType}\""
       denominator_filter = "metric.type=\"${each.value.denominator.metricType}\" AND resource.type=\"${each.value.denominator.resourceType}\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = each.value.thresholds.warning
-      duration        = "0s"
+      comparison         = "COMPARISON_GT"
+      threshold_value    = each.value.thresholds.warning
+      duration           = "0s"
 
       aggregations {
         alignment_period   = "300s"
@@ -82,11 +82,11 @@ resource "google_monitoring_alert_policy" "ratio_criticals" {
     display_name = "${each.value.name} >= critical threshold"
 
     condition_threshold {
-      filter          = "metric.type=\"${each.value.numerator.metricType}\" AND resource.type=\"${each.value.numerator.resourceType}\""
+      filter             = "metric.type=\"${each.value.numerator.metricType}\" AND resource.type=\"${each.value.numerator.resourceType}\""
       denominator_filter = "metric.type=\"${each.value.denominator.metricType}\" AND resource.type=\"${each.value.denominator.resourceType}\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = each.value.thresholds.critical
-      duration        = "0s"
+      comparison         = "COMPARISON_GT"
+      threshold_value    = each.value.thresholds.critical
+      duration           = "0s"
 
       aggregations {
         alignment_period   = "300s"
