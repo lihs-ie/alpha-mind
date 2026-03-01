@@ -1,0 +1,67 @@
+# Service labels
+service/bff:
+  - changed-files:
+      - any-glob-to-any-file: "backend/bff/**"
+
+service/audit-log:
+  - changed-files:
+      - any-glob-to-any-file: "backend/audit-log/**"
+
+service/data-collector:
+  - changed-files:
+      - any-glob-to-any-file: "backend/data-collector/**"
+
+service/feature-engineering:
+  - changed-files:
+      - any-glob-to-any-file: "backend/feature-engineering/**"
+
+service/signal-generator:
+  - changed-files:
+      - any-glob-to-any-file: "backend/signal-generator/**"
+
+service/portfolio-planner:
+  - changed-files:
+      - any-glob-to-any-file: "backend/portfolio-planner/**"
+
+service/risk-guard:
+  - changed-files:
+      - any-glob-to-any-file: "backend/risk-guard/**"
+
+service/execution:
+  - changed-files:
+      - any-glob-to-any-file: "backend/execution/**"
+
+service/insight-collector:
+  - changed-files:
+      - any-glob-to-any-file: "backend/insight-collector/**"
+
+service/agent-orchestrator:
+  - changed-files:
+      - any-glob-to-any-file: "backend/agent-orchestrator/**"
+
+service/hypothesis-lab:
+  - changed-files:
+      - any-glob-to-any-file: "backend/hypothesis-lab/**"
+
+service/frontend:
+  - changed-files:
+      - any-glob-to-any-file: "applications/frontend/**"
+
+# Domain labels
+domain:backend:
+  - changed-files:
+      - any-glob-to-any-file: "backend/**"
+
+domain:frontend:
+  - changed-files:
+      - any-glob-to-any-file: "applications/frontend/**"
+
+domain:infrastructure:
+  - changed-files:
+      - any-glob-to-any-file: "infrastructure/**"
+
+domain:ci-cd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "docker/**"
