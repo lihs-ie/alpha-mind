@@ -5,7 +5,7 @@
   "aiResponsibility": false,
   "runtime": {
     "platform": "Cloud Run",
-    "language": "TypeScript",
+    "language": "Haskell",
     "networkExposure": "private"
   },
   "interfaces": {

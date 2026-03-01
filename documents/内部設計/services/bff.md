@@ -14,7 +14,7 @@ JSON対応: `内部設計/json/bff.json`
 | 項目 | 値 |
 |---|---|
 | Platform | Cloud Run |
-| Language | TypeScript |
+| Language | Haskell |
 | Exposure | public |
 
 ## 3. 外部インターフェース

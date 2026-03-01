@@ -1,0 +1,96 @@
+# Dockerfile.haskell
+# Multi-stage build for Haskell backend services.
+# Usage: docker build --build-arg SERVICE_NAME=bff -f Dockerfile.haskell ../../
+#
+# Builder stage: Ubuntu + ghcup で GHC 9.12.2 + Cabal 3.16.1.0 をインストール。
+# Runner stage: minimal Debian for a small production image.
+# Compatible with Cloud Run: listens on $PORT, runs as non-root.
+
+ARG SERVICE_NAME
+
+# ===========================================================================
+# Stage 1: builder
+# ===========================================================================
+FROM ubuntu:24.04 AS builder
+
+ARG SERVICE_NAME
+RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
+
+# ghcup とビルドに必要なシステムライブラリをインストールする
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    build-essential \
+    libgmp-dev \
+    libnuma-dev \
+    zlib1g-dev \
+    git \
+  && rm -rf /var/lib/apt/lists/*
+
+# ghcup をインストールし、GHC 9.12.2 と Cabal 3.16.1.0 をセットアップする
+ENV GHCUP_INSTALL_BASE_PREFIX="/opt"
+ENV PATH="/opt/.ghcup/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | \
+    BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+    BOOTSTRAP_HASKELL_GHC_VERSION=9.12.2 \
+    BOOTSTRAP_HASKELL_CABAL_VERSION=3.16.1.0 \
+    BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 \
+    BOOTSTRAP_HASKELL_INSTALL_NO_STACK_HOOK=1 \
+    sh
+
+# ghcup でインストールしたバージョンを有効化する
+RUN ghcup set ghc 9.12.2 && ghcup set cabal 3.16.1.0
+
+WORKDIR /workspace
+
+# Cabal パッケージインデックスをキャッシュするレイヤーを分離する
+RUN cabal update
+
+# .cabal ファイルのみ先にコピーして依存関係をキャッシュする
+# cabal.project はサービスごとに動的生成する（共有 cabal.project はローカル開発用）
+COPY backend/${SERVICE_NAME}/${SERVICE_NAME}.cabal /workspace/${SERVICE_NAME}/
+RUN echo "packages: ${SERVICE_NAME}/" > /workspace/cabal.project
+
+# 依存関係のみビルド（ソースなし）
+RUN cd /workspace && cabal build --only-dependencies all
+
+# ソースコードをコピーしてビルドする
+COPY backend/${SERVICE_NAME}/ /workspace/${SERVICE_NAME}/
+RUN cd /workspace && cabal build -O2 all
+
+# 実行ファイルをステージングディレクトリへコピーする
+RUN mkdir -p /dist && \
+    cp "$(find /workspace/dist-newstyle -name "${SERVICE_NAME}" -type f -executable)" /dist/service
+
+# ===========================================================================
+# Stage 2: runner
+# ===========================================================================
+FROM debian:bookworm-slim AS runner
+
+# 実行時に必要なライブラリのみインストールする
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgmp10 \
+    libnuma1 \
+    ca-certificates \
+    curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Cloud Run のセキュリティ要件: 非rootユーザーで実行する
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 --gid appgroup --shell /bin/sh --create-home appuser
+
+WORKDIR /app
+COPY --from=builder /dist/service /app/service
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+# Cloud Run は PORT 環境変数でポートを注入する
+ENV PORT=8080
+EXPOSE 8080
+
+# /healthz エンドポイントによるヘルスチェック
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -f "http://localhost:${PORT}/healthz" || exit 1
+
+CMD ["/app/service"]

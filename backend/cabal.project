@@ -1,0 +1,9 @@
+packages:
+  agent-orchestrator/
+  audit-log/
+  bff/
+  data-collector/
+  execution/
+  insight-collector/
+  portfolio-planner/
+  risk-guard/
