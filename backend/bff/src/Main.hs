@@ -4,9 +4,9 @@
 
 module Main where
 
+import Data.Aeson (ToJSON)
 import Data.Maybe (fromMaybe)
 import GHC.Generics (Generic)
-import Data.Aeson (ToJSON)
 import Network.Wai.Handler.Warp (run)
 import Servant
 import System.Environment (lookupEnv)
@@ -15,7 +15,8 @@ import System.Environment (lookupEnv)
 data ServiceStatus = ServiceStatus
   { service :: String
   , status :: String
-  } deriving (Generic)
+  }
+  deriving (Generic)
 
 instance ToJSON ServiceStatus
 
@@ -34,7 +35,7 @@ healthCheckHandler :: Handler String
 healthCheckHandler = return "ok"
 
 statusHandler :: Handler ServiceStatus
-statusHandler = return ServiceStatus {service = "bff", status = "running"}
+statusHandler = return ServiceStatus{service = "bff", status = "running"}
 
 server :: Server API
 server = healthCheckHandler :<|> statusHandler

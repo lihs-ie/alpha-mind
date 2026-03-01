@@ -1,0 +1,45 @@
+# HLint configuration for alpha-mind Haskell services
+# https://github.com/ndmitchell/hlint
+
+- arguments: [--color=auto]
+
+# Enable all default hints
+- warn: {name: Use camelCase}
+
+# Enforce full names over abbreviations (project coding rule)
+- error:
+    lhs: "req"
+    rhs: "request"
+    note: "Use full name 'request' instead of abbreviation 'req'"
+- error:
+    lhs: "res"
+    rhs: "response"
+    note: "Use full name 'response' instead of abbreviation 'res'"
+- error:
+    lhs: "repo"
+    rhs: "repository"
+    note: "Use full name 'repository' instead of abbreviation 'repo'"
+- error:
+    lhs: "conn"
+    rhs: "connection"
+    note: "Use full name 'connection' instead of abbreviation 'conn'"
+- error:
+    lhs: "msg"
+    rhs: "message"
+    note: "Use full name 'message' instead of abbreviation 'msg'"
+- error:
+    lhs: "err"
+    rhs: "error"
+    note: "Use full name 'error' instead of abbreviation 'err'"
+- error:
+    lhs: "cfg"
+    rhs: "config"
+    note: "Use full name 'config' instead of abbreviation 'cfg'"
+- error:
+    lhs: "env"
+    rhs: "environment"
+    note: "Use full name 'environment' instead of abbreviation 'env' (unless referring to System.Environment)"
+
+# Ignore some hints that conflict with project style
+- ignore: {name: Use String}
+- ignore: {name: Redundant bracket}

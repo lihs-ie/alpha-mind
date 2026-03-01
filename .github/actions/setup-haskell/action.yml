@@ -1,0 +1,38 @@
+name: Setup Haskell with Cache
+description: Install GHC and Cabal via ghcup with installation cache to skip 287MB download on subsequent runs
+
+inputs:
+  ghc-version:
+    description: GHC version to install
+    required: false
+    default: "9.12.2"
+  cabal-version:
+    description: Cabal version to install
+    required: false
+    default: "3.16.1.0"
+
+outputs:
+  cabal-store:
+    description: Path to the cabal store directory
+    value: ${{ steps.setup.outputs.cabal-store }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore ghcup cache (GHC/Cabal installation)
+      id: ghcup-cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          /usr/local/.ghcup/ghc/${{ inputs.ghc-version }}
+          /usr/local/.ghcup/cabal
+          /usr/local/.ghcup/bin
+          ~/.ghcup/bin
+        key: ghcup-${{ runner.os }}-ghc-${{ inputs.ghc-version }}-cabal-${{ inputs.cabal-version }}
+
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      id: setup
+      with:
+        ghc-version: ${{ inputs.ghc-version }}
+        cabal-version: ${{ inputs.cabal-version }}

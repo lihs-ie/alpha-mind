@@ -1,0 +1,135 @@
+name: CI Terraform
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  TERRAFORM_DIRS: >-
+    infrastructure/bootstrap
+    infrastructure/platform/envs/stg
+    infrastructure/platform/envs/prod
+    infrastructure/monitoring/envs/stg
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      infrastructure: ${{ steps.filter.outputs.infrastructure }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            infrastructure:
+              - "infrastructure/**"
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infrastructure == 'true'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.6"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v5
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: terraform-plugins-${{ runner.os }}-${{ hashFiles('infrastructure/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-plugins-${{ runner.os }}-
+
+      - name: Configure Terraform plugin cache
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraformrc
+
+      - name: terraform fmt / init / validate
+        run: |
+          failed=0
+          for dir in $TERRAFORM_DIRS; do
+            echo "::group::$dir"
+            echo "--- fmt check: $dir ---"
+            if ! terraform -chdir="$dir" fmt -check -recursive; then
+              echo "::error::terraform fmt failed in $dir"
+              failed=1
+            fi
+            echo "--- init: $dir ---"
+            terraform -chdir="$dir" init -backend=false
+            echo "--- validate: $dir ---"
+            if ! terraform -chdir="$dir" validate; then
+              echo "::error::terraform validate failed in $dir"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+  tflint:
+    name: TFLint
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infrastructure == 'true'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache tflint plugins
+        uses: actions/cache@v5
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-plugins-${{ runner.os }}-${{ hashFiles('infrastructure/.tflint.hcl') }}
+          restore-keys: |
+            tflint-plugins-${{ runner.os }}-
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+
+      - name: Init TFLint
+        run: tflint --init --config "${{ github.workspace }}/infrastructure/.tflint.hcl"
+
+      - name: Run TFLint
+        run: |
+          failed=0
+          for dir in $TERRAFORM_DIRS; do
+            echo "::group::$dir"
+            echo "--- tflint: $dir ---"
+            if ! tflint --config "${{ github.workspace }}/infrastructure/.tflint.hcl" --chdir="$dir"; then
+              echo "::error::tflint failed in $dir"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+  ci-terraform-result:
+    name: CI Terraform Result
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, tflint]
+    if: always()
+    steps:
+      - name: Check result
+        run: |
+          results=("${{ needs.detect-changes.result }}" "${{ needs.validate.result }}" "${{ needs.tflint.result }}")
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "CI Terraform failed"
+              exit 1
+            fi
+          done
+          echo "CI Terraform passed (or skipped)"

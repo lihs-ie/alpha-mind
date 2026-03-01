@@ -30,7 +30,7 @@ resource "google_billing_budget" "monthly" {
     }
   }
 
-  notifications_rule {
+  all_updates_rule {
     monitoring_notification_channels = var.notification_channel_names
     disable_default_iam_recipients   = true
   }

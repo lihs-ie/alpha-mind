@@ -1,0 +1,155 @@
+name: CI Haskell
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      haskell: ${{ steps.filter.outputs.haskell }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            haskell:
+              - "backend/**"
+              - "!backend/feature-engineering/**"
+              - "!backend/signal-generator/**"
+              - "!backend/hypothesis-lab/**"
+              - "!backend/pyproject.toml"
+
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.haskell == 'true'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Haskell
+        id: setup-haskell
+        uses: ./.github/actions/setup-haskell
+
+      - name: Cache cabal store
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.setup-haskell.outputs.cabal-store }}
+          key: cabal-store-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project') }}
+          restore-keys: |
+            cabal-store-${{ runner.os }}-
+
+      - name: Cache dist-newstyle
+        uses: actions/cache@v5
+        with:
+          path: backend/dist-newstyle
+          key: dist-newstyle-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project', 'backend/**/*.hs') }}
+          restore-keys: |
+            dist-newstyle-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project') }}-
+            dist-newstyle-${{ runner.os }}-
+
+      - name: Build
+        working-directory: backend
+        run: cabal build all
+
+      - name: Test
+        working-directory: backend
+        run: cabal test all
+
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.haskell == 'true'
+
+    env:
+      FOURMOLU_VERSION: "0.18.0.0"
+      HLINT_VERSION: "3.8"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache fourmolu binary
+        id: cache-fourmolu
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/fourmolu
+          key: fourmolu-bin-${{ runner.os }}-${{ env.FOURMOLU_VERSION }}
+
+      - name: Cache HLint binary
+        id: cache-hlint
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/hlint
+          key: hlint-${{ runner.os }}-${{ env.HLINT_VERSION }}
+
+      - name: Setup Haskell
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
+        id: setup-haskell
+        uses: ./.github/actions/setup-haskell
+
+      - name: Cache cabal store (lint)
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.setup-haskell.outputs.cabal-store }}
+          key: cabal-store-lint-${{ runner.os }}-fourmolu-${{ env.FOURMOLU_VERSION }}
+          restore-keys: |
+            cabal-store-lint-${{ runner.os }}-fourmolu-
+
+      - name: Install fourmolu
+        if: steps.cache-fourmolu.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          cabal install fourmolu-${{ env.FOURMOLU_VERSION }} --installdir=$HOME/.local/bin --install-method=copy --overwrite-policy=always
+
+      - name: Setup HLint
+        if: steps.cache-hlint.outputs.cache-hit != 'true'
+        uses: haskell-actions/hlint-setup@v2
+        with:
+          version: ${{ env.HLINT_VERSION }}
+
+      - name: Copy HLint to cache path
+        if: steps.cache-hlint.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          cp "$(which hlint)" ~/.local/bin/hlint
+
+      - name: Add tools to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run HLint
+        run: hlint backend/
+
+      - name: Check formatting (fourmolu)
+        working-directory: backend
+        run: |
+          fourmolu --mode check $(find . -name "*.hs" -not -path "./dist-newstyle/*")
+
+  ci-haskell-result:
+    name: CI Haskell Result
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-and-test, lint]
+    if: always()
+    steps:
+      - name: Check result
+        run: |
+          results=("${{ needs.detect-changes.result }}" "${{ needs.build-and-test.result }}" "${{ needs.lint.result }}")
+          for result in "${results[@]}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "CI Haskell failed"
+              exit 1
+            fi
+          done
+          echo "CI Haskell passed (or skipped)"
