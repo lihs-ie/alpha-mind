@@ -2,19 +2,18 @@
 # Multi-stage build for Haskell backend services.
 # Usage: docker build --build-arg SERVICE_NAME=bff -f Dockerfile.haskell ../../
 #
-# Builder stage: Ubuntu + ghcup で GHC 9.12.2 + Cabal 3.16.1.0 をインストール。
-# Runner stage: minimal Debian for a small production image.
+# 4-stage build:
+#   toolchain: GHC + Cabal インストール (SERVICE_NAME 非依存)
+#   deps:      全サービスの依存をビルド (SERVICE_NAME 非依存 → キャッシュ共有)
+#   builder:   該当サービスのソースのみビルド (SERVICE_NAME 依存)
+#   runner:    最小 Debian + バイナリのみ
+#
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
-ARG SERVICE_NAME
-
 # ===========================================================================
-# Stage 1: builder
+# Stage 1: toolchain (SERVICE_NAME 非依存)
 # ===========================================================================
-FROM ubuntu:24.04 AS builder
-
-ARG SERVICE_NAME
-RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
+FROM ubuntu:24.04 AS toolchain
 
 # ghcup とビルドに必要なシステムライブラリをインストールする
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -28,14 +27,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # ghcup バイナリをバージョン固定でダウンロードし SHA256 チェックサムを検証する
+# ホストアーキテクチャを自動検出し、x86_64 / aarch64 の両方に対応する
 ARG GHCUP_VERSION=0.1.50.2
-ARG GHCUP_SHA256=ff6288df9758211372d8242fe830d8e6be6a8365d9406f1c9bde144b7e744143
 ENV GHCUP_INSTALL_BASE_PREFIX="/opt"
 ENV PATH="/opt/.ghcup/bin:${PATH}"
-RUN curl --proto '=https' --tlsv1.2 -sSfL \
-      "https://downloads.haskell.org/~ghcup/${GHCUP_VERSION}/x86_64-linux-ghcup-${GHCUP_VERSION}" \
+RUN ARCH="$(uname -m)" && \
+    case "${ARCH}" in \
+      x86_64)  GHCUP_ARCH="x86_64";  GHCUP_SHA="ff6288df9758211372d8242fe830d8e6be6a8365d9406f1c9bde144b7e744143" ;; \
+      aarch64) GHCUP_ARCH="aarch64"; GHCUP_SHA="a8f86745eb2381ca19f4ebd17652957c2e404dad8f7bb2bdfd62feab9fcf8ddd" ;; \
+      *)       echo "ERROR: Unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
+    esac && \
+    curl --proto '=https' --tlsv1.2 -sSfL \
+      "https://downloads.haskell.org/~ghcup/${GHCUP_VERSION}/${GHCUP_ARCH}-linux-ghcup-${GHCUP_VERSION}" \
       -o /usr/local/bin/ghcup && \
-    echo "${GHCUP_SHA256}  /usr/local/bin/ghcup" | sha256sum -c - && \
+    echo "${GHCUP_SHA}  /usr/local/bin/ghcup" | sha256sum -c - && \
     chmod +x /usr/local/bin/ghcup && \
     ghcup install ghc 9.12.2 --set && \
     ghcup install cabal 3.16.1.0 --set
@@ -45,24 +50,49 @@ WORKDIR /workspace
 # Cabal パッケージインデックスをキャッシュするレイヤーを分離する
 RUN cabal update
 
-# .cabal ファイルのみ先にコピーして依存関係をキャッシュする
-# cabal.project はサービスごとに動的生成する（共有 cabal.project はローカル開発用）
-COPY backend/${SERVICE_NAME}/${SERVICE_NAME}.cabal /workspace/${SERVICE_NAME}/
-RUN echo "packages: ${SERVICE_NAME}/" > /workspace/cabal.project
+# ===========================================================================
+# Stage 2: deps (SERVICE_NAME 非依存 → 全サービスでキャッシュ共有)
+# ===========================================================================
+FROM toolchain AS deps
 
-# 依存関係のみビルド（ソースなし）
-RUN cd /workspace && cabal build --only-dependencies all
+# 全 8 サービスの .cabal ファイルと共有 cabal.project をコピーする
+# cabal.project が全サービスを列挙しているため、依存解決が一括で行われる
+COPY backend/cabal.project /workspace/cabal.project
+COPY backend/agent-orchestrator/agent-orchestrator.cabal /workspace/agent-orchestrator/
+COPY backend/audit-log/audit-log.cabal                   /workspace/audit-log/
+COPY backend/bff/bff.cabal                               /workspace/bff/
+COPY backend/data-collector/data-collector.cabal          /workspace/data-collector/
+COPY backend/execution/execution.cabal                    /workspace/execution/
+COPY backend/insight-collector/insight-collector.cabal     /workspace/insight-collector/
+COPY backend/portfolio-planner/portfolio-planner.cabal     /workspace/portfolio-planner/
+COPY backend/risk-guard/risk-guard.cabal                   /workspace/risk-guard/
 
-# ソースコードをコピーしてビルドする
-COPY backend/${SERVICE_NAME}/ /workspace/${SERVICE_NAME}/
-RUN cd /workspace && cabal build -O2 all
-
-# 実行ファイルをステージングディレクトリへコピーする
-RUN mkdir -p /dist && \
-    cp "$(find /workspace/dist-newstyle -name "${SERVICE_NAME}" -type f -executable)" /dist/service
+# 全サービスの依存関係を一括ビルドする（ソースなし）
+RUN cabal build --only-dependencies all
 
 # ===========================================================================
-# Stage 2: runner
+# Stage 3: builder (SERVICE_NAME 依存)
+# ===========================================================================
+FROM deps AS builder
+
+ARG SERVICE_NAME
+RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
+
+# 該当サービスのソースコードのみコピーしてビルドする
+# cabal.project を対象サービスのみに絞る（他サービスのソースは存在しないため）
+# deps ステージでビルド済みの依存は dist-newstyle に残っておりそのまま利用される
+COPY backend/${SERVICE_NAME}/ /workspace/${SERVICE_NAME}/
+RUN echo "packages: ${SERVICE_NAME}/" > /workspace/cabal.project && \
+    cabal build -O2 "exe:${SERVICE_NAME}"
+
+# 実行ファイルをステージングディレクトリへコピーする
+# -O2 でビルドしたバイナリは opt/build/ 配下に生成されるため、
+# list-bin にも同じ最適化フラグを渡してパスを一致させる
+RUN mkdir -p /dist && \
+    cp "$(cabal list-bin -O2 "exe:${SERVICE_NAME}")" /dist/service
+
+# ===========================================================================
+# Stage 4: runner (最小 Debian)
 # ===========================================================================
 FROM debian:bookworm-slim AS runner
 

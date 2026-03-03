@@ -2,19 +2,18 @@
 # Multi-stage build for Python ML/inference services.
 # Usage: docker build --build-arg SERVICE_NAME=signal-generator -f Dockerfile.python ../../
 #
+# 2-stage build:
+#   deps:   全サービスの依存を一括インストール (SERVICE_NAME 非依存 → キャッシュ共有)
+#   runner: 該当サービスのソースのみコピー (SERVICE_NAME 依存)
+#
 # Target services: feature-engineering, signal-generator, hypothesis-lab
 # Includes scientific computing libraries: numpy, pandas, scikit-learn, lightgbm
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
-ARG SERVICE_NAME
-
 # ===========================================================================
-# Stage 1: builder
+# Stage 1: deps (SERVICE_NAME 非依存 → 全サービスでキャッシュ共有)
 # ===========================================================================
-FROM python:3.14-slim AS builder
-
-ARG SERVICE_NAME
-RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
+FROM python:3.14-slim AS deps
 
 WORKDIR /workspace
 
@@ -29,19 +28,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
-# requirements をコピーして依存関係をキャッシュする
-# NOTE: numpy, pandas, scikit-learn, lightgbm 等の科学計算ライブラリは
-# 各サービスの requirements.txt に含めること（ここでは二重インストールしない）
-COPY backend/${SERVICE_NAME}/requirements.txt /workspace/requirements.txt
+# 全 3 サービスの requirements.txt をコピーして union インストールする
+# 現在は同一内容だが、将来分岐しても全依存が含まれる
+COPY backend/feature-engineering/requirements.txt /workspace/requirements-feature-engineering.txt
+COPY backend/signal-generator/requirements.txt    /workspace/requirements-signal-generator.txt
+COPY backend/hypothesis-lab/requirements.txt      /workspace/requirements-hypothesis-lab.txt
+
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /workspace/requirements.txt
+    pip install --no-cache-dir \
+      -r /workspace/requirements-feature-engineering.txt \
+      -r /workspace/requirements-signal-generator.txt \
+      -r /workspace/requirements-hypothesis-lab.txt
 
 # ===========================================================================
-# Stage 2: runner
+# Stage 2: runner (SERVICE_NAME 依存)
 # ===========================================================================
 FROM python:3.14-slim AS runner
 
 ARG SERVICE_NAME
+RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
 
 # LightGBM の実行に必要なライブラリをインストールする
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -56,8 +61,8 @@ RUN groupadd --gid 1001 appgroup && \
 
 WORKDIR /app
 
-# venv とアプリケーションコードをコピーする
-COPY --from=builder /opt/venv /opt/venv
+# venv と該当サービスのアプリケーションコードをコピーする
+COPY --from=deps /opt/venv /opt/venv
 COPY backend/${SERVICE_NAME}/src/ /app/src/
 
 ENV PATH="/opt/venv/bin:${PATH}"

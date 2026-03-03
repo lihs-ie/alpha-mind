@@ -8,6 +8,9 @@ secrets/
 .env.local.override
 .env.*.override
 
+# Docker Compose local overrides (auto-merged, never commit)
+docker-compose.override.yml
+
 # Docker build cache
 .docker/
 
