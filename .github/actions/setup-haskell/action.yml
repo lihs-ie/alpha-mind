@@ -44,7 +44,6 @@ runs:
         cabal-update: false
 
     # キャッシュヒット: setup アクションをスキップし PATH のみ設定
-    # 287MB のダウンロード + ghcup のバージョンチェックを省略
     - name: Configure PATH from cache
       if: steps.ghcup-cache.outputs.cache-hit == 'true'
       shell: bash
