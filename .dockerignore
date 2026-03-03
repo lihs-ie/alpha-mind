@@ -1,0 +1,35 @@
+# .dockerignore
+# バックエンドビルドに不要な大容量ディレクトリを除外し、
+# ビルドコンテキストの転送量を削減する。
+
+# Sol リファレンス (~6.4GB)
+references/
+
+# Terraform / インフラ (~2.7GB)
+infrastructure/
+
+# 設計ドキュメント・デザインシステム
+documents/
+design-system/
+
+# Git / GitHub / Claude
+.git/
+.github/
+.claude/
+
+# フロントエンド生成物
+applications/frontend/node_modules/
+applications/frontend/_build/
+applications/frontend/.sol/
+applications/frontend/.mooncakes/
+
+# Docker 内部ファイル（ビルドコンテキストに含める必要なし）
+docker/secrets/
+docker/.env*
+docker/docker-compose*.yml
+docker/Makefile
+
+# 言語固有の生成物
+**/__pycache__/
+**/dist-newstyle/
+**/node_modules/

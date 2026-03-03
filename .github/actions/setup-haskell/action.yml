@@ -1,5 +1,5 @@
 name: Setup Haskell with Cache
-description: Install GHC and Cabal via ghcup with installation cache to skip 287MB download on subsequent runs
+description: Install GHC and Cabal via ghcup with aggressive caching to minimize setup time
 
 inputs:
   ghc-version:
@@ -14,11 +14,14 @@ inputs:
 outputs:
   cabal-store:
     description: Path to the cabal store directory
-    value: ${{ steps.setup.outputs.cabal-store }}
+    value: ${{ steps.cabal-store.outputs.path }}
 
 runs:
   using: composite
   steps:
+    # =====================================================================
+    # GHC / Cabal バイナリキャッシュ
+    # =====================================================================
     - name: Restore ghcup cache (GHC/Cabal installation)
       id: ghcup-cache
       uses: actions/cache@v5
@@ -30,9 +33,54 @@ runs:
           ~/.ghcup/bin
         key: ghcup-${{ runner.os }}-ghc-${{ inputs.ghc-version }}-cabal-${{ inputs.cabal-version }}
 
-    - name: Setup Haskell
+    # キャッシュミス: haskell-actions/setup で GHC/Cabal をインストール
+    # cabal update は後続ステップでキャッシュ付きで実行するため無効化
+    - name: Install GHC and Cabal
+      if: steps.ghcup-cache.outputs.cache-hit != 'true'
       uses: haskell-actions/setup@v2
-      id: setup
       with:
         ghc-version: ${{ inputs.ghc-version }}
         cabal-version: ${{ inputs.cabal-version }}
+        cabal-update: false
+
+    # キャッシュヒット: setup アクションをスキップし PATH のみ設定
+    - name: Configure PATH from cache
+      if: steps.ghcup-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        echo "/usr/local/.ghcup/bin" >> "$GITHUB_PATH"
+        export PATH="/usr/local/.ghcup/bin:$PATH"
+        ghcup set ghc ${{ inputs.ghc-version }}
+        ghcup set cabal ${{ inputs.cabal-version }}
+
+    # =====================================================================
+    # Cabal パッケージインデックスキャッシュ（週次ローリング）
+    # =====================================================================
+    - name: Get week number
+      id: week
+      shell: bash
+      run: echo "week=$(date +%Y-W%V)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore cabal package index
+      id: cabal-index
+      uses: actions/cache@v5
+      with:
+        path: ~/.cabal/packages
+        key: cabal-index-${{ runner.os }}-${{ steps.week.outputs.week }}
+        restore-keys: |
+          cabal-index-${{ runner.os }}-
+
+    - name: Update cabal package index
+      if: steps.cabal-index.outputs.cache-hit != 'true'
+      shell: bash
+      run: cabal update
+
+    # =====================================================================
+    # 出力
+    # =====================================================================
+    - name: Resolve cabal store path
+      id: cabal-store
+      shell: bash
+      run: |
+        STORE_DIR="$(cabal store-dir 2>/dev/null || echo "$HOME/.cabal/store")"
+        echo "path=$STORE_DIR" >> "$GITHUB_OUTPUT"
