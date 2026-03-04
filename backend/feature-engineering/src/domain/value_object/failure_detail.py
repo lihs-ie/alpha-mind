@@ -12,3 +12,7 @@ class FailureDetail:
     reason_code: ReasonCode
     detail: str | None
     retryable: bool
+
+    def __post_init__(self) -> None:
+        if self.reason_code is None:
+            raise ValueError("reason_code must not be None")

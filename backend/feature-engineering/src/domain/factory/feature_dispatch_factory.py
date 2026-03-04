@@ -1,6 +1,7 @@
 """Factory for creating FeatureDispatch aggregates."""
 
 from domain.model.feature_dispatch import FeatureDispatch
+from domain.model.feature_generation import FeatureGeneration
 from domain.value_object.dispatch_decision import DispatchDecision
 from domain.value_object.enums import DispatchStatus
 
@@ -10,13 +11,12 @@ class FeatureDispatchFactory:
 
     def from_feature_generation(
         self,
-        identifier: str,
-        trace: str,
+        feature_generation: FeatureGeneration,
     ) -> FeatureDispatch:
         return FeatureDispatch(
-            identifier=identifier,
+            identifier=feature_generation.identifier,
             dispatch_status=DispatchStatus.PENDING,
-            trace=trace,
+            trace=feature_generation.trace,
             dispatch_decision=DispatchDecision(
                 dispatch_status=DispatchStatus.PENDING,
                 published_event=None,

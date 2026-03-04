@@ -229,6 +229,12 @@ class TestFailureDetail:
         with pytest.raises(AttributeError):
             detail.retryable = True  # type: ignore[misc]
 
+    def test_rejects_none_reason_code(self) -> None:
+        from domain.value_object.failure_detail import FailureDetail
+
+        with pytest.raises(ValueError, match="reason_code must not be None"):
+            FailureDetail(reason_code=None, detail=None, retryable=False)  # type: ignore[arg-type]
+
 
 class TestDispatchDecision:
     def test_create_published(self) -> None:

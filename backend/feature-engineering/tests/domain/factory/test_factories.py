@@ -4,6 +4,11 @@ import datetime
 
 import pytest
 
+from domain.model.feature_generation import FeatureGeneration
+from domain.value_object.enums import FeatureGenerationStatus, SourceStatusValue
+from domain.value_object.market_snapshot import MarketSnapshot
+from domain.value_object.source_status import SourceStatus
+
 
 class _StubFeatureVersionGenerator:
     """Stub implementation for testing."""
@@ -145,16 +150,27 @@ class TestFeatureGenerationFactory:
         assert version == "v20260303-001"
 
 
+def _make_feature_generation() -> FeatureGeneration:
+    return FeatureGeneration(
+        identifier="01JNPQRS000000000000000001",
+        status=FeatureGenerationStatus.PENDING,
+        market=MarketSnapshot(
+            target_date=datetime.date(2026, 3, 3),
+            storage_path="gs://bucket/market/2026-03-03.parquet",
+            source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
+        ),
+        trace="trace-abc-123",
+    )
+
+
 class TestFeatureDispatchFactory:
     def test_creates_pending_dispatch(self) -> None:
         from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
         from domain.value_object.enums import DispatchStatus
 
         factory = FeatureDispatchFactory()
-        dispatch = factory.from_feature_generation(
-            identifier="01JNPQRS000000000000000001",
-            trace="trace-abc-123",
-        )
+        generation = _make_feature_generation()
+        dispatch = factory.from_feature_generation(feature_generation=generation)
 
         assert dispatch.identifier == "01JNPQRS000000000000000001"
         assert dispatch.dispatch_status == DispatchStatus.PENDING
@@ -169,10 +185,8 @@ class TestFeatureDispatchFactory:
         from domain.value_object.enums import DispatchStatus
 
         factory = FeatureDispatchFactory()
-        dispatch = factory.from_feature_generation(
-            identifier="01JNPQRS000000000000000001",
-            trace="trace-abc-123",
-        )
+        generation = _make_feature_generation()
+        dispatch = factory.from_feature_generation(feature_generation=generation)
 
         assert dispatch.dispatch_decision is not None
         assert dispatch.dispatch_decision.dispatch_status == DispatchStatus.PENDING
