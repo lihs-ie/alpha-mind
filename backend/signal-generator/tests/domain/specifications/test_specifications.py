@@ -70,6 +70,28 @@ class TestFeaturePayloadIntegritySpecification:
         )
         assert spec.is_satisfied_by(feature) is False
 
+    def test_today_target_date_satisfies_with_injected_clock(self) -> None:
+        # clock DI: 当日の特徴量は有効
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
+        feature = FeatureSnapshot(
+            target_date=datetime.date(2026, 3, 15),
+            feature_version="v1.0.0",
+            storage_path="gs://feature_store/2026-03-15/features.parquet",
+        )
+        assert spec.is_satisfied_by(feature) is True
+
+    def test_tomorrow_target_date_does_not_satisfy_with_injected_clock(self) -> None:
+        # clock DI: 翌日の特徴量は無効
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
+        feature = FeatureSnapshot(
+            target_date=datetime.date(2026, 3, 16),
+            feature_version="v1.0.0",
+            storage_path="gs://feature_store/2026-03-16/features.parquet",
+        )
+        assert spec.is_satisfied_by(feature) is False
+
 
 class TestApprovedModelExistsSpecification:
     def test_approved_model_satisfies_specification(self) -> None:

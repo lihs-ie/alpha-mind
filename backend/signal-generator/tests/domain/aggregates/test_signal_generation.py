@@ -143,7 +143,7 @@ class TestSignalGenerationComplete:
             trace="trace-001",
         )
         # モデル未解決で complete しようとするとエラー
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="モデルが解決されていない"):
             generation.complete(
                 signal_artifact=_make_signal_artifact(),
                 model_diagnostics_snapshot=_make_model_diagnostics(),

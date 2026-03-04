@@ -51,21 +51,13 @@ class TestSignalGenerationFactory:
 
 
 class TestSignalDispatchFactory:
-    def test_create_from_signal_generation(self) -> None:
+    def test_create_from_signal_generation_identifiers(self) -> None:
         factory = SignalDispatchFactory()
-        feature_snapshot = FeatureSnapshot(
-            target_date=datetime.date(2026, 1, 1),
-            feature_version="v1.0.0",
-            storage_path="gs://feature_store/2026-01-01/features.parquet",
-        )
-        signal_generation = SignalGeneration(
+
+        dispatch = factory.from_signal_generation(
             identifier="01JNABCDEF1234567890123456",
-            feature_snapshot=feature_snapshot,
-            universe_count=100,
             trace="trace-001",
         )
-
-        dispatch = factory.from_signal_generation(signal_generation)
 
         assert dispatch.identifier == "01JNABCDEF1234567890123456"
         assert dispatch.dispatch_status == DispatchStatus.PENDING
@@ -85,6 +77,9 @@ class TestSignalDispatchFactory:
             universe_count=100,
             trace="trace-001",
         )
-        dispatch = factory.from_signal_generation(signal_generation)
+        dispatch = factory.from_signal_generation(
+            identifier=signal_generation.identifier,
+            trace=signal_generation.trace,
+        )
 
         assert dispatch.identifier == signal_generation.identifier

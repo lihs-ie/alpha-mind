@@ -66,7 +66,7 @@ class TestApprovedModelPolicy:
 
 
 class TestInferenceConsistencyPolicy:
-    def test_consistent_counts_satisfies_policy(self) -> None:
+    def test_consistent_counts_is_satisfied(self) -> None:
         # RULE-SG-004: 推論件数とユニバース件数の一致が必須
         policy = InferenceConsistencyPolicy()
         artifact = SignalArtifact(
@@ -75,32 +75,29 @@ class TestInferenceConsistencyPolicy:
             generated_count=100,
             universe_count=100,
         )
-        assert policy.is_satisfied_by(artifact) is True
+        assert policy.is_count_consistent(artifact) is True
 
-    def test_block_diagnostics_requires_compliance_review(self) -> None:
-        # RULE-SG-007: block フラグ時のコンプライアンスレビュー強制
+    def test_block_diagnostics_compliance_review_is_satisfied(self) -> None:
+        # RULE-SG-007: block フラグ時のコンプライアンスレビュー検証
         policy = InferenceConsistencyPolicy()
         diagnostics = ModelDiagnosticsSnapshot(
             degradation_flag=DegradationFlag.BLOCK,
             requires_compliance_review=True,
         )
-        corrected = policy.apply_compliance_review_rule(diagnostics)
-        assert corrected.requires_compliance_review is True
+        assert policy.is_compliance_review_satisfied(diagnostics) is True
 
-    def test_normal_diagnostics_does_not_require_compliance_review(self) -> None:
+    def test_normal_diagnostics_compliance_review_is_satisfied(self) -> None:
         policy = InferenceConsistencyPolicy()
         diagnostics = ModelDiagnosticsSnapshot(
             degradation_flag=DegradationFlag.NORMAL,
             requires_compliance_review=False,
         )
-        corrected = policy.apply_compliance_review_rule(diagnostics)
-        assert corrected.requires_compliance_review is False
+        assert policy.is_compliance_review_satisfied(diagnostics) is True
 
-    def test_warn_diagnostics_preserves_compliance_review_setting(self) -> None:
+    def test_warn_diagnostics_compliance_review_is_satisfied(self) -> None:
         policy = InferenceConsistencyPolicy()
-        diagnostics_without_review = ModelDiagnosticsSnapshot(
+        diagnostics = ModelDiagnosticsSnapshot(
             degradation_flag=DegradationFlag.WARN,
             requires_compliance_review=False,
         )
-        corrected = policy.apply_compliance_review_rule(diagnostics_without_review)
-        assert corrected.requires_compliance_review is False
+        assert policy.is_compliance_review_satisfied(diagnostics) is True

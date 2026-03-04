@@ -1,19 +1,19 @@
 """SignalDispatchFactory."""
 
 from signal_generator.domain.aggregates.signal_dispatch import SignalDispatch
-from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 
 
 class SignalDispatchFactory:
-    """SignalGeneration から SignalDispatch 集約を作成するファクトリ。
+    """SignalGeneration の識別情報から SignalDispatch 集約を作成するファクトリ。
 
     SignalDispatch は SignalGeneration と同じ identifier を使い、
     冪等性キーとして idempotency_keys コレクションに記録する。
+    集約間参照はID参照のみとし、オブジェクト参照を禁止する。
     """
 
-    def from_signal_generation(self, signal_generation: SignalGeneration) -> SignalDispatch:
-        """SignalGeneration の情報から pending 状態の SignalDispatch を作成する。"""
+    def from_signal_generation(self, identifier: str, trace: str) -> SignalDispatch:
+        """SignalGeneration の識別情報から pending 状態の SignalDispatch を作成する。"""
         return SignalDispatch(
-            identifier=signal_generation.identifier,
-            trace=signal_generation.trace,
+            identifier=identifier,
+            trace=trace,
         )

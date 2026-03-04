@@ -50,7 +50,7 @@ class TestSignalGenerationCompletedEvent:
             model_version="model-v1.0.0",
             feature_version="v1.0.0",
             storage_path="gs://signal_store/2026-01-01/signals.parquet",
-            model_diagnostics_snapshot=diagnostics,
+            model_diagnostics=diagnostics,
             trace="trace-001",
             occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
@@ -59,7 +59,7 @@ class TestSignalGenerationCompletedEvent:
         assert event.model_version == "model-v1.0.0"
         assert event.feature_version == "v1.0.0"
         assert event.storage_path == "gs://signal_store/2026-01-01/signals.parquet"
-        assert event.model_diagnostics_snapshot == diagnostics
+        assert event.model_diagnostics == diagnostics
         assert event.event_type == EventType.SIGNAL_GENERATION_COMPLETED
 
     def test_model_diagnostics_is_required(self) -> None:
@@ -86,7 +86,7 @@ class TestSignalGenerationCompletedEvent:
             model_version="model-v1.0.0",
             feature_version="v1.0.0",
             storage_path="gs://signal_store/2026-01-01/signals.parquet",
-            model_diagnostics_snapshot=diagnostics,
+            model_diagnostics=diagnostics,
             trace="trace-001",
             occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )

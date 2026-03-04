@@ -19,7 +19,7 @@ class SignalGenerationCompletedEvent:
     model_version: str
     feature_version: str
     storage_path: str
-    model_diagnostics_snapshot: ModelDiagnosticsSnapshot
+    model_diagnostics: ModelDiagnosticsSnapshot
     trace: str
     occurred_at: datetime.datetime
     event_type: EventType = EventType.SIGNAL_GENERATION_COMPLETED

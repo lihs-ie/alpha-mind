@@ -75,7 +75,12 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend/${{ matrix.service }}
-        run: pip install -e ".[dev]"
+        run: |
+          if [ -f pyproject.toml ]; then
+            pip install -e ".[dev]"
+          else
+            pip install mypy pytest -r requirements.txt
+          fi
 
       - name: Type check (mypy)
         working-directory: backend/${{ matrix.service }}
