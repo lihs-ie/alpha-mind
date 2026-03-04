@@ -21,8 +21,13 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         self._client = client
         self._service_name = service_name
 
+    def _document_identifier(self, identifier: str) -> str:
+        """Build a service-scoped document ID to prevent cross-service collisions."""
+        return f"{self._service_name}:{identifier}"
+
     def find(self, identifier: str) -> datetime.datetime | None:
-        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()  # type: ignore[assignment]
+        document_identifier = self._document_identifier(identifier)
+        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(document_identifier).get()  # type: ignore[assignment]
         if not snapshot.exists:
             return None
         data = snapshot.to_dict()
@@ -32,6 +37,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         return processed_at
 
     def persist(self, identifier: str, processed_at: datetime.datetime) -> None:
+        document_identifier = self._document_identifier(identifier)
         expires_at = processed_at + datetime.timedelta(days=TTL_DAYS)
         data: dict[str, Any] = {
             "identifier": identifier,
@@ -39,7 +45,8 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             "processedAt": processed_at,
             "expiresAt": expires_at,
         }
-        self._client.collection(COLLECTION_NAME).document(identifier).set(data)
+        self._client.collection(COLLECTION_NAME).document(document_identifier).set(data)
 
     def terminate(self, identifier: str) -> None:
-        self._client.collection(COLLECTION_NAME).document(identifier).delete()
+        document_identifier = self._document_identifier(identifier)
+        self._client.collection(COLLECTION_NAME).document(document_identifier).delete()

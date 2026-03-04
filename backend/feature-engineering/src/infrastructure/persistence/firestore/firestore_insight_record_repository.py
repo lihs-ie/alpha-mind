@@ -40,14 +40,17 @@ class FirestoreInsightRecordRepository(InsightRecordRepository):
         return _build_snapshot(documents, filtered_by_target_date=True)
 
     def _query_by_target_date(self, target_date: datetime.date) -> list[dict[str, Any]]:
-        """Query insight_records where collectedAt falls within the given date (UTC)."""
-        start_of_day = datetime.datetime(target_date.year, target_date.month, target_date.day, tzinfo=datetime.UTC)
-        end_of_day = start_of_day + datetime.timedelta(days=1)
+        """Query insight_records where collectedAt <= end of targetDate (UTC).
 
-        query = (
-            self._client.collection(COLLECTION_NAME)
-            .where(filter=FieldFilter("collectedAt", ">=", start_of_day))
-            .where(filter=FieldFilter("collectedAt", "<", end_of_day))
+        Per RULE-FE-003, point-in-time consistency requires including all records
+        collected on or before the target date, not just records from that single day.
+        """
+        end_of_target_date = datetime.datetime(
+            target_date.year, target_date.month, target_date.day, tzinfo=datetime.UTC
+        ) + datetime.timedelta(days=1)
+
+        query = self._client.collection(COLLECTION_NAME).where(
+            filter=FieldFilter("collectedAt", "<", end_of_target_date)
         )
         return [data for document in query.stream() if (data := document.to_dict()) is not None]
 

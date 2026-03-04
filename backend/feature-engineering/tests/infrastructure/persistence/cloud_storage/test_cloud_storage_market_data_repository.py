@@ -79,7 +79,7 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
         result = repository.find_by_target_date(datetime.date(2026, 1, 15))
 
         assert result is None
-        mock_bucket.list_blobs.assert_called_once_with(prefix="2026-01-15/", delimiter="/")
+        mock_bucket.list_blobs.assert_called_once()
 
     def test_find_by_target_date_skips_non_metadata_blobs(self) -> None:
         mock_client = MagicMock()
@@ -87,15 +87,15 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
         mock_client.bucket.return_value = mock_bucket
 
         mock_parquet_blob = MagicMock()
-        mock_parquet_blob.name = "2026-01-15/market.parquet"
+        mock_parquet_blob.name = "abc123/market.parquet"
 
         mock_metadata_blob = MagicMock()
-        mock_metadata_blob.name = "2026-01-15/metadata.json"
+        mock_metadata_blob.name = "abc123/metadata.json"
         mock_metadata_blob.download_as_text.return_value = json.dumps(
             {
                 "identifier": VALID_ULID,
                 "targetDate": "2026-01-15",
-                "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
+                "storagePath": "gs://raw_market_data/abc123/market.parquet",
                 "sourceStatus": {"jp": "ok", "us": "ok"},
             }
         )
@@ -110,18 +110,43 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
         assert result is not None
         assert result.target_date == datetime.date(2026, 1, 15)
 
+    def test_find_by_target_date_returns_none_when_no_matching_date(self) -> None:
+        mock_client = MagicMock()
+        mock_bucket = MagicMock()
+        mock_client.bucket.return_value = mock_bucket
+
+        mock_metadata_blob = MagicMock()
+        mock_metadata_blob.name = "abc123/metadata.json"
+        mock_metadata_blob.download_as_text.return_value = json.dumps(
+            {
+                "identifier": VALID_ULID,
+                "targetDate": "2026-01-14",
+                "storagePath": "gs://raw_market_data/abc123/market.parquet",
+                "sourceStatus": {"jp": "ok", "us": "ok"},
+            }
+        )
+        mock_bucket.list_blobs.return_value = [mock_metadata_blob]
+
+        repository = CloudStorageMarketDataRepository(
+            client=mock_client,
+            bucket_name="raw_market_data",
+        )
+        result = repository.find_by_target_date(datetime.date(2026, 1, 15))
+
+        assert result is None
+
     def test_find_by_target_date_returns_snapshot(self) -> None:
         mock_client = MagicMock()
         mock_bucket = MagicMock()
         mock_client.bucket.return_value = mock_bucket
 
         mock_metadata_blob = MagicMock()
-        mock_metadata_blob.name = "2026-01-15/metadata.json"
+        mock_metadata_blob.name = "abc123/metadata.json"
         mock_metadata_blob.download_as_text.return_value = json.dumps(
             {
                 "identifier": VALID_ULID,
                 "targetDate": "2026-01-15",
-                "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
+                "storagePath": "gs://raw_market_data/abc123/market.parquet",
                 "sourceStatus": {"jp": "ok", "us": "failed"},
             }
         )

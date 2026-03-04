@@ -11,6 +11,9 @@ VALID_ULID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 SERVICE_NAME = "feature-engineering"
 
 
+EXPECTED_DOCUMENT_ID = f"{SERVICE_NAME}:{VALID_ULID}"
+
+
 class TestFirestoreIdempotencyKeyRepositoryFind:
     def test_find_returns_none_when_not_found(self) -> None:
         mock_client = MagicMock()
@@ -26,6 +29,7 @@ class TestFirestoreIdempotencyKeyRepositoryFind:
         result = repository.find(VALID_ULID)
 
         assert result is None
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
 
     def test_find_returns_processed_at_when_exists(self) -> None:
         mock_client = MagicMock()
@@ -49,10 +53,11 @@ class TestFirestoreIdempotencyKeyRepositoryFind:
         result = repository.find(VALID_ULID)
 
         assert result == processed_at
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
 
 
 class TestFirestoreIdempotencyKeyRepositoryPersist:
-    def test_persist_stores_with_ttl(self) -> None:
+    def test_persist_stores_with_ttl_and_service_scoped_key(self) -> None:
         mock_client = MagicMock()
         mock_collection = MagicMock()
         mock_document = MagicMock()
@@ -65,7 +70,7 @@ class TestFirestoreIdempotencyKeyRepositoryPersist:
         repository.persist(VALID_ULID, processed_at)
 
         mock_client.collection.assert_called_once_with("idempotency_keys")
-        mock_collection.document.assert_called_once_with(VALID_ULID)
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
 
         data = mock_document.set.call_args[0][0]
         assert data["identifier"] == VALID_ULID
@@ -88,5 +93,5 @@ class TestFirestoreIdempotencyKeyRepositoryTerminate:
         repository.terminate(VALID_ULID)
 
         mock_client.collection.assert_called_once_with("idempotency_keys")
-        mock_collection.document.assert_called_once_with(VALID_ULID)
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
         mock_document.delete.assert_called_once()

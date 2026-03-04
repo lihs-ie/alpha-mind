@@ -34,15 +34,15 @@ class CloudStorageMarketDataRepository(MarketDataRepository):
         return _deserialize(data)
 
     def find_by_target_date(self, target_date: datetime.date) -> MarketSnapshot | None:
-        prefix = f"{target_date.isoformat()}/"
         bucket = self._client.bucket(self._bucket_name)
-        blobs = list(bucket.list_blobs(prefix=prefix, delimiter="/"))
+        blobs = list(bucket.list_blobs())
 
-        # Find the metadata.json blob within the date prefix
         for blob in blobs:
-            if blob.name.endswith("/metadata.json"):
-                content = blob.download_as_text()
-                data: dict[str, Any] = json.loads(content)
+            if not blob.name.endswith("/metadata.json"):
+                continue
+            content = blob.download_as_text()
+            data: dict[str, Any] = json.loads(content)
+            if data.get("targetDate") == target_date.isoformat():
                 return _deserialize(data)
         return None
 
