@@ -26,12 +26,12 @@ class TestFeatureGenerationFactory:
             source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
         )
         generation = factory.from_market_collected_event(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             market=market,
             trace="trace-abc-123",
         )
 
-        assert generation.identifier == "01JNPQRS0000000000000001"
+        assert generation.identifier == "01JNPQRS000000000000000001"
         assert generation.status == FeatureGenerationStatus.PENDING
         assert generation.market == market
         assert generation.trace == "trace-abc-123"
@@ -54,7 +54,7 @@ class TestFeatureGenerationFactory:
             source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
         )
         generation = factory.from_market_collected_event(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             market=market,
             trace="trace-abc-123",
         )
@@ -62,7 +62,7 @@ class TestFeatureGenerationFactory:
         events = generation.domain_events
         assert len(events) == 1
         assert isinstance(events[0], FeatureGenerationStarted)
-        assert events[0].identifier == "01JNPQRS0000000000000001"
+        assert events[0].identifier == "01JNPQRS000000000000000001"
         assert events[0].target_date == datetime.date(2026, 3, 3)
         assert events[0].trace == "trace-abc-123"
 
@@ -81,7 +81,7 @@ class TestFeatureGenerationFactory:
 
         with pytest.raises(ValueError, match="RULE-FE-001"):
             factory.from_market_collected_event(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 market=market,
                 trace="trace-abc-123",
             )
@@ -99,7 +99,7 @@ class TestFeatureGenerationFactory:
             source_status=SourceStatus(jp=SourceStatusValue.FAILED, us=SourceStatusValue.OK),
         )
         generation = factory.from_market_collected_event(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             market=market,
             trace="trace-abc-123",
         )
@@ -122,7 +122,7 @@ class TestFeatureGenerationFactory:
             source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
         )
         generation = factory.from_market_collected_event(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             market=market,
             trace="trace-abc-123",
         )
@@ -152,11 +152,11 @@ class TestFeatureDispatchFactory:
 
         factory = FeatureDispatchFactory()
         dispatch = factory.from_feature_generation(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             trace="trace-abc-123",
         )
 
-        assert dispatch.identifier == "01JNPQRS0000000000000001"
+        assert dispatch.identifier == "01JNPQRS000000000000000001"
         assert dispatch.dispatch_status == DispatchStatus.PENDING
         assert dispatch.trace == "trace-abc-123"
         assert dispatch.published_event is None
@@ -170,7 +170,7 @@ class TestFeatureDispatchFactory:
 
         factory = FeatureDispatchFactory()
         dispatch = factory.from_feature_generation(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             trace="trace-abc-123",
         )
 

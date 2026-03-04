@@ -21,7 +21,7 @@ from domain.value_object.source_status import SourceStatus
 def _make_pending_generation() -> FeatureGeneration:
     """Helper to create a pending FeatureGeneration for testing."""
     return FeatureGeneration(
-        identifier="01JNPQRS0000000000000001",
+        identifier="01JNPQRS000000000000000001",
         status=FeatureGenerationStatus.PENDING,
         market=MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
@@ -56,7 +56,7 @@ class TestFeatureGenerationCreation:
 
     def test_identifier_is_set(self) -> None:
         generation = _make_pending_generation()
-        assert generation.identifier == "01JNPQRS0000000000000001"
+        assert generation.identifier == "01JNPQRS000000000000000001"
 
     def test_no_domain_events_on_direct_construction(self) -> None:
         generation = _make_pending_generation()
@@ -78,7 +78,7 @@ class TestFeatureGenerationCreation:
     def test_rejects_empty_trace(self) -> None:
         with pytest.raises(ValueError, match="trace must not be empty"):
             FeatureGeneration(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 status=FeatureGenerationStatus.PENDING,
                 market=MarketSnapshot(
                     target_date=datetime.date(2026, 3, 3),
@@ -92,7 +92,7 @@ class TestFeatureGenerationCreation:
         """INV-FE-001: generated status requires feature_artifact at construction."""
         with pytest.raises(ValueError, match="INV-FE-001"):
             FeatureGeneration(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 status=FeatureGenerationStatus.GENERATED,
                 market=MarketSnapshot(
                     target_date=datetime.date(2026, 3, 3),
@@ -107,7 +107,7 @@ class TestFeatureGenerationCreation:
         """INV-FE-002: failed status requires failure_detail at construction."""
         with pytest.raises(ValueError, match="INV-FE-002"):
             FeatureGeneration(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 status=FeatureGenerationStatus.FAILED,
                 market=MarketSnapshot(
                     target_date=datetime.date(2026, 3, 3),
@@ -159,7 +159,7 @@ class TestFeatureGenerationCompleteTransition:
         events = generation.domain_events
         assert len(events) == 1
         assert isinstance(events[0], FeatureGenerationCompleted)
-        assert events[0].identifier == "01JNPQRS0000000000000001"
+        assert events[0].identifier == "01JNPQRS000000000000000001"
         assert events[0].feature_version == "v20260303-001"
         assert events[0].target_date == datetime.date(2026, 3, 3)
         assert events[0].trace == "trace-abc-123"
@@ -298,7 +298,7 @@ class TestFeatureGenerationFailTransition:
         events = generation.domain_events
         assert len(events) == 1
         assert isinstance(events[0], FeatureGenerationFailed)
-        assert events[0].identifier == "01JNPQRS0000000000000001"
+        assert events[0].identifier == "01JNPQRS000000000000000001"
         assert events[0].reason_code == ReasonCode.DATA_QUALITY_LEAK_DETECTED
         assert events[0].detail == "Future data detected"
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import re
 
 from domain.value_object.dispatch_decision import DispatchDecision
 from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
@@ -26,8 +27,17 @@ class FeatureDispatch:
     ) -> None:
         if not identifier:
             raise ValueError("identifier must not be empty")
+        if not re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{26}", identifier):
+            raise ValueError(f"identifier must be a valid ULID (26 Crockford Base32 chars), got: {identifier}")
         if not trace:
             raise ValueError("trace must not be empty")
+
+        # dispatch_status and dispatch_decision.dispatch_status must be consistent
+        if dispatch_status != dispatch_decision.dispatch_status:
+            raise ValueError(
+                f"dispatch_status ({dispatch_status.value}) and "
+                f"dispatch_decision.dispatch_status ({dispatch_decision.dispatch_status.value}) must match"
+            )
 
         # failed status requires reason_code in dispatch_decision
         if dispatch_status == DispatchStatus.FAILED and dispatch_decision.reason_code is None:

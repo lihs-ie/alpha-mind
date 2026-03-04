@@ -10,12 +10,12 @@ class TestFeatureGenerationStarted:
         from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             trace="trace-abc-123",
             occurred_at=datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC),
         )
-        assert event.identifier == "01JNPQRS0000000000000001"
+        assert event.identifier == "01JNPQRS000000000000000001"
         assert event.target_date == datetime.date(2026, 3, 3)
         assert event.trace == "trace-abc-123"
         assert event.occurred_at == datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC)
@@ -24,7 +24,7 @@ class TestFeatureGenerationStarted:
         from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             trace="trace-abc-123",
             occurred_at=datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC),
@@ -35,7 +35,7 @@ class TestFeatureGenerationStarted:
         from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             trace="trace-abc-123",
             occurred_at=datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC),
@@ -49,14 +49,14 @@ class TestFeatureGenerationCompleted:
         from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             feature_version="v20260303-001",
             storage_path="gs://bucket/features/v20260303-001.parquet",
             trace="trace-abc-123",
             occurred_at=datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC),
         )
-        assert event.identifier == "01JNPQRS0000000000000001"
+        assert event.identifier == "01JNPQRS000000000000000001"
         assert event.feature_version == "v20260303-001"
         assert event.storage_path == "gs://bucket/features/v20260303-001.parquet"
 
@@ -64,7 +64,7 @@ class TestFeatureGenerationCompleted:
         from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             feature_version="v20260303-001",
             storage_path="gs://bucket/features/path",
@@ -77,7 +77,7 @@ class TestFeatureGenerationCompleted:
         from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             target_date=datetime.date(2026, 3, 3),
             feature_version="v1",
             storage_path="gs://p",
@@ -94,13 +94,13 @@ class TestFeatureGenerationFailed:
         from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
             detail="JP source returned 503",
             trace="trace-abc-123",
             occurred_at=datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC),
         )
-        assert event.identifier == "01JNPQRS0000000000000001"
+        assert event.identifier == "01JNPQRS000000000000000001"
         assert event.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
         assert event.detail == "JP source returned 503"
 
@@ -109,7 +109,7 @@ class TestFeatureGenerationFailed:
         from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             reason_code=ReasonCode.STATE_CONFLICT,
             detail=None,
             trace="trace-abc-123",
@@ -122,7 +122,7 @@ class TestFeatureGenerationFailed:
         from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED,
             detail=None,
             trace="t",
@@ -135,7 +135,7 @@ class TestFeatureGenerationFailed:
         from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED,
             detail=None,
             trace="t",

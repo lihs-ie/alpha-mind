@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import datetime
+import re
 
 from domain.event.domain_events import (
     FeatureGenerationCompleted,
     FeatureGenerationFailed,
     FeatureGenerationStarted,
 )
-from domain.value_object.enums import FeatureGenerationStatus
+from domain.value_object.enums import FeatureGenerationStatus, ReasonCode
 from domain.value_object.failure_detail import FailureDetail
 from domain.value_object.feature_artifact import FeatureArtifact
 from domain.value_object.insight_snapshot import InsightSnapshot
@@ -41,6 +42,8 @@ class FeatureGeneration:
     ) -> None:
         if not identifier:
             raise ValueError("identifier must not be empty")
+        if not re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{26}", identifier):
+            raise ValueError(f"identifier must be a valid ULID (26 Crockford Base32 chars), got: {identifier}")
         if not trace:
             raise ValueError("trace must not be empty")
 
@@ -110,11 +113,16 @@ class FeatureGeneration:
         feature_artifact: FeatureArtifact,
         insight: InsightSnapshot,
         processed_at: datetime.datetime,
-    ) -> None:
-        """Transition to generated state. Enforces INV-FE-001, INV-FE-003, INV-FE-005."""
+    ) -> ReasonCode | None:
+        """Transition to generated state. Enforces INV-FE-001, INV-FE-003, INV-FE-005.
+
+        Returns:
+            None on successful first transition.
+            ReasonCode.IDEMPOTENCY_DUPLICATE_EVENT if already generated (idempotent no-op).
+        """
         # 設計書 5.1: generated -> generated は重複受信として冪等 (no-op)
         if self._status == FeatureGenerationStatus.GENERATED:
-            return
+            return ReasonCode.IDEMPOTENCY_DUPLICATE_EVENT
         if self._status != FeatureGenerationStatus.PENDING:
             raise InvalidStateTransitionError(f"Cannot complete from status {self._status.value}, must be pending")
 
@@ -151,6 +159,8 @@ class FeatureGeneration:
                 occurred_at=processed_at,
             )
         )
+
+        return None
 
     def fail(
         self,

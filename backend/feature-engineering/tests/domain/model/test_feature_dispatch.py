@@ -20,7 +20,7 @@ def _make_pending_decision() -> DispatchDecision:
 def _make_pending_dispatch() -> FeatureDispatch:
     """Helper to create a pending FeatureDispatch for testing."""
     return FeatureDispatch(
-        identifier="01JNPQRS0000000000000001",
+        identifier="01JNPQRS000000000000000001",
         dispatch_status=DispatchStatus.PENDING,
         trace="trace-abc-123",
         dispatch_decision=_make_pending_decision(),
@@ -34,7 +34,7 @@ class TestFeatureDispatchCreation:
 
     def test_identifier_is_set(self) -> None:
         dispatch = _make_pending_dispatch()
-        assert dispatch.identifier == "01JNPQRS0000000000000001"
+        assert dispatch.identifier == "01JNPQRS000000000000000001"
 
     def test_published_event_is_none_initially(self) -> None:
         dispatch = _make_pending_dispatch()
@@ -61,7 +61,7 @@ class TestFeatureDispatchCreation:
     def test_rejects_empty_trace(self) -> None:
         with pytest.raises(ValueError, match="trace must not be empty"):
             FeatureDispatch(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 dispatch_status=DispatchStatus.PENDING,
                 trace="",
                 dispatch_decision=_make_pending_decision(),
@@ -70,7 +70,7 @@ class TestFeatureDispatchCreation:
     def test_rejects_failed_without_reason_code_in_dispatch_decision(self) -> None:
         with pytest.raises(ValueError, match="failed dispatch status requires reason_code"):
             FeatureDispatch(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 dispatch_status=DispatchStatus.FAILED,
                 trace="trace-abc-123",
                 dispatch_decision=DispatchDecision(
@@ -83,7 +83,7 @@ class TestFeatureDispatchCreation:
     def test_rejects_published_without_published_event_in_dispatch_decision(self) -> None:
         with pytest.raises(ValueError, match="published dispatch status requires published_event"):
             FeatureDispatch(
-                identifier="01JNPQRS0000000000000001",
+                identifier="01JNPQRS000000000000000001",
                 dispatch_status=DispatchStatus.PUBLISHED,
                 trace="trace-abc-123",
                 dispatch_decision=DispatchDecision(
@@ -95,7 +95,7 @@ class TestFeatureDispatchCreation:
 
     def test_accepts_failed_status_with_dispatch_decision(self) -> None:
         dispatch = FeatureDispatch(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             dispatch_status=DispatchStatus.FAILED,
             trace="trace-abc-123",
             dispatch_decision=DispatchDecision(
@@ -110,7 +110,7 @@ class TestFeatureDispatchCreation:
 
     def test_accepts_published_status_with_dispatch_decision(self) -> None:
         dispatch = FeatureDispatch(
-            identifier="01JNPQRS0000000000000001",
+            identifier="01JNPQRS000000000000000001",
             dispatch_status=DispatchStatus.PUBLISHED,
             trace="trace-abc-123",
             dispatch_decision=DispatchDecision(
