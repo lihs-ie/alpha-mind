@@ -14,12 +14,14 @@ VALID_ULID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
 
 def _make_metadata_json() -> str:
-    return json.dumps({
-        "identifier": VALID_ULID,
-        "targetDate": "2026-01-15",
-        "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
-        "sourceStatus": {"jp": "ok", "us": "ok"},
-    })
+    return json.dumps(
+        {
+            "identifier": VALID_ULID,
+            "targetDate": "2026-01-15",
+            "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
+            "sourceStatus": {"jp": "ok", "us": "ok"},
+        }
+    )
 
 
 class TestCloudStorageMarketDataRepositoryFind:
@@ -89,12 +91,14 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
 
         mock_metadata_blob = MagicMock()
         mock_metadata_blob.name = "2026-01-15/metadata.json"
-        mock_metadata_blob.download_as_text.return_value = json.dumps({
-            "identifier": VALID_ULID,
-            "targetDate": "2026-01-15",
-            "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
-            "sourceStatus": {"jp": "ok", "us": "ok"},
-        })
+        mock_metadata_blob.download_as_text.return_value = json.dumps(
+            {
+                "identifier": VALID_ULID,
+                "targetDate": "2026-01-15",
+                "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
+                "sourceStatus": {"jp": "ok", "us": "ok"},
+            }
+        )
         mock_bucket.list_blobs.return_value = [mock_parquet_blob, mock_metadata_blob]
 
         repository = CloudStorageMarketDataRepository(
@@ -113,12 +117,14 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
 
         mock_metadata_blob = MagicMock()
         mock_metadata_blob.name = "2026-01-15/metadata.json"
-        mock_metadata_blob.download_as_text.return_value = json.dumps({
-            "identifier": VALID_ULID,
-            "targetDate": "2026-01-15",
-            "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
-            "sourceStatus": {"jp": "ok", "us": "failed"},
-        })
+        mock_metadata_blob.download_as_text.return_value = json.dumps(
+            {
+                "identifier": VALID_ULID,
+                "targetDate": "2026-01-15",
+                "storagePath": "gs://raw_market_data/2026-01-15/market.parquet",
+                "sourceStatus": {"jp": "ok", "us": "failed"},
+            }
+        )
         mock_bucket.list_blobs.return_value = [mock_metadata_blob]
 
         repository = CloudStorageMarketDataRepository(

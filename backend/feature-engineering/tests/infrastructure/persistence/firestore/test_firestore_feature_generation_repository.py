@@ -334,9 +334,7 @@ class TestFirestoreFeatureGenerationRepositoryFindByStatus:
         assert len(results) == 1
         assert results[0].identifier == VALID_ULID
         assert results[0].status == FeatureGenerationStatus.PENDING
-        mock_collection.where.assert_called_once_with(
-            filter=mock_collection.where.call_args.kwargs["filter"]
-        )
+        mock_collection.where.assert_called_once_with(filter=mock_collection.where.call_args.kwargs["filter"])
 
     def test_find_by_status_returns_empty_list(self) -> None:
         mock_client = MagicMock()

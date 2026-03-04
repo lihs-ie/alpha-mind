@@ -50,6 +50,7 @@ class TestCloudStorageFeatureArtifactRepositoryPersist:
 
         # Verify the metadata content
         import json
+
         uploaded_content = mock_blob.upload_from_string.call_args[0][0]
         metadata = json.loads(uploaded_content)
         assert metadata["featureVersion"] == "v20260115-001"

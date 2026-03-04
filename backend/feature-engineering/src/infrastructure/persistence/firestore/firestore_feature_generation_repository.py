@@ -36,17 +36,13 @@ class FirestoreFeatureGenerationRepository(FeatureGenerationRepository):
         return _deserialize(snapshot.to_dict())  # type: ignore[arg-type]
 
     def find_by_status(self, status: FeatureGenerationStatus) -> list[FeatureGeneration]:
-        query = self._client.collection(COLLECTION_NAME).where(
-            filter=FieldFilter("status", "==", status.value)
-        )
+        query = self._client.collection(COLLECTION_NAME).where(filter=FieldFilter("status", "==", status.value))
         return [_deserialize(document.to_dict()) for document in query.stream()]
 
     def search(self, target_date: datetime.date | None = None) -> list[FeatureGeneration]:
         collection_reference = self._client.collection(COLLECTION_NAME)
         if target_date is not None:
-            query = collection_reference.where(
-                filter=FieldFilter("market.targetDate", "==", target_date.isoformat())
-            )
+            query = collection_reference.where(filter=FieldFilter("market.targetDate", "==", target_date.isoformat()))
             return [_deserialize(document.to_dict()) for document in query.stream()]
         return [_deserialize(document.to_dict()) for document in collection_reference.stream()]
 

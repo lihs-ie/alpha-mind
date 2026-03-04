@@ -25,18 +25,14 @@ class CloudStorageFeatureArtifactRepository(FeatureArtifactRepository):
 
     def persist(self, feature_artifact: FeatureArtifact) -> None:
         metadata = _serialize(feature_artifact)
-        blob = self._client.bucket(self._bucket_name).blob(
-            f"{feature_artifact.feature_version}/metadata.json"
-        )
+        blob = self._client.bucket(self._bucket_name).blob(f"{feature_artifact.feature_version}/metadata.json")
         blob.upload_from_string(
             json.dumps(metadata),
             content_type="application/json",
         )
 
     def find(self, feature_version: str) -> FeatureArtifact | None:
-        blob = self._client.bucket(self._bucket_name).blob(
-            f"{feature_version}/metadata.json"
-        )
+        blob = self._client.bucket(self._bucket_name).blob(f"{feature_version}/metadata.json")
         if not blob.exists():
             return None
         content = blob.download_as_text()

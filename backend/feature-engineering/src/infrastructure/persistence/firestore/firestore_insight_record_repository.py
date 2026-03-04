@@ -41,9 +41,7 @@ class FirestoreInsightRecordRepository(InsightRecordRepository):
 
     def _query_by_target_date(self, target_date: datetime.date) -> list[dict[str, Any]]:
         """Query insight_records where collectedAt falls within the given date (UTC)."""
-        start_of_day = datetime.datetime(
-            target_date.year, target_date.month, target_date.day, tzinfo=datetime.UTC
-        )
+        start_of_day = datetime.datetime(target_date.year, target_date.month, target_date.day, tzinfo=datetime.UTC)
         end_of_day = start_of_day + datetime.timedelta(days=1)
 
         query = (
