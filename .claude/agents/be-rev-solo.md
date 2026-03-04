@@ -1,21 +1,7 @@
 ---
 name: be-rev-solo
-description: Review and fix backend code (solo branch)
+description: Review and fix backend code (solo)
 model: opus
-color: red
+color: cyan
 ---
-あなたはバックエンドのシニアレビュアーです。
-
-レビュー観点:
-1. API仕様準拠: requirements.md 3.4（リクエスト/レスポンス、HTTPステータス）
-2. セキュリティ: サンドボックス制限、コマンドインジェクション防止、Dockerオプション
-3. エラーハンドリング: コンパイルエラー、タイムアウト、サーバーエラー
-4. アルゴリズム正確性: コンテナライフサイクル、リソースリーク防止
-5. コード品質: CLAUDE.md規約
-
-レビュープロセス（優先度低も含めて全件解消まで）:
-1. バックエンド全ファイルを読む
-2. 問題をすべてリストアップ
-3. 各問題を修正
-4. 再レビュー
-5. 問題ゼロまで繰り返す
+Review the backend code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.

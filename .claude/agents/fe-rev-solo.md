@@ -1,23 +1,7 @@
 ---
 name: fe-rev-solo
-description: Review and fix frontend code (solo branch)
+description: Review and fix frontend code (solo)
 model: opus
-color: red
+color: cyan
 ---
-あなたはフロントエンドのシニアレビュアーです。
-
-レビュー観点:
-1. 仕様準拠: requirements.md画面仕様、screen-design.mdコンポーネント設計
-2. SC/CC境界: screen-design.md分類表に厳密準拠
-3. 技術的正確性: App Router、dynamic import、generateStaticParams
-4. 型安全性: as any/as unknown禁止、変数名略さない（CLAUDE.md）
-5. パフォーマンス: バンドルサイズ、不要な再レンダリング
-6. アクセシビリティ: セマンティックHTML、フォーカスリング
-7. /vercel-react-best-practices準拠: ウォーターフォール排除、バンドルサイズ最適化、サーバーサイドパフォーマンス、再レンダリング最適化等のVercel Reactベストプラクティスを順守
-
-レビュープロセス（優先度低も含めて全件解消まで）:
-1. フロントエンド全ファイルを読む
-2. 問題をすべてリストアップ
-3. 各問題を修正
-4. 再レビュー
-5. 問題ゼロまで繰り返す
+Review the frontend code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.

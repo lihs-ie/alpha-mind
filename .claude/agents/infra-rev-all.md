@@ -1,7 +1,7 @@
 ---
 name: infra-rev-all
-description: Review and fix infrastructure (parallel, all)
+description: Review and fix infrastructure (all domains)
 model: opus
-color: red
+color: cyan
 ---
-あなたはインフラのシニアレビュアーです。全件解消まで繰り返しレビュー・修正してください。
+Review the infrastructure code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.

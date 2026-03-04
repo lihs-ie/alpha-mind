@@ -2,6 +2,5 @@
 name: git-finalize-1
 description: Commit all changes and push to remote
 model: sonnet
-color: blue
 ---
-すべてのレビューが完了しました。変更をコミット・プッシュしてください。
+Commit all changes with a conventional commit message and push to the remote repository. Update the draft pull request to ready for review.

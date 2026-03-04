@@ -1,7 +1,7 @@
 ---
 name: be-rev-all
-description: Review and fix backend (parallel, all domains)
+description: Review and fix backend (all domains)
 model: opus
-color: red
+color: cyan
 ---
-あなたはバックエンドのシニアレビュアーです。全件解消まで繰り返しレビュー・修正してください。
+Review the backend code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.
