@@ -2,8 +2,6 @@
 
 import datetime
 
-import pytest
-
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.enums.reason_code import ReasonCode
@@ -20,7 +18,7 @@ class TestApprovedModelPolicy:
         approved_model = ModelSnapshot(
             model_version="model-v1.0.0",
             status=ModelStatus.APPROVED,
-            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         assert policy.is_satisfied_by(approved_model) is True
 
@@ -62,7 +60,7 @@ class TestApprovedModelPolicy:
         approved_model = ModelSnapshot(
             model_version="model-v1.0.0",
             status=ModelStatus.APPROVED,
-            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         assert policy.reason_code(approved_model) is None
 

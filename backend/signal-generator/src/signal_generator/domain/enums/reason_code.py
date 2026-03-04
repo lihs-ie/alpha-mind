@@ -1,9 +1,11 @@
 """ReasonCode enumeration for signal-generator domain."""
 
-from enum import Enum
+from __future__ import annotations
+
+from enum import StrEnum
 
 
-class ReasonCode(str, Enum):
+class ReasonCode(StrEnum):
     """失敗理由コード。error-codes.json の signal-generator オーナー定義に準拠。"""
 
     MODEL_NOT_APPROVED = "MODEL_NOT_APPROVED"
@@ -15,11 +17,11 @@ class ReasonCode(str, Enum):
     STATE_CONFLICT = "STATE_CONFLICT"
 
     @classmethod
-    def non_retryable(cls) -> frozenset["ReasonCode"]:
+    def non_retryable(cls) -> frozenset[ReasonCode]:
         """再試行しない理由コードのセットを返す。"""
         return frozenset({cls.MODEL_NOT_APPROVED, cls.REQUEST_VALIDATION_FAILED})
 
     @classmethod
-    def retryable(cls) -> frozenset["ReasonCode"]:
+    def retryable(cls) -> frozenset[ReasonCode]:
         """再試行可能な理由コードのセットを返す。"""
         return frozenset({cls.DEPENDENCY_TIMEOUT, cls.DEPENDENCY_UNAVAILABLE})

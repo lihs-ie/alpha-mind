@@ -78,7 +78,7 @@ class TestApprovedModelExistsSpecification:
         model = ModelSnapshot(
             model_version="model-v1.0.0",
             status=ModelStatus.APPROVED,
-            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         assert spec.is_satisfied_by(model) is True
 

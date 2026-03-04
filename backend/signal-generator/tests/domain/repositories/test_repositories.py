@@ -1,11 +1,9 @@
 """Tests for repository interfaces (ABC)."""
 
-import abc
 import datetime
 
 import pytest
 
-from signal_generator.domain.aggregates.signal_dispatch import SignalDispatch
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.generation_status import GenerationStatus
 from signal_generator.domain.enums.model_status import ModelStatus
@@ -47,6 +45,7 @@ class TestSignalGenerationRepositoryIsAbstract:
 
     def test_concrete_implementation_must_implement_all_methods(self) -> None:
         """抽象メソッドを実装せずにインスタンス化しようとするとエラーになる。"""
+
         class IncompleteRepository(SignalGenerationRepository):
             pass
 
@@ -110,7 +109,7 @@ class TestModelRegistryRepositoryIsAbstract:
                     return ModelSnapshot(
                         model_version="model-v1.0.0",
                         status=ModelStatus.APPROVED,
-                        approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+                        approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
                     )
                 return None
 
@@ -156,5 +155,5 @@ class TestIdempotencyKeyRepositoryIsAbstract:
 
         repo = ConcreteIdempotencyKeyRepository()
         assert repo.find("01JNABCDEF1234567890123456") is False
-        repo.persist("01JNABCDEF1234567890123456", datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc))
+        repo.persist("01JNABCDEF1234567890123456", datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
         assert repo.find("01JNABCDEF1234567890123456") is True

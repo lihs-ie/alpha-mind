@@ -1,9 +1,9 @@
 """DegradationFlag enumeration for signal-generator domain."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class DegradationFlag(str, Enum):
+class DegradationFlag(StrEnum):
     """モデル劣化フラグ。RULE-SG-007: block は必ずコンプライアンスレビューを要求する。"""
 
     NORMAL = "normal"

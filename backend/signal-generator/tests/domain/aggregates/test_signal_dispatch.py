@@ -31,7 +31,7 @@ class TestSignalDispatchPublish:
             identifier="01JNABCDEF1234567890123456",
             trace="trace-001",
         )
-        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.UTC)
         dispatch.publish(published_event=EventType.SIGNAL_GENERATED, processed_at=processed_at)
 
         assert dispatch.dispatch_status == DispatchStatus.PUBLISHED
@@ -44,7 +44,7 @@ class TestSignalDispatchPublish:
             identifier="01JNABCDEF1234567890123456",
             trace="trace-001",
         )
-        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
         dispatch.publish(published_event=EventType.SIGNAL_GENERATED, processed_at=processed_at)
 
         with pytest.raises(ValueError, match="IDEMPOTENCY_DUPLICATE_EVENT"):
@@ -57,7 +57,7 @@ class TestSignalDispatchFail:
             identifier="01JNABCDEF1234567890123456",
             trace="trace-001",
         )
-        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
         dispatch.fail(reason_code=ReasonCode.DEPENDENCY_TIMEOUT, processed_at=processed_at)
 
         assert dispatch.dispatch_status == DispatchStatus.FAILED
@@ -69,7 +69,7 @@ class TestSignalDispatchFail:
             identifier="01JNABCDEF1234567890123456",
             trace="trace-001",
         )
-        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
         dispatch.publish(published_event=EventType.SIGNAL_GENERATED, processed_at=processed_at)
 
         with pytest.raises(ValueError, match="STATE_CONFLICT"):
@@ -82,7 +82,7 @@ class TestSignalDispatchFail:
         )
         dispatch.publish(
             published_event=EventType.SIGNAL_GENERATED,
-            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
 
         decision = dispatch.get_dispatch_decision()

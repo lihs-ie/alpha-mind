@@ -95,9 +95,7 @@ class SignalGeneration:
     ) -> None:
         """推論成功を確定する。INV-SG-001: 終端状態への遷移は拒否する。"""
         if self._status != GenerationStatus.PENDING:
-            raise ValueError(
-                f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} から generated への遷移は不正"
-            )
+            raise ValueError(f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} から generated への遷移は不正")
         if self._model_snapshot is None:
             raise ValueError("モデルが解決されていないため推論を完了できない")
 
@@ -109,9 +107,7 @@ class SignalGeneration:
     def fail(self, failure_detail: FailureDetail, processed_at: datetime.datetime) -> None:
         """推論失敗を確定する。INV-SG-002: 終端状態への遷移は拒否する。"""
         if self._status != GenerationStatus.PENDING:
-            raise ValueError(
-                f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} から failed への遷移は不正"
-            )
+            raise ValueError(f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} から failed への遷移は不正")
         self._failure_detail = failure_detail
         self._processed_at = processed_at
         self._status = GenerationStatus.FAILED

@@ -28,7 +28,7 @@ def _make_model_snapshot() -> ModelSnapshot:
     return ModelSnapshot(
         model_version="model-v1.0.0",
         status=ModelStatus.APPROVED,
-        approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+        approved_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
     )
 
 
@@ -77,7 +77,7 @@ class TestSignalGenerationCreation:
             universe_count=100,
             trace="trace-001",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(AttributeError):
             generation.identifier = "new-identifier"  # type: ignore[misc]
 
 
@@ -122,7 +122,7 @@ class TestSignalGenerationComplete:
         generation.resolve_model(_make_model_snapshot())
         diagnostics = _make_model_diagnostics()
         artifact = _make_signal_artifact()
-        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.UTC)
 
         generation.complete(
             signal_artifact=artifact,
@@ -147,7 +147,7 @@ class TestSignalGenerationComplete:
             generation.complete(
                 signal_artifact=_make_signal_artifact(),
                 model_diagnostics_snapshot=_make_model_diagnostics(),
-                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )
 
     def test_complete_on_failed_status_raises_state_conflict(self) -> None:
@@ -160,13 +160,13 @@ class TestSignalGenerationComplete:
         )
         generation.fail(
             failure_detail=FailureDetail(reason_code=ReasonCode.MODEL_NOT_APPROVED, retryable=False),
-            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         with pytest.raises(ValueError, match="STATE_CONFLICT"):
             generation.complete(
                 signal_artifact=_make_signal_artifact(),
                 model_diagnostics_snapshot=_make_model_diagnostics(),
-                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )
 
     def test_block_degradation_flag_sets_compliance_review_required(self) -> None:
@@ -185,7 +185,7 @@ class TestSignalGenerationComplete:
         generation.complete(
             signal_artifact=_make_signal_artifact(),
             model_diagnostics_snapshot=block_diagnostics,
-            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         assert generation.model_diagnostics_snapshot is not None
         assert generation.model_diagnostics_snapshot.requires_compliance_review is True
@@ -201,7 +201,7 @@ class TestSignalGenerationFail:
             trace="trace-001",
         )
         failure = FailureDetail(reason_code=ReasonCode.MODEL_NOT_APPROVED, retryable=False)
-        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc)
+        processed_at = datetime.datetime(2026, 1, 1, 10, 0, 0, tzinfo=datetime.UTC)
 
         generation.fail(failure_detail=failure, processed_at=processed_at)
 
@@ -220,10 +220,10 @@ class TestSignalGenerationFail:
         generation.complete(
             signal_artifact=_make_signal_artifact(),
             model_diagnostics_snapshot=_make_model_diagnostics(),
-            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
         )
         with pytest.raises(ValueError, match="STATE_CONFLICT"):
             generation.fail(
                 failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, retryable=False),
-                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc),
+                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )

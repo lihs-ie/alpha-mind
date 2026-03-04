@@ -27,7 +27,5 @@ class FeaturePayloadIntegritySpecification:
             return False
         if not feature_snapshot.storage_path.startswith(_GCS_PREFIX):
             return False
-        # 将来日付は有効な特徴量データとして扱わない（リークリスク防止）
-        if feature_snapshot.target_date > self._clock():
-            return False
-        return True
+        # 将来日付は有効な特徴量データとして扱わない (リークリスク防止)
+        return feature_snapshot.target_date <= self._clock()

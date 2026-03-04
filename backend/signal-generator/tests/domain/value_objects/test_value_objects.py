@@ -1,6 +1,7 @@
 """Tests for domain value objects."""
 
 import datetime
+from dataclasses import FrozenInstanceError
 
 import pytest
 
@@ -47,13 +48,13 @@ class TestFeatureSnapshot:
             feature_version="v1.0.0",
             storage_path="gs://feature_store/2026-01-01/features.parquet",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             snapshot.feature_version = "v2.0.0"  # type: ignore[misc]
 
 
 class TestModelSnapshot:
     def test_create_approved_model(self) -> None:
-        approved_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+        approved_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
         snapshot = ModelSnapshot(
             model_version="model-v1.0.0",
             status=ModelStatus.APPROVED,
@@ -72,7 +73,7 @@ class TestModelSnapshot:
         assert snapshot.approved_at is None
 
     def test_equality_by_value(self) -> None:
-        approved_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+        approved_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
         snapshot_a = ModelSnapshot(
             model_version="model-v1.0.0",
             status=ModelStatus.APPROVED,
@@ -91,7 +92,7 @@ class TestModelSnapshot:
             status=ModelStatus.APPROVED,
             approved_at=None,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             snapshot.model_version = "model-v2.0.0"  # type: ignore[misc]
 
 
@@ -145,7 +146,7 @@ class TestModelDiagnosticsSnapshot:
             degradation_flag=DegradationFlag.NORMAL,
             requires_compliance_review=False,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             snapshot.degradation_flag = DegradationFlag.BLOCK  # type: ignore[misc]
 
 
@@ -193,7 +194,7 @@ class TestSignalArtifact:
             generated_count=100,
             universe_count=100,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             artifact.signal_version = "signal-v2.0.0"  # type: ignore[misc]
 
 
@@ -231,7 +232,7 @@ class TestFailureDetail:
             reason_code=ReasonCode.MODEL_NOT_APPROVED,
             retryable=False,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             detail.reason_code = ReasonCode.STATE_CONFLICT  # type: ignore[misc]
 
 
@@ -265,5 +266,5 @@ class TestDispatchDecision:
 
     def test_immutability(self) -> None:
         decision = DispatchDecision(dispatch_status=DispatchStatus.PENDING)
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             decision.dispatch_status = DispatchStatus.PUBLISHED  # type: ignore[misc]

@@ -11,7 +11,7 @@ class ModelRegistryRepository(abc.ABC):
 
     @abc.abstractmethod
     def find_by_status(self, status: ModelStatus) -> ModelSnapshot | None:
-        """status を指定して ModelSnapshot を単体取得する（approved モデルの解決に使用）。"""
+        """status を指定して ModelSnapshot を単体取得する (approved モデルの解決に使用)。"""
 
     @abc.abstractmethod
     def find(self, model_version: str) -> ModelSnapshot | None:

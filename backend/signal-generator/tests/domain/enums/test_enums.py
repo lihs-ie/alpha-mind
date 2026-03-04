@@ -1,13 +1,11 @@
 """Tests for domain enums: ReasonCode, DegradationFlag, ModelStatus, EventType."""
 
-import pytest
-
-from signal_generator.domain.enums.dispatch_status import DispatchStatus
-from signal_generator.domain.enums.generation_status import GenerationStatus
-from signal_generator.domain.enums.reason_code import ReasonCode
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
-from signal_generator.domain.enums.model_status import ModelStatus
+from signal_generator.domain.enums.dispatch_status import DispatchStatus
 from signal_generator.domain.enums.event_type import EventType
+from signal_generator.domain.enums.generation_status import GenerationStatus
+from signal_generator.domain.enums.model_status import ModelStatus
+from signal_generator.domain.enums.reason_code import ReasonCode
 
 
 class TestReasonCode:

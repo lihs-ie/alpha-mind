@@ -2,8 +2,6 @@
 
 import datetime
 
-import pytest
-
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.dispatch_status import DispatchStatus
 from signal_generator.domain.enums.generation_status import GenerationStatus
@@ -74,7 +72,7 @@ class TestSignalDispatchFactory:
         assert dispatch.trace == "trace-001"
 
     def test_dispatch_shares_identifier_with_generation(self) -> None:
-        # SignalDispatch は SignalGeneration と同じ identifier を使う（冪等性キーとして共有）
+        # SignalDispatch は SignalGeneration と同じ identifier を使う (冪等性キーとして共有)
         factory = SignalDispatchFactory()
         feature_snapshot = FeatureSnapshot(
             target_date=datetime.date(2026, 1, 1),

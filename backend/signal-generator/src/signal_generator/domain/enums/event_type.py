@@ -1,9 +1,9 @@
 """EventType enumeration for signal-generator domain."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     """イベント種別。境界内ドメインイベントと境界外統合イベントを含む。"""
 
     # 境界内ドメインイベント
@@ -11,5 +11,5 @@ class EventType(str, Enum):
     SIGNAL_GENERATION_COMPLETED = "signal.generation.completed"
     SIGNAL_GENERATION_FAILED = "signal.generation.failed"
 
-    # 境界外統合イベント（AsyncAPI契約）
+    # 境界外統合イベント (AsyncAPI contract)
     SIGNAL_GENERATED = "signal.generated"

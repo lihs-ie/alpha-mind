@@ -1,9 +1,9 @@
 """ModelStatus enumeration for signal-generator domain."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ModelStatus(str, Enum):
+class ModelStatus(StrEnum):
     """モデル状態。RULE-SG-002: approved のみ推論に利用できる。"""
 
     CANDIDATE = "candidate"

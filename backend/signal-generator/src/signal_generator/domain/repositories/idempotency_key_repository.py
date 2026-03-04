@@ -5,7 +5,7 @@ import datetime
 
 
 class IdempotencyKeyRepository(abc.ABC):
-    """冪等性キー（処理済みイベント管理）のリポジトリインターフェース。
+    """冪等性キー (処理済みイベント管理) のリポジトリインターフェース。
 
     RULE-SG-003: 同一イベント identifier は1回のみ処理する。
     """
