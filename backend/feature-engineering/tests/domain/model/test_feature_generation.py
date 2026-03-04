@@ -228,9 +228,7 @@ class TestFeatureGenerationCompleteTransition:
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         generation.fail(
-            failure_detail=FailureDetail(
-                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False
-            ),
+            failure_detail=FailureDetail(reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False),
             processed_at=processed_at,
         )
 
@@ -259,9 +257,7 @@ class TestFeatureGenerationFailTransition:
         """INV-FE-002: failed state requires reason_code."""
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
-        failure = FailureDetail(
-            reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED, detail=None, retryable=False
-        )
+        failure = FailureDetail(reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED, detail=None, retryable=False)
 
         generation.fail(failure_detail=failure, processed_at=processed_at)
 
@@ -293,9 +289,7 @@ class TestFeatureGenerationFailTransition:
 
         with pytest.raises(InvalidStateTransitionError):
             generation.fail(
-                failure_detail=FailureDetail(
-                    reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False
-                ),
+                failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
                 processed_at=processed_at,
             )
 
@@ -303,17 +297,13 @@ class TestFeatureGenerationFailTransition:
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         generation.fail(
-            failure_detail=FailureDetail(
-                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False
-            ),
+            failure_detail=FailureDetail(reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False),
             processed_at=processed_at,
         )
 
         with pytest.raises(InvalidStateTransitionError):
             generation.fail(
-                failure_detail=FailureDetail(
-                    reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False
-                ),
+                failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
                 processed_at=processed_at,
             )
 

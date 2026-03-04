@@ -113,9 +113,7 @@ class FeatureGeneration:
     ) -> None:
         """Transition to generated state. Enforces INV-FE-001, INV-FE-003, INV-FE-005."""
         if self._status != FeatureGenerationStatus.PENDING:
-            raise InvalidStateTransitionError(
-                f"Cannot complete from status {self._status.value}, must be pending"
-            )
+            raise InvalidStateTransitionError(f"Cannot complete from status {self._status.value}, must be pending")
 
         # INV-FE-003: insight.latest_collected_at <= target_date (end of day)
         if insight.latest_collected_at is not None:
@@ -154,9 +152,7 @@ class FeatureGeneration:
     ) -> None:
         """Transition to failed state. Enforces INV-FE-002."""
         if self._status != FeatureGenerationStatus.PENDING:
-            raise InvalidStateTransitionError(
-                f"Cannot fail from status {self._status.value}, must be pending"
-            )
+            raise InvalidStateTransitionError(f"Cannot fail from status {self._status.value}, must be pending")
 
         self._failure_detail = failure_detail
         self._status = FeatureGenerationStatus.FAILED
