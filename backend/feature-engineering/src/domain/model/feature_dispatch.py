@@ -1,0 +1,126 @@
+"""FeatureDispatch aggregate root."""
+
+from __future__ import annotations
+
+import datetime
+import re
+
+from domain.value_object.dispatch_decision import DispatchDecision
+from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+
+
+class FeatureDispatch:
+    """Aggregate root for feature dispatch lifecycle.
+
+    Enforces invariants:
+    - INV-FE-004: same event identifier can only transition to published once (idempotent)
+    - dispatch_decision is always present (保持数 = 1)
+    """
+
+    def __init__(
+        self,
+        identifier: str,
+        dispatch_status: DispatchStatus,
+        trace: str,
+        dispatch_decision: DispatchDecision,
+        processed_at: datetime.datetime | None = None,
+    ) -> None:
+        if not identifier:
+            raise ValueError("identifier must not be empty")
+        if not re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{26}", identifier):
+            raise ValueError(f"identifier must be a valid ULID (26 Crockford Base32 chars), got: {identifier}")
+        if not trace:
+            raise ValueError("trace must not be empty")
+
+        # dispatch_status and dispatch_decision.dispatch_status must be consistent
+        if dispatch_status != dispatch_decision.dispatch_status:
+            raise ValueError(
+                f"dispatch_status ({dispatch_status.value}) and "
+                f"dispatch_decision.dispatch_status ({dispatch_decision.dispatch_status.value}) must match"
+            )
+
+        # failed status requires reason_code in dispatch_decision
+        if dispatch_status == DispatchStatus.FAILED and dispatch_decision.reason_code is None:
+            raise ValueError("failed dispatch status requires reason_code in dispatch_decision")
+
+        # published status requires published_event in dispatch_decision
+        if dispatch_status == DispatchStatus.PUBLISHED and dispatch_decision.published_event is None:
+            raise ValueError("published dispatch status requires published_event in dispatch_decision")
+
+        self._identifier = identifier
+        self._dispatch_status = dispatch_status
+        self._trace = trace
+        self._dispatch_decision = dispatch_decision
+        self._processed_at = processed_at
+
+    @property
+    def identifier(self) -> str:
+        return self._identifier
+
+    @property
+    def dispatch_status(self) -> DispatchStatus:
+        return self._dispatch_status
+
+    @property
+    def trace(self) -> str:
+        return self._trace
+
+    @property
+    def dispatch_decision(self) -> DispatchDecision:
+        return self._dispatch_decision
+
+    @property
+    def published_event(self) -> PublishedEventType | None:
+        return self._dispatch_decision.published_event
+
+    @property
+    def reason_code(self) -> ReasonCode | None:
+        return self._dispatch_decision.reason_code
+
+    @property
+    def processed_at(self) -> datetime.datetime | None:
+        return self._processed_at
+
+    def publish(
+        self,
+        published_event: PublishedEventType,
+        processed_at: datetime.datetime,
+    ) -> None:
+        """Transition to published state. Enforces INV-FE-004 (idempotent)."""
+        if self._dispatch_status == DispatchStatus.PUBLISHED:
+            return
+        if self._dispatch_status != DispatchStatus.PENDING:
+            raise InvalidDispatchTransitionError(
+                f"Cannot publish from status {self._dispatch_status.value}, must be pending"
+            )
+
+        self._dispatch_decision = DispatchDecision(
+            dispatch_status=DispatchStatus.PUBLISHED,
+            published_event=published_event,
+            reason_code=None,
+        )
+        self._dispatch_status = DispatchStatus.PUBLISHED
+        self._processed_at = processed_at
+
+    def fail(
+        self,
+        reason_code: ReasonCode,
+        processed_at: datetime.datetime,
+    ) -> None:
+        """Transition to failed state."""
+        if self._dispatch_status != DispatchStatus.PENDING:
+            raise InvalidDispatchTransitionError(
+                f"Cannot fail from status {self._dispatch_status.value}, must be pending"
+            )
+
+        self._dispatch_decision = DispatchDecision(
+            dispatch_status=DispatchStatus.FAILED,
+            published_event=None,
+            reason_code=reason_code,
+        )
+        self._dispatch_status = DispatchStatus.FAILED
+        self._processed_at = processed_at
+
+
+class InvalidDispatchTransitionError(Exception):
+    """Raised when an invalid state transition is attempted on a dispatch aggregate."""
