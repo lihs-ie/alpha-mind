@@ -1,6 +1,6 @@
 # portfolio-planner 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/portfolio-planner.json`
 
 ## 1. サービス概要
@@ -24,7 +24,7 @@ JSON対応: `内部設計/json/portfolio-planner.json`
 
 ## 4. 依存関係
 
-- Firestore: `positions`, `settings`, `orders`, `idempotency_keys`, `audit_logs`
+- Firestore: `positions`, `settings`, `orders`, `idempotency_keys`
 - External: Broker Account API（参照のみ）
 
 ## 5. 処理フロー

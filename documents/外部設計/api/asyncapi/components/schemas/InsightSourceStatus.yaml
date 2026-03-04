@@ -1,0 +1,41 @@
+type: object
+required:
+- sourceType
+- status
+- collectedCount
+properties:
+  sourceType:
+    type: string
+    enum:
+    - x
+    - youtube
+    - paper
+    - github
+  status:
+    type: string
+    enum:
+    - success
+    - skipped
+    - failed
+    - quota_exhausted
+  collectedCount:
+    type: integer
+    minimum: 0
+  reasonCode:
+    "$ref": "./index.yaml#/ReasonCode"
+  detail:
+    type: string
+  quotaUsed:
+    type: integer
+    minimum: 0
+  quotaLimit:
+    type: integer
+    minimum: 1
+example:
+  sourceType: youtube
+  status: quota_exhausted
+  collectedCount: 42
+  reasonCode: DEPENDENCY_UNAVAILABLE
+  detail: quota exceeded
+  quotaUsed: 8000
+  quotaLimit: 8000

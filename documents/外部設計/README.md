@@ -1,6 +1,6 @@
 # 外部設計ドキュメント一覧
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 
 ## 目的
 
@@ -74,6 +74,11 @@
 - `外部設計/operations/slo-query-spec.json`
 - `外部設計/operations/Terraform監視設定設計.md`
 - `外部設計/operations/terraform-monitoring-blueprint.json`
+
+## テスト設計
+
+- `外部設計/テスト設計書テンプレート.md`
+- `外部設計/tests/README.md`
 
 ## 次の更新対象
 

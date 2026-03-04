@@ -1,6 +1,6 @@
 # signal-generator ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `signal-generator`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -317,7 +317,7 @@ Feature: signal inference
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -351,7 +351,7 @@ Feature: signal inference
 | eventType | 発行主体 | 発行タイミング | payload | 冪等キー |
 |---|---|---|---|---|
 | `signal.generation.started` | `SignalGeneration` | 受信処理開始時 | `identifier`, `featureVersion`, `trace` | `identifier` |
-| `signal.generation.completed` | `SignalGeneration` | 生成確定時 | `identifier`, `signalVersion`, `modelVersion`, `featureVersion`, `trace` | `identifier` |
+| `signal.generation.completed` | `SignalGeneration` | 生成確定時 | `identifier`, `signalVersion`, `modelVersion`, `featureVersion`, `storagePath`, `modelDiagnostics`, `trace` | `identifier` |
 | `signal.generation.failed` | `SignalGeneration` | 失敗確定時 | `identifier`, `reasonCode`, `detail`, `trace` | `identifier` |
 
 ### 6.2 Integration Event（境界外）
@@ -359,7 +359,7 @@ Feature: signal inference
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
 | `signal.generated` | `portfolio-planner`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `signal.generation.failed` | `audit-log`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `signal.generation.failed` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
 
@@ -375,7 +375,7 @@ Feature: signal inference
 |---|---|---|---|---|
 | `SignalArtifact` | `signal-generator` | `Cloud Storage:signal_store` | `identifier` 単位 | `trace`, `identifier`, `signalVersion`, `modelVersion`, `featureVersion` |
 | `SignalDispatch` | `signal-generator` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace`, `identifier`, `processedAt` |
-| `SignalGenerationAudit` | `signal-generator` | `Firestore:audit_logs` | `identifier` 単位 | `trace`, `identifier`, `result`, `reasonCode` |
+| `SignalGenerationAudit` | `signal-generator` | `Cloud Logging` | 別Tx（状態確定後） | `trace`, `identifier`, `result`, `reasonCode` |
 | `FeatureSnapshot` | `feature-engineering` | `Cloud Storage:feature_store`（参照） | 読み取り専用 | `trace`, `featureVersion`, `targetDate` |
 | `ModelSnapshot` | `bff/model validation` | `Firestore:model_registry`（参照） | 読み取り専用 | `trace`, `modelVersion`, `status` |
 

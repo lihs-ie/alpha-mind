@@ -3,6 +3,7 @@ required:
 - identifier
 - count
 - storagePath
+- sourceStatus
 properties:
   identifier:
     type: string
@@ -11,7 +12,46 @@ properties:
     type: integer
   storagePath:
     type: string
+  requestedSourceTypes:
+    type: array
+    items:
+      type: string
+      enum:
+      - x
+      - youtube
+      - paper
+      - github
+  sourceStatus:
+    type: array
+    minItems: 1
+    items:
+      "$ref": "./index.yaml#/InsightSourceStatus"
+  partialFailure:
+    type: boolean
 example:
   identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-  count: 1
+  count: 168
   storagePath: string
+  requestedSourceTypes:
+  - x
+  - youtube
+  - paper
+  - github
+  sourceStatus:
+  - sourceType: x
+    status: success
+    collectedCount: 90
+  - sourceType: youtube
+    status: quota_exhausted
+    collectedCount: 42
+    reasonCode: DEPENDENCY_UNAVAILABLE
+    detail: quota exceeded
+    quotaUsed: 8000
+    quotaLimit: 8000
+  - sourceType: paper
+    status: success
+    collectedCount: 52
+  - sourceType: github
+    status: success
+    collectedCount: 26
+  partialFailure: true

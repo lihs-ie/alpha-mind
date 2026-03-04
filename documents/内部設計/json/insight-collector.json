@@ -1,11 +1,11 @@
 {
   "serviceId": "insight-collector",
-  "version": "1.1.0",
+  "version": "1.4.0",
   "role": "定性データソースを収集し、根拠付きインサイトへ構造化する。",
   "aiResponsibility": true,
   "runtime": {
     "platform": "Cloud Run Job",
-    "language": "Python",
+    "language": "Haskell",
     "networkExposure": "private"
   },
   "interfaces": {
@@ -17,6 +17,32 @@
         "insight.collected",
         "insight.collect.failed"
       ]
+    },
+    "payloadContracts": {
+      "insight.collect.requested.required": [
+        "targetDate",
+        "requestedBy"
+      ],
+      "insight.collect.requested.optional": [
+        "sourceTypes",
+        "options.forceRecollect",
+        "options.dryRun",
+        "options.maxItemsPerSource"
+      ],
+      "insight.collected.required": [
+        "identifier",
+        "count",
+        "storagePath",
+        "sourceStatus"
+      ],
+      "insight.collect.failed.required": [
+        "reasonCode"
+      ],
+      "insight.collect.failed.recommended": [
+        "sourceType",
+        "stage",
+        "detail"
+      ]
     }
   },
   "dependencies": {
@@ -25,22 +51,26 @@
       "Firestore:source_policies",
       "Firestore:insight_records",
       "Firestore:idempotency_keys",
-      "Firestore:audit_logs",
       "Cloud Storage:insight_raw",
       "Cloud Storage:insight_processed"
     ],
     "external": [
-      "X API",
-      "YouTube API",
+      "X API v2",
+      "YouTube Data API v3",
       "Paper/GitHub source API"
     ]
   },
   "workflow": [
     "insight.collect.requested受信",
+    "リクエスト検証(targetDate/sourceTypes/options)",
+    "idempotency確認",
     "収集Skill解決",
     "許可ソース/利用規約検証",
-    "収集と要約",
-    "根拠付きインサイト保存",
+    "X/YouTube/Paper/GitHub収集",
+    "正規化と要約",
+    "signalClass/soWhatScore算出",
+    "保存",
+    "sourceStatus集計",
     "insight.collected発行"
   ],
   "idempotency": {
@@ -51,18 +81,187 @@
   "retryPolicy": {
     "maxAttempts": 3,
     "backoff": "exponential",
+    "retryableErrors": [
+      "DEPENDENCY_TIMEOUT",
+      "DEPENDENCY_UNAVAILABLE",
+      "DATA_SOURCE_TIMEOUT",
+      "DATA_SOURCE_UNAVAILABLE"
+    ],
     "nonRetryableErrors": [
       "COMPLIANCE_SOURCE_UNAPPROVED",
-      "REQUEST_VALIDATION_FAILED"
+      "REQUEST_VALIDATION_FAILED",
+      "DATA_SCHEMA_INVALID"
     ]
   },
   "qualityGates": [
     "source_policies一致",
     "sourceUrl必須",
-    "evidenceSnippet必須"
+    "evidenceSnippet必須",
+    "signalClass必須",
+    "soWhatScoreは0.0-1.0範囲"
   ],
   "slo": {
     "jobCompletionWithinMinutes": 20,
     "evidenceAttachedRate": "99.0%"
+  },
+  "sourceCollectionPolicies": {
+    "common": {
+      "targetTimezone": "Asia/Tokyo",
+      "requiredPolicyFields": [
+        "sourceType",
+        "enabled",
+        "termsVersion",
+        "redistributionAllowed",
+        "dailyQuota",
+        "sourceConfig"
+      ],
+      "requiredSourceConfigKeys": {
+        "x": [
+          "x.accountHandles"
+        ],
+        "youtube": [
+          "youtube.channelIdentifiers"
+        ],
+        "paper": [
+          "paper.providers"
+        ],
+        "github": [
+          "github.repositories"
+        ]
+      },
+      "defaultSourceTypesWhenOmitted": [
+        "x",
+        "youtube",
+        "paper",
+        "github"
+      ],
+      "defaultSoWhatThreshold": 0.7,
+      "dedupeKey": "sourceType+externalIdentifier"
+    },
+    "x": {
+      "baseUrl": "https://api.x.com/2",
+      "auth": "Bearer token",
+      "endpoints": [
+        "GET /tweets/search/recent",
+        "GET /users/by"
+      ],
+      "queryTemplate": "(from:{accounts}) ({keywordQuery}) -is:retweet -is:reply lang:ja",
+      "requestCapPerRun": "min(dailyQuota,300)",
+      "policyKeys": [
+        "sourceConfig.x.accountHandles",
+        "sourceConfig.x.keywordQuery",
+        "sourceConfig.x.excludeKeywords",
+        "sourceConfig.x.includeReplies",
+        "sourceConfig.x.minEngagement",
+        "sourceConfig.x.soWhatThreshold",
+        "sourceConfig.x.scoringWeights"
+      ],
+      "recordFields": [
+        "tweetIdentifier",
+        "authorUsername",
+        "text",
+        "createdAt",
+        "metrics",
+        "conversationIdentifier"
+      ],
+      "reasonCodeMap": {
+        "policyViolation": "COMPLIANCE_SOURCE_UNAPPROVED",
+        "authError": "AUTH_INVALID_CREDENTIALS",
+        "timeout": "DEPENDENCY_TIMEOUT",
+        "rateLimitOr5xx": "DEPENDENCY_UNAVAILABLE",
+        "schemaInvalid": "DATA_SCHEMA_INVALID"
+      }
+    },
+    "youtube": {
+      "baseUrl": "https://www.googleapis.com/youtube/v3",
+      "auth": "API key",
+      "endpoints": [
+        "GET /search",
+        "GET /videos",
+        "GET /commentThreads"
+      ],
+      "collectionModes": [
+        "liveSearch(eventType=live)",
+        "dailySearch(publishedAfter/publishedBefore)"
+      ],
+      "policyKeys": [
+        "sourceConfig.youtube.channelIdentifiers",
+        "sourceConfig.youtube.keywordQuery",
+        "sourceConfig.youtube.includeLive",
+        "sourceConfig.youtube.includeComments",
+        "sourceConfig.youtube.maxCommentsPerVideo",
+        "sourceConfig.youtube.transcriptProvider",
+        "sourceConfig.youtube.soWhatThreshold",
+        "sourceConfig.youtube.scoringWeights"
+      ],
+      "dailyQuotaUnitsDefault": 8000,
+      "quotaStopThreshold": "90%",
+      "transcriptPolicy": {
+        "default": "description/comment fallback",
+        "allowExternalProviderWhen": "source_policies.sourceConfig.youtube.transcriptProvider=approved",
+        "approvedProvider": {
+          "endpointTemplate": "{TRANSCRIPT_PROXY_BASE_URL}/v1/transcripts/{videoIdentifier}?langs=ja,en",
+          "headers": [
+            "x-api-key: ${TRANSCRIPT_PROXY_API_KEY}"
+          ],
+          "timeoutSec": 15,
+          "maxRetries": 1,
+          "onFailure": "fallback_to_description_and_comments"
+        }
+      },
+      "recordFields": [
+        "videoIdentifier",
+        "channelIdentifier",
+        "title",
+        "description",
+        "publishedAt",
+        "liveBroadcastContent",
+        "statistics",
+        "topComments"
+      ],
+      "reasonCodeMap": {
+        "policyViolation": "COMPLIANCE_SOURCE_UNAPPROVED",
+        "authError": "AUTH_INVALID_CREDENTIALS",
+        "quotaExceeded": "DEPENDENCY_UNAVAILABLE",
+        "timeout": "DEPENDENCY_TIMEOUT",
+        "serviceUnavailable": "DEPENDENCY_UNAVAILABLE",
+        "schemaInvalid": "DATA_SCHEMA_INVALID"
+      }
+    },
+    "paper": {
+      "providers": [
+        "arxiv",
+        "openalex"
+      ],
+      "policyKeys": [
+        "sourceConfig.paper.providers",
+        "sourceConfig.paper.query",
+        "sourceConfig.paper.maxItemsPerRun",
+        "sourceConfig.paper.soWhatThreshold",
+        "sourceConfig.paper.scoringWeights"
+      ],
+      "reasonCodeMap": {
+        "policyViolation": "COMPLIANCE_SOURCE_UNAPPROVED",
+        "timeout": "DEPENDENCY_TIMEOUT",
+        "serviceUnavailable": "DEPENDENCY_UNAVAILABLE",
+        "schemaInvalid": "DATA_SCHEMA_INVALID"
+      }
+    },
+    "github": {
+      "policyKeys": [
+        "sourceConfig.github.repositories",
+        "sourceConfig.github.includeReadme",
+        "sourceConfig.github.includeReleases",
+        "sourceConfig.github.maxItemsPerRun",
+        "sourceConfig.github.soWhatThreshold",
+        "sourceConfig.github.scoringWeights"
+      ],
+      "reasonCodeMap": {
+        "policyViolation": "COMPLIANCE_SOURCE_UNAPPROVED",
+        "timeout": "DEPENDENCY_TIMEOUT",
+        "serviceUnavailable": "DEPENDENCY_UNAVAILABLE",
+        "schemaInvalid": "DATA_SCHEMA_INVALID"
+      }
+    }
   }
 }

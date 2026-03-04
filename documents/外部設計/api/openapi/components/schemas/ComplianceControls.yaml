@@ -48,8 +48,17 @@ example:
   sourcePolicies:
   - sourceType: youtube
     enabled: true
-    termsVersion: v2026-01
+    termsVersion: v2026-03
     redistributionAllowed: false
-    dailyQuota: 500
+    dailyQuota: 8000
+    sourceConfig:
+      youtube:
+        channelIdentifiers:
+        - UCvixJtaXuNdMPUGdOPcY8Ag
+        keywordQuery: 日本株 決算
+        includeLive: true
+        includeComments: true
+        maxCommentsPerVideo: 20
+        transcriptProvider: none
   maxCommentLength: 120
   autoPromotionEnabled: true

@@ -8,9 +8,19 @@ post:
     content:
       application/json:
         schema:
-          "$ref": "../components/schemas/index.yaml#/RunCycleRequest"
+          "$ref": "../components/schemas/index.yaml#/RunInsightCycleRequest"
         example:
           mode: manual
+          targetDate: '2026-03-03'
+          sourceTypes:
+          - x
+          - youtube
+          - paper
+          - github
+          options:
+            forceRecollect: false
+            dryRun: false
+            maxItemsPerSource: 200
   responses:
     '202':
       description: Accepted

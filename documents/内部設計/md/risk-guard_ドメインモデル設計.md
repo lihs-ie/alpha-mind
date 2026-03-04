@@ -1,6 +1,6 @@
 # risk-guard ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `risk-guard`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -34,7 +34,7 @@
 | Order Proposal | 審査対象の注文候補 | `orders.proposed` | 注文確定（executed）と混同しない |
 | Risk Evaluation | リスク上限・停止状態・コンプライアンス制約の判定 | `risk-guard` | 部分判定で承認しない |
 | Compliance Controls | 制限銘柄/ブラックアウト等の制約設定 | `compliance_controls` | 参照専用。risk-guardで編集しない |
-| Kill Switch | 発注系停止フラグ | `operations.runtime` / `operation.kill_switch.changed` | 有効時は fail-closed |
+| Kill Switch | 発注系停止フラグ | `POST /operations/kill-switch` / `operation.kill_switch.changed` | 有効時は fail-closed |
 | Decision | 承認または却下の最終判断 | `orders.approved/rejected` | 根拠なし決定を禁止 |
 | Identifier | 識別子 | 全モデル/API/Event | `Id` 表記は禁止 |
 
@@ -120,7 +120,7 @@ Feature: risk-guard order screening
 
 | Aggregate | Aggregate Root | 責務 | 一貫性境界（同一Tx） | 不変条件 |
 |---|---|---|---|---|
-| `OrderRiskAssessment` | `OrderRiskAssessment` | 1注文の審査結果を確定する | `orders/{identifier}` | 二重決定禁止、決定理由必須 |
+| `OrderRiskAssessment` | `OrderRiskAssessment` | 1注文の審査結果を確定する | `risk_assessments/{identifier}` | 二重決定禁止、決定理由必須 |
 
 #### Aggregate詳細: `OrderRiskAssessment`
 
@@ -139,9 +139,9 @@ Feature: risk-guard order screening
 
 | フィールド名 | 型 | 説明 | 保持数 |
 |---|---|---|---|
-| `identifier` | `string` | 注文識別子（`orders/{identifier}`） | `1` |
+| `identifier` | `string` | 注文識別子（`risk_assessments/{identifier}`） | `1` |
 | `proposal` | `OrderProposal` | 審査対象注文 | `1` |
-| `orderStatus` | `enum(PROPOSED, APPROVED, REJECTED, EXECUTED, FAILED)` | 注文状態の現在値 | `1` |
+| `orderStatus` | `enum(PROPOSED, APPROVED, REJECTED)` | 注文状態の現在値 | `1` |
 | `decision` | `enum(approved, rejected)` | 審査の最終判定 | `0..1` |
 | `reasonCode` | `enum(ReasonCode)` | 判定理由コード（却下時必須） | `0..1` |
 | `actionReasonCode` | `enum(OperatorActionReasonCode)` | 手動操作理由コード | `0..1` |
@@ -172,7 +172,7 @@ Feature: risk-guard order screening
 | フィールド名 | 型 | 説明 | 保持数 |
 |---|---|---|---|
 | `identifier` | `string` | 注文識別子 | `1` |
-| `orderStatus` | `enum(PROPOSED, APPROVED, REJECTED, EXECUTED, FAILED)` | 注文状態 | `1` |
+| `orderStatus` | `enum(PROPOSED, APPROVED, REJECTED)` | 注文状態 | `1` |
 | `decision` | `enum(approved, rejected)` | 審査判定 | `0..1` |
 | `reasonCode` | `enum(ReasonCode)` | 判定理由（却下時必須） | `0..1` |
 | `actionReasonCode` | `enum(OperatorActionReasonCode)` | 手動操作理由 | `0..1` |
@@ -267,7 +267,7 @@ Feature: risk-guard order screening
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -308,8 +308,8 @@ Feature: risk-guard order screening
 
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
-| `orders.approved` | `execution`, `audit-log`, `bff` | AsyncAPI（`actionReasonCode` optional, `reasonCode` optional） | eventual consistency | max3 + DLQ |
-| `orders.rejected` | `audit-log`, `bff` | AsyncAPI（`reasonCode` required） | eventual consistency | max3 + DLQ |
+| `orders.approved` | `execution`, `audit-log` | AsyncAPI（`actionReasonCode` optional, `reasonCode` optional） | eventual consistency | max3 + DLQ |
+| `orders.rejected` | `audit-log` | AsyncAPI（`reasonCode` required） | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
 
@@ -325,13 +325,13 @@ Feature: risk-guard order screening
 
 | 保存対象 | オーナー | 保存先 | トランザクション境界 | 監査項目 |
 |---|---|---|---|---|
-| `OrderRiskAssessment` | `risk-guard` | `orders` | 単一集約 | `trace`, `identifier`, `reasonCode` |
+| `OrderRiskAssessment` | `risk-guard` | `Firestore:risk_assessments` | 単一集約 | `trace`, `identifier`, `reasonCode` |
 | `IdempotencyKey` | `risk-guard` | `idempotency_keys` | 単一ドキュメント | `trace`, `identifier`, `service` |
-| `RiskDecisionAudit` | `risk-guard` | `audit_logs` | 判定確定後の別Tx | `trace`, `identifier`, `reasonCode`, `symbol` |
+| `RiskDecisionAudit` | `risk-guard` | `Cloud Logging` | 判定確定後の別Tx | `trace`, `identifier`, `reasonCode`, `symbol` |
 | `RiskLimits/CompliancePolicy` | `bff`（参照のみ） | `settings`, `operations`, `compliance_controls` | 読み取り専用 | `updatedAt`, `updatedBy` |
 
 - 他集約更新は同一Txで行わない。
-- `orders` 更新成功後に `orders.approved/rejected` を発行する。
+- `risk_assessments` 更新成功後に `orders.approved/rejected` を発行する。
 
 ## 9. テスト設計（仕様と同型）
 
@@ -366,7 +366,7 @@ Feature: risk-guard order screening
 
 - 判定ルール（kill switch / リスク上限 / コンプライアンス）の優先順位が実装と一致しているか。
 - fail-closedの理由コードが監査/運用Runbookと整合しているか。
-- `orders.approved/rejected` 発行が `orders` 更新後になっているか。
+- `orders.approved/rejected` 発行が `risk_assessments` 更新後になっているか。
 - 冪等処理が `idempotency_keys` で担保されているか。
 - Rule→Scenario→Model→Contract→Test のトレースが切れていないか。
 

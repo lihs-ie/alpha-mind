@@ -1,6 +1,6 @@
 # insight-collector ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `insight-collector`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -10,7 +10,7 @@
 
 - 目的: `insight.collect.requested` を入力に、許可ソースと利用規約条件を満たす定性データを収集・構造化し、`insight.collected` / `insight.collect.failed` を整合的に発行する。
 - スコープ内:
-1. 収集要求イベントの入力検証（`targetDate`, `requestedBy`）
+1. 収集要求イベントの入力検証（`targetDate`, `requestedBy`, `sourceTypes`, `options`）
 2. `source_policies` による許可ソース/利用規約の判定
 3. 収集・要約・根拠情報（`sourceUrl`, `evidenceSnippet`）の必須検証
 4. 収集結果保存と冪等性制御、監査保存
@@ -43,8 +43,8 @@
 | 相手Context | 関係 | インターフェース | 変換方針 |
 |---|---|---|---|
 | `bff` | Upstream (`Customer-Supplier`) | `POST /commands/run-insight-cycle` -> `insight.collect.requested` | 受付時の `identifier`, `trace` を収集要求スナップショットへ正規化 |
-| `source policy management` | Upstream (`Separate Ways`) | `Firestore:source_policies` | `sourceType`, `enabled`, `termsVersion`, `redistributionAllowed` を `SourcePolicySnapshot` へ正規化 |
-| `agent-orchestrator` | Downstream (`OHS+PL`) | `insight.collected` | `payload.identifier`, `count`, `storagePath` を必須伝播 |
+| `source policy management` | Upstream (`Separate Ways`) | `Firestore:source_policies` | `sourceType`, `enabled`, `termsVersion`, `redistributionAllowed`, `dailyQuota`, `sourceConfig` を `SourcePolicySnapshot` へ正規化 |
+| `agent-orchestrator` | Downstream (`OHS+PL`) | `insight.collected` | `payload.identifier`, `payload.count`, `payload.storagePath`, `payload.sourceStatus` を必須伝播 |
 | `feature-engineering` | Downstream (`Separate Ways`) | `Firestore:insight_records`（参照） | `collectedAt`, `sourceUrl`, `evidenceSnippet` の整合を維持して保存 |
 | `audit-log` | Downstream (`OHS+PL`) | `insight.collected`, `insight.collect.failed` | `trace`, `identifier`, `reasonCode` を必須伝播 |
 
@@ -54,12 +54,12 @@
 
 | Rule ID | ルール | 優先度 | 集約境界内/外 |
 |---|---|---|---|
-| `RULE-IC-001` | `insight.collect.requested` の必須項目（`targetDate`, `requestedBy`）欠損時は収集開始しない | must | inside |
+| `RULE-IC-001` | `insight.collect.requested` の必須項目（`targetDate`, `requestedBy`）欠損、または `sourceTypes/options` 不正時は収集開始しない | must | inside |
 | `RULE-IC-002` | 許可されていないソース/規約未充足ソースは `insight.collect.failed`（`COMPLIANCE_SOURCE_UNAPPROVED`）を発行する | must | inside |
 | `RULE-IC-003` | 保存対象の各インサイトは `sourceUrl` と `evidenceSnippet` を必須とする | must | inside |
 | `RULE-IC-004` | 同一イベント `identifier`（event envelope）は1回のみ処理する | must | outside |
 | `RULE-IC-005` | 成功時は `insight_records` / `insight_processed` 保存後にのみ `insight.collected` を発行する | must | outside |
-| `RULE-IC-006` | `insight.collected` は `payload.identifier`, `payload.count`, `payload.storagePath` を必須で含む | must | inside |
+| `RULE-IC-006` | `insight.collected` は `payload.identifier`, `payload.count`, `payload.storagePath`, `payload.sourceStatus` を必須で含む | must | inside |
 | `RULE-IC-007` | 外部ソース障害は `DEPENDENCY_TIMEOUT` または `DEPENDENCY_UNAVAILABLE` として失敗確定する | must | inside |
 | `RULE-IC-008` | 失敗時は `reasonCode` を保存し `insight.collect.failed` を発行する | must | inside |
 | `RULE-IC-009` | 識別子命名は `identifier` を使用し `Id` を禁止する | must | inside |
@@ -139,7 +139,7 @@ Feature: insight collection
 - 更新コマンド: `ValidateRequest`, `ResolveSourcePolicies`, `CollectInsights`, `NormalizeInsights`, `RecordCollectionSuccess`, `RecordCollectionFailure`
 - 削除/無効化コマンド: `TerminateCollection`
 - 不変条件:
-1. `status=collected` のとき `count` と `storagePath` は必須。
+1. `status=collected` のとき `count` と `storagePath`、`insightArtifact.sourceStatus` は必須。
 2. `status=collected` のとき `records` の全要素で `sourceUrl` と `evidenceSnippet` は必須。
 3. `status=failed` のとき `reasonCode` は必須。
 4. `identifier` は不変。
@@ -228,11 +228,11 @@ Feature: insight collection
 
 | Value Object | 属性 | 等価性 | 不変性 |
 |---|---|---|---|
-| `InsightCollectionRequestSnapshot` | `targetDate`, `requestedBy` | 値比較 | immutable |
-| `SourcePolicySnapshot` | `sourceType`, `enabled`, `termsVersion`, `redistributionAllowed`, `dailyQuota` | 値比較 | immutable |
-| `InsightRecord` | `identifier`, `sourceType`, `sourceUrl`, `evidenceSnippet`, `collectedAt`, `summary`, `skillVersion` | 値比較 | immutable |
-| `InsightArtifact` | `identifier`, `count`, `storagePath` | 値比較 | immutable |
-| `FailureDetail` | `reasonCode`, `detail`, `retryable` | 値比較 | immutable |
+| `InsightCollectionRequestSnapshot` | `targetDate`, `requestedBy`, `sourceTypes`, `options` | 値比較 | immutable |
+| `SourcePolicySnapshot` | `sourceType`, `enabled`, `termsVersion`, `redistributionAllowed`, `dailyQuota`, `sourceConfig` | 値比較 | immutable |
+| `InsightRecord` | `identifier`, `sourceType`, `sourceUrl`, `evidenceSnippet`, `collectedAt`, `summary`, `signalClass`, `soWhatScore`, `skillVersion` | 値比較 | immutable |
+| `InsightArtifact` | `identifier`, `count`, `storagePath`, `sourceStatus`, `partialFailure` | 値比較 | immutable |
+| `FailureDetail` | `reasonCode`, `detail`, `retryable`, `sourceType`, `stage` | 値比較 | immutable |
 | `DispatchDecision` | `dispatchStatus`, `publishedEvent`, `reasonCode` | 値比較 | immutable |
 
 #### Value Object詳細: `InsightCollectionRequestSnapshot`
@@ -241,16 +241,23 @@ Feature: insight collection
 |---|---|---|---|
 | `targetDate` | `date` | 収集対象日 | `1` |
 | `requestedBy` | `enum(scheduler, user)` | 起動主体 | `1` |
+| `sourceTypes` | `array<enum(x, youtube, paper, github)>` | 収集対象ソース（省略時は有効ソース全件） | `0..n` |
+| `options` | `object(forceRecollect, dryRun, maxItemsPerSource)` | 実行オプション | `0..1` |
 
 #### Value Object詳細: `SourcePolicySnapshot`
 
 | フィールド名 | 型 | 説明 | 保持数 |
 |---|---|---|---|
-| `sourceType` | `enum(x, youtube, paper, github, nisshokin)` | ソース種別 | `1` |
+| `sourceType` | `enum(x, youtube, paper, github)` | ソース種別 | `1` |
 | `enabled` | `boolean` | 利用可否 | `1` |
 | `termsVersion` | `string` | 規約版 | `1` |
 | `redistributionAllowed` | `boolean` | 再配布可否 | `1` |
 | `dailyQuota` | `integer` | 日次利用上限 | `0..1` |
+| `sourceConfig` | `object` | ソース別設定（X/YouTube/Paper/GitHub） | `1` |
+| `sourceConfig.x.accountHandles` | `array<string>` | X監視アカウント（sourceType=`x` で必須） | `0..n` |
+| `sourceConfig.youtube.channelIdentifiers` | `array<string>` | YouTube監視チャンネル（sourceType=`youtube` で必須） | `0..n` |
+| `sourceConfig.paper.providers` | `array<string>` | 論文収集プロバイダ（sourceType=`paper` で必須） | `0..n` |
+| `sourceConfig.github.repositories` | `array<string>` | GitHub監視リポジトリ（sourceType=`github` で必須） | `0..n` |
 
 #### Value Object詳細: `InsightRecord`
 
@@ -262,6 +269,8 @@ Feature: insight collection
 | `evidenceSnippet` | `string` | 根拠抜粋 | `1` |
 | `collectedAt` | `datetime` | 収集時刻 | `1` |
 | `summary` | `string` | 要約本文 | `1` |
+| `signalClass` | `enum(structural_anomaly, event_noise)` | 構造性分類 | `1` |
+| `soWhatScore` | `number(0.0-1.0)` | 投資判断有用度スコア | `1` |
 | `skillVersion` | `string` | 収集Skill版 | `1` |
 
 #### Value Object詳細: `InsightArtifact`
@@ -271,6 +280,8 @@ Feature: insight collection
 | `identifier` | `string` | 収集処理識別子 | `1` |
 | `count` | `integer` | 保存件数 | `1` |
 | `storagePath` | `string` | 成果物保存先 | `1` |
+| `sourceStatus` | `array<object>` | ソース別収集結果（success/failed/quota_exhausted） | `1..n` |
+| `partialFailure` | `boolean` | 部分失敗有無 | `1` |
 
 #### Value Object詳細: `FailureDetail`
 
@@ -279,6 +290,8 @@ Feature: insight collection
 | `reasonCode` | `enum(ReasonCode)` | 失敗理由コード | `1` |
 | `detail` | `string` | 補足情報 | `0..1` |
 | `retryable` | `boolean` | 再試行可否 | `1` |
+| `sourceType` | `enum(x, youtube, paper, github)` | 失敗ソース種別 | `0..1` |
+| `stage` | `enum(validate_request, validate_policy, collect, normalize, persist, publish)` | 失敗ステージ | `0..1` |
 
 #### Value Object詳細: `DispatchDecision`
 
@@ -320,7 +333,7 @@ Feature: insight collection
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -342,7 +355,7 @@ Feature: insight collection
 
 | Invariant ID | 対象Aggregate | 条件 | 破壊時の扱い |
 |---|---|---|---|
-| `INV-IC-001` | `InsightCollection` | `status=collected` のとき `count`,`storagePath` 必須 | コマンド拒否 |
+| `INV-IC-001` | `InsightCollection` | `status=collected` のとき `count`,`storagePath`,`insightArtifact.sourceStatus` 必須 | コマンド拒否 |
 | `INV-IC-002` | `InsightCollection` | `status=collected` のとき全 `records` で `sourceUrl`,`evidenceSnippet` 必須 | コマンド拒否 |
 | `INV-IC-003` | `InsightCollection` | `status=failed` のとき `reasonCode` 必須 | コマンド拒否 |
 | `INV-IC-004` | `InsightDispatch` | 同一イベント `identifier` は1回のみ publish | 冪等扱い |
@@ -355,8 +368,8 @@ Feature: insight collection
 | eventType | 発行主体 | 発行タイミング | payload | 冪等キー |
 |---|---|---|---|---|
 | `insight.collection.started` | `InsightCollection` | 受信処理開始時 | `identifier`, `targetDate`, `trace` | `identifier` |
-| `insight.collection.completed` | `InsightCollection` | 収集確定時 | `identifier`, `count`, `storagePath`, `trace` | `identifier` |
-| `insight.collection.failed` | `InsightCollection` | 失敗確定時 | `identifier`, `reasonCode`, `detail`, `trace` | `identifier` |
+| `insight.collection.completed` | `InsightCollection` | 収集確定時 | `identifier`, `count`, `storagePath`, `sourceStatus`, `partialFailure`, `trace` | `identifier` |
+| `insight.collection.failed` | `InsightCollection` | 失敗確定時 | `identifier`, `reasonCode`, `sourceType`, `stage`, `detail`, `trace` | `identifier` |
 
 ### 6.2 Integration Event（境界外）
 
@@ -370,8 +383,8 @@ Feature: insight collection
 | ユースケース | Command/Query | OpenAPI | AsyncAPI | 備考 |
 |---|---|---|---|---|
 | 手動インサイト収集受付 | `RunInsightCycle` | `POST /commands/run-insight-cycle` | `insight.collect.requested`（受信） | BFFが受付しイベント発行 |
-| インサイト収集成功通知 | `PublishInsightCollected` | なし | `insight.collected`（発行） | `payload.identifier`, `count`, `storagePath` 必須 |
-| インサイト収集失敗通知 | `PublishInsightCollectFailed` | なし | `insight.collect.failed`（発行） | `reasonCode` 必須 |
+| インサイト収集成功通知 | `PublishInsightCollected` | なし | `insight.collected`（発行） | `payload.identifier`, `payload.count`, `payload.storagePath`, `payload.sourceStatus` 必須 |
+| インサイト収集失敗通知 | `PublishInsightCollectFailed` | なし | `insight.collect.failed`（発行） | `reasonCode` 必須、`sourceType`/`stage` 推奨 |
 
 ## 8. 永続化と整合性
 
@@ -379,9 +392,9 @@ Feature: insight collection
 |---|---|---|---|---|
 | `InsightRecord` | `insight-collector` | `Firestore:insight_records` | `identifier` 単位 | `trace`, `identifier`, `sourceType`, `collectedAt` |
 | `InsightArtifact` | `insight-collector` | `Cloud Storage:insight_processed` | `identifier` 単位 | `trace`, `identifier`, `count`, `storagePath` |
-| `SourcePolicySnapshot` | `insight-collector` | `Firestore:source_policies`（参照） | 読み取り専用 | `sourceType`, `termsVersion`, `enabled` |
+| `SourcePolicySnapshot` | `insight-collector` | `Firestore:source_policies`（参照） | 読み取り専用 | `sourceType`, `termsVersion`, `enabled`, `dailyQuota`, `sourceConfig` |
 | `InsightDispatch` | `insight-collector` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace`, `identifier`, `processedAt` |
-| `InsightCollectionAudit` | `insight-collector` | `Firestore:audit_logs` | `identifier` 単位 | `trace`, `identifier`, `result`, `reasonCode` |
+| `InsightCollectionAudit` | `insight-collector` | `Cloud Logging` | 別Tx（状態確定後） | `trace`, `identifier`, `result`, `reasonCode` |
 
 - 他集約更新は同一Txで行わない。
 - 集約間整合は `insight.collect.*` イベントで実現する。

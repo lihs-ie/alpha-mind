@@ -1,11 +1,11 @@
 # insight-collector 外部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 
 ## 1. サービス概要
 
 - 役割: 定性データソースから投資インサイトを収集・構造化する。
-- 主な責務: X/YouTube/論文/GitHubの収集、ノイズ除去、根拠付き要約、保存。
+- 主な責務: X/YouTube/論文/GitHubの収集、ノイズ除去、根拠付き要約、`So What` 判定、保存。
 - 主な利用者: `agent-orchestrator`。
 
 ## 2. 採用技術と比較
@@ -35,6 +35,15 @@
 - Cloud Storage
 - Firestore（skill_registry, source_policies, insight_records）
 
+### 3.4 契約要点（実装固定）
+
+- `insight.collect.requested.payload`:
+  必須は `targetDate`, `requestedBy`。任意で `sourceTypes`, `options(forceRecollect,dryRun,maxItemsPerSource)` を受け付ける。
+- `insight.collected.payload`:
+  `identifier`, `count`, `storagePath`, `sourceStatus[]` を返却し、部分失敗時は `partialFailure=true` とする。
+- `insight.collect.failed.payload`:
+  `reasonCode` 必須。`sourceType`, `stage`, `detail` を付与して復旧判断可能にする。
+
 ## 4. ユースケース
 
 ### UC-IC-01: 定性データの定時収集
@@ -55,14 +64,26 @@
 - トリガー: 収集リクエスト実行。
 - 成果: 収集を中断し `COMPLIANCE_SOURCE_UNAPPROVED` で失敗記録する。
 
+### UC-IC-04: 構造的アノマリー判定
+
+- 事前条件: 根拠付きインサイト生成が完了。
+- トリガー: 正規化・要約処理。
+- 成果: `signalClass`（`structural_anomaly`/`event_noise`）と `soWhatScore` を算出し、下流の仮説優先度判定に利用できる状態で保存する。
+
 ## 5. 非機能要件
 
 - 完了目標: 1サイクル `20分以内`。
 - 品質: すべてのインサイトに `sourceUrl` `collectedAt` `evidenceSnippet` を保持。
+- 品質: すべてのインサイトに `signalClass` `soWhatScore(0.0-1.0)` を保持。
 - セキュリティ: 利用規約違反ソースを自動拒否。
 - 監査: 収集Skill版、適用ソースポリシー版、除外理由を必須記録。
+- 可観測性: ソース別成功/失敗/quota枯渇を `sourceStatus` で追跡可能にする。
 
 ## 6. スコープ外
 
 - 売買シグナル算出。
 - 注文作成・執行。
+
+## 7. 関連資料
+
+- 収集元候補リスト: `documents/外部設計/services/insight-source-candidate-list.md`

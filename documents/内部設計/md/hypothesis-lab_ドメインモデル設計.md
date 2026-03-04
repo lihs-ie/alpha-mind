@@ -1,6 +1,6 @@
 # hypothesis-lab ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `hypothesis-lab`
 ドキュメント版: `v0.2.0`
 作成者: `codex`
@@ -275,7 +275,7 @@ Feature: hypothesis-lab validation and promotion
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -319,9 +319,9 @@ Feature: hypothesis-lab validation and promotion
 
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
-| `hypothesis.backtested` | `bff`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `hypothesis.promoted` | `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `hypothesis.rejected` | `bff`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `hypothesis.backtested` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `hypothesis.promoted` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `hypothesis.rejected` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
 

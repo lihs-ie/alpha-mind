@@ -1,6 +1,6 @@
 # portfolio-planner ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `portfolio-planner`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -304,7 +304,7 @@ Feature: portfolio-planner proposal planning
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -345,8 +345,8 @@ Feature: portfolio-planner proposal planning
 
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
-| `orders.proposed` | `risk-guard`, `audit-log`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `orders.proposal.failed` | `audit-log`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `orders.proposed` | `risk-guard`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `orders.proposal.failed` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
 
@@ -362,7 +362,7 @@ Feature: portfolio-planner proposal planning
 |---|---|---|---|---|
 | `OrderProposal` | `portfolio-planner` | `Firestore:orders` | `orders/{identifier}` 単位 | `trace`, `identifier`, `symbol`, `qty` |
 | `ProposalDispatch` | `portfolio-planner` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace`, `identifier`, `processedAt` |
-| `PlanningAudit` | `portfolio-planner` | `Firestore:audit_logs` | `identifier` 単位 | `trace`, `identifier`, `result`, `reasonCode` |
+| `PlanningAudit` | `portfolio-planner` | `Cloud Logging` | 別Tx（状態確定後） | `trace`, `identifier`, `result`, `reasonCode` |
 | `PositionSnapshot` | `portfolio-planner` | `Firestore:positions`（参照） | 読み取り専用 | `trace`, `symbol`, `asOf` |
 | `StrategySnapshot` | `portfolio-planner` | `Firestore:settings`（参照） | 読み取り専用 | `trace`, `settingsVersion` |
 

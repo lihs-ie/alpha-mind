@@ -1,6 +1,6 @@
 # signal-generator 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/signal-generator.json`
 
 ## 1. サービス概要
@@ -25,7 +25,7 @@ JSON対応: `内部設計/json/signal-generator.json`
 ## 4. 依存関係
 
 - Cloud Storage: `feature_store`, `signal_store`
-- Firestore: `model_registry`, `idempotency_keys`, `audit_logs`
+- Firestore: `model_registry`, `idempotency_keys`
 - External: MLflow Model Registry
 
 ## 5. 処理フロー

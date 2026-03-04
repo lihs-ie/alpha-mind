@@ -1,6 +1,6 @@
 {
   "serviceId": "feature-engineering",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "role": "市場データから学習・推論用特徴量を生成し、バージョン管理して保存する。",
   "aiResponsibility": true,
   "runtime": {
@@ -24,7 +24,6 @@
       "Cloud Storage:raw_market_data",
       "Cloud Storage:feature_store",
       "Firestore:idempotency_keys",
-      "Firestore:audit_logs",
       "Firestore:insight_records"
     ],
     "messaging": [
@@ -36,6 +35,7 @@
     "入力データ読込",
     "定性インサイト読込",
     "時点整合チェック(定量/定性)",
+    "財務指標の単位同期(調整係数適用)",
     "定性×定量特徴量計算",
     "featureVersion採番",
     "Cloud Storage保存",
@@ -77,6 +77,8 @@
   "qualityGates": [
     "将来情報リークなし",
     "insight_recordsはcollectedAt<=targetDateのみ採用",
+    "財務指標は価格系列と同一adjustmentCumFactorを適用",
+    "分割跨ぎ期間の単純forward fillは禁止",
     "必須特徴量欠損率閾値以内",
     "定性特徴量の根拠リンク欠損率閾値以内"
   ],
@@ -88,7 +90,8 @@
     "metrics": [
       "feature_job_success_total",
       "feature_job_failure_total",
-      "feature_generation_duration_ms"
+      "feature_generation_duration_ms",
+      "feature_unit_sync_failed_total"
     ],
     "logFields": [
       "trace",

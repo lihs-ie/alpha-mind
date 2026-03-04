@@ -22,8 +22,7 @@
   },
   "dependencies": {
     "datastores": [
-      "Firestore:orders",
-      "Firestore:audit_logs",
+      "Firestore:order_executions",
       "Firestore:idempotency_keys",
       "Firestore:demo_trade_runs"
     ],

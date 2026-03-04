@@ -1,6 +1,6 @@
 # 内部設計ドキュメント一覧
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-01
 
 ## 1. 目的
 
@@ -29,6 +29,9 @@
 - `内部設計/md/signal-generator_ドメインモデル設計.md`
 - `内部設計/md/audit-log_ドメインモデル設計.md`
 - `内部設計/md/agent-orchestrator_ドメインモデル設計.md`
+- `内部設計/md/frontend/README.md`
+- `内部設計/md/frontend/frontend-sol_ドメインモデル設計.md`
+- `内部設計/md/frontend/hypothesis-lab-frontend_ドメインモデル設計.md`
 
 補足:
 - ドメインモデル設計は「業務ルールを持つサービス（core/supporting）」を優先し、横断ルールを担う generic（例: `audit-log`）も対象に含める。

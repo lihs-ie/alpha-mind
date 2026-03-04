@@ -1,6 +1,6 @@
 {
   "serviceId": "data-collector",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "role": "市場データを取得し、正規化して保存し、後続処理イベントを発行する。",
   "aiResponsibility": false,
   "runtime": {
@@ -22,7 +22,6 @@
   "dependencies": {
     "datastores": [
       "Cloud Storage:raw_market_data",
-      "Firestore:audit_logs",
       "Firestore:idempotency_keys"
     ],
     "messaging": [
@@ -40,6 +39,7 @@
     "idempotency確認",
     "日本/米国データ取得",
     "日商金データ取得(逆日歩CSV)",
+    "調整係数再計算(逆順cumprod+shift)",
     "スキーマ正規化/逆日歩クレンジング",
     "Cloud Storageへ保存",
     "market.collected発行"
@@ -92,6 +92,11 @@
       "監査ログ記録"
     ]
   },
+  "qualityGates": [
+    "AdjustmentFactorは正数のみ許可",
+    "価格はcumFactor乗算、出来高はcumFactor除算",
+    "look-ahead bias回避のためcumFactorはshift(1)適用"
+  ],
   "slo": {
     "jobCompletionWithinMinutes": 10,
     "successRate": "99.0%"

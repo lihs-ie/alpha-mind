@@ -1,6 +1,6 @@
 # agent-orchestrator 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/agent-orchestrator.json`
 
 ## 1. サービス概要
@@ -24,7 +24,7 @@ JSON対応: `内部設計/json/agent-orchestrator.json`
 
 ## 4. 依存関係
 
-- Firestore: `skill_registry`, `instruction_profiles`, `code_reference_templates`, `failure_knowledge`, `hypothesis_registry`, `idempotency_keys`, `audit_logs`
+- Firestore: `skill_registry`, `instruction_profiles`, `code_reference_templates`, `failure_knowledge`, `hypothesis_registry`, `idempotency_keys`
 - Cloud Storage: `hypothesis_reports`
 - External: LLM Runtime
 

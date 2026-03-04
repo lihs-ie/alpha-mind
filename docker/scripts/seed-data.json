@@ -34,10 +34,264 @@
         "partnerRestrictedSymbols": { "arrayValue": { "values": [] } },
         "blackoutWindows": { "arrayValue": { "values": [] } },
         "mnpiKeywordVersion": { "stringValue": "1.0.0" },
-        "sourcePolicyVersion": { "stringValue": "1.0.0" },
+        "sourcePolicyVersion": { "stringValue": "2026-03-v1" },
+        "sourcePolicies": {
+          "arrayValue": {
+            "values": [
+              {
+                "mapValue": {
+                  "fields": {
+                    "sourceType": { "stringValue": "x" },
+                    "enabled": { "booleanValue": true },
+                    "termsVersion": { "stringValue": "v2026-03" },
+                    "redistributionAllowed": { "booleanValue": false },
+                    "dailyQuota": { "integerValue": "300" }
+                  }
+                }
+              },
+              {
+                "mapValue": {
+                  "fields": {
+                    "sourceType": { "stringValue": "youtube" },
+                    "enabled": { "booleanValue": true },
+                    "termsVersion": { "stringValue": "v2026-03" },
+                    "redistributionAllowed": { "booleanValue": false },
+                    "dailyQuota": { "integerValue": "8000" }
+                  }
+                }
+              },
+              {
+                "mapValue": {
+                  "fields": {
+                    "sourceType": { "stringValue": "paper" },
+                    "enabled": { "booleanValue": true },
+                    "termsVersion": { "stringValue": "v2026-03" },
+                    "redistributionAllowed": { "booleanValue": false },
+                    "dailyQuota": { "integerValue": "1000" }
+                  }
+                }
+              },
+              {
+                "mapValue": {
+                  "fields": {
+                    "sourceType": { "stringValue": "github" },
+                    "enabled": { "booleanValue": true },
+                    "termsVersion": { "stringValue": "v2026-03" },
+                    "redistributionAllowed": { "booleanValue": false },
+                    "dailyQuota": { "integerValue": "5000" }
+                  }
+                }
+              }
+            ]
+          }
+        },
         "autoPromotionEnabled": { "booleanValue": false },
         "maxCommentLength": { "integerValue": "120" },
-        "updatedAt": { "timestampValue": "2026-01-01T00:00:00Z" },
+        "updatedAt": { "timestampValue": "2026-03-03T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "source_policies",
+      "documentId": "source_policy_x_core_v2026_03",
+      "fields": {
+        "identifier": { "stringValue": "source_policy_x_core_v2026_03" },
+        "sourceType": { "stringValue": "x" },
+        "enabled": { "booleanValue": true },
+        "termsVersion": { "stringValue": "v2026-03" },
+        "redistributionAllowed": { "booleanValue": false },
+        "dailyQuota": { "integerValue": "300" },
+        "sourceConfig": {
+          "mapValue": {
+            "fields": {
+              "x": {
+                "mapValue": {
+                  "fields": {
+                    "accountHandles": {
+                      "arrayValue": {
+                        "values": [
+                          { "stringValue": "JPX_official" },
+                          { "stringValue": "jpx_JQuants" },
+                          { "stringValue": "meti_NIPPON" },
+                          { "stringValue": "keizaikaiseki" }
+                        ]
+                      }
+                    },
+                    "keywordQuery": { "stringValue": "日本株 OR 東証 OR 決算 OR 金融政策" },
+                    "excludeKeywords": {
+                      "arrayValue": {
+                        "values": [
+                          { "stringValue": "プレゼント" },
+                          { "stringValue": "キャンペーン" }
+                        ]
+                      }
+                    },
+                    "includeReplies": { "booleanValue": false },
+                    "minEngagement": { "integerValue": "3" },
+                    "soWhatThreshold": { "doubleValue": 0.7 },
+                    "scoringWeights": {
+                      "mapValue": {
+                        "fields": {
+                          "freshness": { "doubleValue": 0.25 },
+                          "credibility": { "doubleValue": 0.25 },
+                          "reproducibility": { "doubleValue": 0.25 },
+                          "marketRelevance": { "doubleValue": 0.25 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "updatedAt": { "timestampValue": "2026-03-03T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "source_policies",
+      "documentId": "source_policy_youtube_core_v2026_03",
+      "fields": {
+        "identifier": { "stringValue": "source_policy_youtube_core_v2026_03" },
+        "sourceType": { "stringValue": "youtube" },
+        "enabled": { "booleanValue": true },
+        "termsVersion": { "stringValue": "v2026-03" },
+        "redistributionAllowed": { "booleanValue": false },
+        "dailyQuota": { "integerValue": "8000" },
+        "sourceConfig": {
+          "mapValue": {
+            "fields": {
+              "youtube": {
+                "mapValue": {
+                  "fields": {
+                    "channelIdentifiers": {
+                      "arrayValue": {
+                        "values": [
+                          { "stringValue": "UCnZA74T8a8dEbavWRq8F2nA" },
+                          { "stringValue": "UC6eH5HKEH9EhNl8wfTgnYrQ" }
+                        ]
+                      }
+                    },
+                    "keywordQuery": { "stringValue": "日本株 OR 決算 OR 東証" },
+                    "includeLive": { "booleanValue": true },
+                    "includeComments": { "booleanValue": true },
+                    "maxCommentsPerVideo": { "integerValue": "20" },
+                    "transcriptProvider": { "stringValue": "none" },
+                    "soWhatThreshold": { "doubleValue": 0.7 },
+                    "scoringWeights": {
+                      "mapValue": {
+                        "fields": {
+                          "freshness": { "doubleValue": 0.25 },
+                          "credibility": { "doubleValue": 0.25 },
+                          "reproducibility": { "doubleValue": 0.25 },
+                          "marketRelevance": { "doubleValue": 0.25 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "updatedAt": { "timestampValue": "2026-03-03T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "source_policies",
+      "documentId": "source_policy_paper_core_v2026_03",
+      "fields": {
+        "identifier": { "stringValue": "source_policy_paper_core_v2026_03" },
+        "sourceType": { "stringValue": "paper" },
+        "enabled": { "booleanValue": true },
+        "termsVersion": { "stringValue": "v2026-03" },
+        "redistributionAllowed": { "booleanValue": false },
+        "dailyQuota": { "integerValue": "1000" },
+        "sourceConfig": {
+          "mapValue": {
+            "fields": {
+              "paper": {
+                "mapValue": {
+                  "fields": {
+                    "providers": {
+                      "arrayValue": {
+                        "values": [
+                          { "stringValue": "arxiv" },
+                          { "stringValue": "openalex" }
+                        ]
+                      }
+                    },
+                    "query": { "stringValue": "q-fin.PM OR q-fin.ST OR q-fin.TR OR stat.ML" },
+                    "maxItemsPerRun": { "integerValue": "200" },
+                    "soWhatThreshold": { "doubleValue": 0.7 },
+                    "scoringWeights": {
+                      "mapValue": {
+                        "fields": {
+                          "freshness": { "doubleValue": 0.25 },
+                          "credibility": { "doubleValue": 0.25 },
+                          "reproducibility": { "doubleValue": 0.25 },
+                          "marketRelevance": { "doubleValue": 0.25 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "updatedAt": { "timestampValue": "2026-03-03T00:00:00Z" },
+        "updatedBy": { "stringValue": "system" }
+      }
+    },
+    {
+      "collection": "source_policies",
+      "documentId": "source_policy_github_core_v2026_03",
+      "fields": {
+        "identifier": { "stringValue": "source_policy_github_core_v2026_03" },
+        "sourceType": { "stringValue": "github" },
+        "enabled": { "booleanValue": true },
+        "termsVersion": { "stringValue": "v2026-03" },
+        "redistributionAllowed": { "booleanValue": false },
+        "dailyQuota": { "integerValue": "5000" },
+        "sourceConfig": {
+          "mapValue": {
+            "fields": {
+              "github": {
+                "mapValue": {
+                  "fields": {
+                    "repositories": {
+                      "arrayValue": {
+                        "values": [
+                          { "stringValue": "J-Quants/jquants-api-client-python" },
+                          { "stringValue": "microsoft/qlib" },
+                          { "stringValue": "polakowo/vectorbt" }
+                        ]
+                      }
+                    },
+                    "includeReadme": { "booleanValue": true },
+                    "includeReleases": { "booleanValue": true },
+                    "maxItemsPerRun": { "integerValue": "200" },
+                    "soWhatThreshold": { "doubleValue": 0.7 },
+                    "scoringWeights": {
+                      "mapValue": {
+                        "fields": {
+                          "freshness": { "doubleValue": 0.25 },
+                          "credibility": { "doubleValue": 0.25 },
+                          "reproducibility": { "doubleValue": 0.25 },
+                          "marketRelevance": { "doubleValue": 0.25 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "updatedAt": { "timestampValue": "2026-03-03T00:00:00Z" },
         "updatedBy": { "stringValue": "system" }
       }
     }

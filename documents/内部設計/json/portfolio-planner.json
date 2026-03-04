@@ -24,8 +24,7 @@
       "Firestore:positions",
       "Firestore:settings",
       "Firestore:orders",
-      "Firestore:idempotency_keys",
-      "Firestore:audit_logs"
+      "Firestore:idempotency_keys"
     ],
     "messaging": [
       "Pub/Sub"

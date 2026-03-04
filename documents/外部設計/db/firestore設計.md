@@ -1,6 +1,6 @@
 # Firestore設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 
 ## 1. 目的
 
@@ -68,7 +68,8 @@
 ### 3.4 `orders`
 
 用途:
-- 注文候補〜執行結果の状態管理
+- 注文候補（提案）の正本管理（`portfolio-planner` オーナー）
+- 注文一覧表示の基底データ（審査/執行状態は `risk_assessments` / `order_executions` を参照して統合）
 
 ドキュメントID:
 - `identifier` (ULID)
@@ -78,10 +79,8 @@
 - `symbol`
 - `side` (`BUY` / `SELL`)
 - `qty`
-- `status` (`PROPOSED` / `APPROVED` / `REJECTED` / `EXECUTED` / `FAILED`)
-- `reasonCode` (string, optional)
+- `status` (`PROPOSED`)
 - `proposal` (string)
-- `brokerOrder` (string, optional)
 - `trace` (string)
 - `createdAt` (timestamp)
 - `updatedAt` (timestamp)
@@ -191,6 +190,8 @@
 - `sourceType` (`x` / `youtube` / `paper` / `github`)
 - `sourceUrl`
 - `evidenceSnippet`
+- `signalClass` (`structural_anomaly` / `event_noise`)
+- `soWhatScore` (number, `0.0-1.0`)
 - `skillVersion`
 - `collectedAt`
 - `expiresAt` (timestamp, TTL optional)
@@ -303,6 +304,33 @@
 - `termsVersion` (string)
 - `redistributionAllowed` (boolean)
 - `dailyQuota` (number)
+- `sourceConfig` (map)
+- `sourceConfig.x.accountHandles` (array<string>, sourceType=`x` の場合必須)
+- `sourceConfig.x.keywordQuery` (string)
+- `sourceConfig.x.excludeKeywords` (array<string>)
+- `sourceConfig.x.includeReplies` (boolean, default=false)
+- `sourceConfig.x.minEngagement` (number, default=3)
+- `sourceConfig.x.soWhatThreshold` (number, default=0.70)
+- `sourceConfig.x.scoringWeights` (map{freshness,credibility,reproducibility,marketRelevance})
+- `sourceConfig.youtube.channelIdentifiers` (array<string>, sourceType=`youtube` の場合必須)
+- `sourceConfig.youtube.keywordQuery` (string)
+- `sourceConfig.youtube.includeLive` (boolean, default=true)
+- `sourceConfig.youtube.includeComments` (boolean, default=true)
+- `sourceConfig.youtube.maxCommentsPerVideo` (number, default=20)
+- `sourceConfig.youtube.transcriptProvider` (`none` / `approved`)
+- `sourceConfig.youtube.soWhatThreshold` (number, default=0.70)
+- `sourceConfig.youtube.scoringWeights` (map{freshness,credibility,reproducibility,marketRelevance})
+- `sourceConfig.paper.providers` (array<string>, sourceType=`paper` の場合必須)
+- `sourceConfig.paper.query` (string)
+- `sourceConfig.paper.maxItemsPerRun` (number, default=200)
+- `sourceConfig.paper.soWhatThreshold` (number, default=0.70)
+- `sourceConfig.paper.scoringWeights` (map{freshness,credibility,reproducibility,marketRelevance})
+- `sourceConfig.github.repositories` (array<string>, sourceType=`github` の場合必須)
+- `sourceConfig.github.includeReadme` (boolean, default=true)
+- `sourceConfig.github.includeReleases` (boolean, default=true)
+- `sourceConfig.github.maxItemsPerRun` (number, default=200)
+- `sourceConfig.github.soWhatThreshold` (number, default=0.70)
+- `sourceConfig.github.scoringWeights` (map{freshness,credibility,reproducibility,marketRelevance})
 - `updatedAt` (timestamp)
 - `updatedBy` (string)
 
@@ -323,13 +351,68 @@
 - `updatedAt`
 - `updatedBy`
 
+### 3.18 `risk_assessments`
+
+用途:
+- 注文審査結果の正本管理（`risk-guard` オーナー）
+
+ドキュメントID:
+- `identifier`
+
+主要フィールド:
+- `identifier`
+- `order`
+- `decision` (`approved` / `rejected`)
+- `reasonCode` (string, optional)
+- `actionReasonCode` (string, optional)
+- `trace`
+- `evaluatedAt`
+- `version`
+
+### 3.19 `order_executions`
+
+用途:
+- 注文執行結果の正本管理（`execution` オーナー）
+
+ドキュメントID:
+- `identifier`
+
+主要フィールド:
+- `identifier`
+- `status` (`APPROVED` / `EXECUTED` / `FAILED`)
+- `attemptCount`
+- `brokerOrder` (string, optional)
+- `reasonCode` (string, optional)
+- `trace`
+- `executedAt` (timestamp, optional)
+- `updatedAt` (timestamp)
+- `version`
+
+### 3.20 `access_decisions`
+
+用途:
+- BFFの認証認可判定結果を保持（`bff` オーナー）
+
+ドキュメントID:
+- `identifier`
+
+主要フィールド:
+- `identifier`
+- `trace`
+- `user`
+- `endpoint`
+- `permission`
+- `result` (`allow` / `deny`)
+- `reasonCode` (string, optional)
+- `decidedAt` (timestamp)
+
 ## 4. 主要アクセスパターン
 
 | 画面/サービス | クエリ | 期待件数 |
 |---|---|---|
 | SCR-001 ダッシュボード | `operations/runtime` 直接取得 | 1件 |
 | SCR-002 戦略設定 | `settings/strategy` 直接取得・更新 | 1件 |
-| SCR-003 注文管理 | `orders` を `status` + `createdAt desc` で取得 | 50件/ページ |
+| SCR-003 注文管理 | `orders` + `risk_assessments` + `order_executions` を `identifier` で統合し `createdAt desc` で取得 | 50件/ページ |
 | SCR-004 監査ログ | `audit_logs` を `trace` or `eventType` + `occurredAt desc` で取得 | 50件/ページ |
 | SCR-005 モデル検証 | `model_registry` を `status` + `createdAt desc` で取得 | 20件 |
 | risk-guard | `operations/runtime` と `settings/strategy` と `compliance_controls/trading` を点取得 | 3件 |
@@ -344,9 +427,9 @@
 - `外部設計/db/firestore.indexes.json`
 
 主要複合インデックス:
-1. `orders(status ASC, createdAt DESC)`
+1. `orders(createdAt DESC)`
 2. `orders(symbol ASC, createdAt DESC)`
-3. `orders(status ASC, symbol ASC, createdAt DESC)`
+3. `orders(symbol ASC, side ASC, createdAt DESC)`
 4. `audit_logs(trace ASC, occurredAt DESC)`
 5. `audit_logs(eventType ASC, occurredAt DESC)`
 6. `model_registry(status ASC, createdAt DESC)`
@@ -355,6 +438,9 @@
 9. `failure_knowledge(similarityHash ASC, createdAt DESC)`
 10. `source_policies(sourceType ASC, enabled ASC, updatedAt DESC)`
 11. `code_reference_templates(scope ASC, updatedAt DESC)`
+12. `risk_assessments(decision ASC, evaluatedAt DESC)`
+13. `order_executions(status ASC, updatedAt DESC)`
+14. `access_decisions(user ASC, decidedAt DESC)`
 
 ## 6. TTL設計
 
@@ -369,7 +455,7 @@ TTL対象:
 ## 7. 整合性と同時更新
 
 1. 更新競合対策
-- `orders`, `settings`, `operations` は `version` を持ち、楽観ロックで更新する。
+- `orders`, `risk_assessments`, `order_executions`, `settings`, `operations` は `version` を持ち、楽観ロックで更新する。
 
 2. トランザクション方針
 - 単一ドキュメント更新は通常更新。

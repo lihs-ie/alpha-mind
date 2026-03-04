@@ -4,6 +4,7 @@ required:
 - enabled
 - termsVersion
 - redistributionAllowed
+- sourceConfig
 properties:
   sourceType:
     type: string
@@ -22,9 +23,306 @@ properties:
   dailyQuota:
     type: integer
     minimum: 1
+  sourceConfig:
+    type: object
+    description: ソース別収集設定。sourceTypeごとに対応するオブジェクトを設定する。
+    properties:
+      x:
+        type: object
+        properties:
+          accountHandles:
+            type: array
+            minItems: 1
+            items:
+              type: string
+            description: 監視対象のXアカウント（@なし）
+          keywordQuery:
+            type: string
+            description: recent searchへ渡す追加クエリ
+          excludeKeywords:
+            type: array
+            items:
+              type: string
+          includeReplies:
+            type: boolean
+            default: false
+          minEngagement:
+            type: integer
+            minimum: 0
+            default: 3
+          soWhatThreshold:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0.7
+          scoringWeights:
+            type: object
+            properties:
+              freshness:
+                type: number
+                minimum: 0
+              credibility:
+                type: number
+                minimum: 0
+              reproducibility:
+                type: number
+                minimum: 0
+              marketRelevance:
+                type: number
+                minimum: 0
+      youtube:
+        type: object
+        properties:
+          channelIdentifiers:
+            type: array
+            minItems: 1
+            items:
+              type: string
+            description: 監視対象のYouTube channelIdentifier
+          keywordQuery:
+            type: string
+          includeLive:
+            type: boolean
+            default: true
+          includeComments:
+            type: boolean
+            default: true
+          maxCommentsPerVideo:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          transcriptProvider:
+            type: string
+            enum:
+            - none
+            - approved
+            default: none
+          soWhatThreshold:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0.7
+          scoringWeights:
+            type: object
+            properties:
+              freshness:
+                type: number
+                minimum: 0
+              credibility:
+                type: number
+                minimum: 0
+              reproducibility:
+                type: number
+                minimum: 0
+              marketRelevance:
+                type: number
+                minimum: 0
+      paper:
+        type: object
+        properties:
+          providers:
+            type: array
+            minItems: 1
+            items:
+              type: string
+              enum:
+              - arxiv
+              - openalex
+              - crossref
+              - nber
+          query:
+            type: string
+          maxItemsPerRun:
+            type: integer
+            minimum: 1
+            maximum: 2000
+            default: 200
+          soWhatThreshold:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0.7
+          scoringWeights:
+            type: object
+            properties:
+              freshness:
+                type: number
+                minimum: 0
+              credibility:
+                type: number
+                minimum: 0
+              reproducibility:
+                type: number
+                minimum: 0
+              marketRelevance:
+                type: number
+                minimum: 0
+      github:
+        type: object
+        properties:
+          repositories:
+            type: array
+            minItems: 1
+            items:
+              type: string
+              pattern: "^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$"
+          includeReadme:
+            type: boolean
+            default: true
+          includeReleases:
+            type: boolean
+            default: true
+          maxItemsPerRun:
+            type: integer
+            minimum: 1
+            maximum: 2000
+            default: 200
+          soWhatThreshold:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0.7
+          scoringWeights:
+            type: object
+            properties:
+              freshness:
+                type: number
+                minimum: 0
+              credibility:
+                type: number
+                minimum: 0
+              reproducibility:
+                type: number
+                minimum: 0
+              marketRelevance:
+                type: number
+                minimum: 0
+oneOf:
+- description: X収集ポリシー
+  type: object
+  required:
+  - sourceType
+  - sourceConfig
+  properties:
+    sourceType:
+      type: string
+      enum:
+      - x
+    sourceConfig:
+      type: object
+      required:
+      - x
+      properties:
+        x:
+          type: object
+          required:
+          - accountHandles
+          properties:
+            accountHandles:
+              type: array
+              minItems: 1
+              items:
+                type: string
+- description: YouTube収集ポリシー
+  type: object
+  required:
+  - sourceType
+  - sourceConfig
+  properties:
+    sourceType:
+      type: string
+      enum:
+      - youtube
+    sourceConfig:
+      type: object
+      required:
+      - youtube
+      properties:
+        youtube:
+          type: object
+          required:
+          - channelIdentifiers
+          properties:
+            channelIdentifiers:
+              type: array
+              minItems: 1
+              items:
+                type: string
+- description: 論文収集ポリシー
+  type: object
+  required:
+  - sourceType
+  - sourceConfig
+  properties:
+    sourceType:
+      type: string
+      enum:
+      - paper
+    sourceConfig:
+      type: object
+      required:
+      - paper
+      properties:
+        paper:
+          type: object
+          required:
+          - providers
+          properties:
+            providers:
+              type: array
+              minItems: 1
+              items:
+                type: string
+- description: GitHub収集ポリシー
+  type: object
+  required:
+  - sourceType
+  - sourceConfig
+  properties:
+    sourceType:
+      type: string
+      enum:
+      - github
+    sourceConfig:
+      type: object
+      required:
+      - github
+      properties:
+        github:
+          type: object
+          required:
+          - repositories
+          properties:
+            repositories:
+              type: array
+              minItems: 1
+              items:
+                type: string
+- description: nisshokin収集ポリシー
+  type: object
+  required:
+  - sourceType
+  - sourceConfig
+  properties:
+    sourceType:
+      type: string
+      enum:
+      - nisshokin
+    sourceConfig:
+      type: object
 example:
   sourceType: youtube
   enabled: true
   termsVersion: v2026-01
   redistributionAllowed: false
-  dailyQuota: 500
+  dailyQuota: 8000
+  sourceConfig:
+    youtube:
+      channelIdentifiers:
+      - UCvixJtaXuNdMPUGdOPcY8Ag
+      keywordQuery: 日本株 決算
+      includeLive: true
+      includeComments: true
+      maxCommentsPerVideo: 20
+      transcriptProvider: none

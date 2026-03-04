@@ -6,6 +6,25 @@ properties:
     "$ref": "./index.yaml#/ReasonCode"
   detail:
     type: string
+  sourceType:
+    type: string
+    enum:
+    - x
+    - youtube
+    - paper
+    - github
+    - nisshokin
+  stage:
+    type: string
+    enum:
+    - validate_request
+    - validate_policy
+    - collect
+    - normalize
+    - persist
+    - publish
+  sourceIdentifier:
+    type: string
   complianceContext:
     type: object
     properties:
@@ -16,4 +35,7 @@ properties:
       requiresHumanReview:
         type: boolean
 example:
-  reasonCode: EXECUTION_BROKER_TIMEOUT
+  reasonCode: COMPLIANCE_SOURCE_UNAPPROVED
+  detail: source policy is not approved
+  sourceType: youtube
+  stage: validate_policy

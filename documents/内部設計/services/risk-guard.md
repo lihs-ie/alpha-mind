@@ -1,6 +1,6 @@
 # risk-guard 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/risk-guard.json`
 
 ## 1. サービス概要
@@ -30,7 +30,7 @@ JSON対応: `内部設計/json/risk-guard.json`
 
 ## 4. 依存関係
 
-- Firestore: `settings`, `operations`, `compliance_controls`, `orders`, `idempotency_keys`, `audit_logs`
+- Firestore: `settings`, `operations`, `compliance_controls`, `risk_assessments`, `idempotency_keys`
 - Messaging: Pub/Sub
 
 ## 5. 処理フロー
@@ -39,7 +39,7 @@ JSON対応: `内部設計/json/risk-guard.json`
 2. kill switch状態確認
 3. リスク制約評価
 4. 承認/却下判定
-5. 注文状態更新
+5. 審査結果保存（`risk_assessments`）
 6. 判定イベント発行
 
 ## 6. リスクルール
