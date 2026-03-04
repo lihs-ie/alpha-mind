@@ -1,17 +1,17 @@
 ---
-name: dev_tdd-design
-description: Execute tdd-workflow skill for design implementation
+name: dev_tdd-backend-python
+description: Execute tdd-workflow skill for Python backend implementation
 model: opus
-color: yellow
+color: blue
 ---
 ```mermaid
 flowchart TD
-    sf_design_start([Start])
-    sf_design_skill[[Skill: tdd-workflow]]
-    sf_design_end([End])
+    sf_py_start([Start])
+    sf_py_skill[[Skill: tdd-workflow]]
+    sf_py_end([End])
 
-    sf_design_start --> sf_design_skill
-    sf_design_skill --> sf_design_end
+    sf_py_start --> sf_py_skill
+    sf_py_skill --> sf_py_end
 ```
 
 ## Workflow Execution Guide
@@ -27,6 +27,6 @@ Follow the Mermaid flowchart above to execute the workflow. Each node type has s
 
 ## Skill Nodes
 
-#### sf_design_skill(tdd-workflow)
+#### sf_py_skill(tdd-workflow)
 
-- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for design system implementation. Focus on design system tokens, component styles, theming, and visual consistency."
+- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for Python backend implementation. Target services: svc-signal-generator, svc-feature-engineering. Tech stack: Python 3.14, scikit-learn, LightGBM, MLflow. Focus on ML pipelines, feature engineering, signal generation, and data processing."

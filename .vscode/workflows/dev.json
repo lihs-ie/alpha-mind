@@ -1,5 +1,5 @@
 {
-  "id": "workflow-1772624031889",
+  "id": "workflow-1772658222023",
   "name": "dev",
   "version": "1.0.0",
   "nodes": [
@@ -40,7 +40,7 @@
       },
       "data": {
         "description": "Understand requirements and decompose into domain tasks",
-        "prompt": "Phase 1 - Task Understanding: Read and analyze all relevant project documentation to understand the requirements, architecture, and constraints. Review CLAUDE.md, design documents, and any referenced specification files to build comprehensive context for the task.\n\nPhase 2 - Task Decomposition: Decompose the task into subtasks and determine which domains (Frontend, Backend, Infrastructure, Design) need work. If only one domain is affected, route to that domain's solo branch. If multiple domains are affected, route to the default branch for parallel execution across all domains.",
+        "prompt": "Phase 1 - Task Understanding: Read and analyze all relevant project documentation to understand the requirements, architecture, and constraints. Review CLAUDE.md, design documents, and any referenced specification files to build comprehensive context for the task.\n\nPhase 2 - Task Decomposition: Decompose the task into subtasks and determine which domains (Frontend, Backend, Infrastructure, Design) need work. If only one domain is affected, route to that domain's solo branch. If multiple domains are affected, route to the default branch for parallel execution across all domains.\n\nFor Backend tasks, also determine whether the target service uses Haskell (svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log) or Python (svc-signal-generator, svc-feature-engineering).",
         "model": "opus",
         "outputPorts": 1
       }
@@ -86,15 +86,16 @@
       "type": "subAgentFlow",
       "name": "fe-eng-solo",
       "position": {
-        "x": 1300,
-        "y": -100
+        "x": 1305,
+        "y": -195
       },
       "data": {
         "subAgentFlowId": "tdd-frontend-flow",
         "label": "TDD-Frontend",
         "description": "TDD frontend implementation via tdd-workflow skill",
         "outputPorts": 1,
-        "color": "red"
+        "color": "red",
+        "model": "opus"
       }
     },
     {
@@ -103,7 +104,7 @@
       "name": "fe-rev-solo",
       "position": {
         "x": 1600,
-        "y": -100
+        "y": -200
       },
       "data": {
         "description": "Review and fix frontend code (solo)",
@@ -114,32 +115,91 @@
       }
     },
     {
-      "id": "be-eng-solo",
-      "type": "subAgentFlow",
-      "name": "be-eng-solo",
+      "id": "be-lang-switch-solo",
+      "type": "ifElse",
+      "name": "be-lang-switch-solo",
       "position": {
-        "x": 1300,
-        "y": 200
+        "x": 1305,
+        "y": 195
       },
       "data": {
-        "subAgentFlowId": "tdd-backend-flow",
-        "label": "TDD-Backend",
-        "description": "TDD backend implementation via tdd-workflow skill",
-        "outputPorts": 1,
-        "color": "blue"
+        "evaluationTarget": "Backend service language: Haskell or Python",
+        "branches": [
+          {
+            "label": "Haskell",
+            "condition": "Target service uses Haskell (svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log)",
+            "id": "ifelse_0_1772657754828"
+          },
+          {
+            "label": "Python",
+            "condition": "Target service uses Python (svc-signal-generator, svc-feature-engineering)",
+            "id": "ifelse_1_1772657754828"
+          }
+        ],
+        "outputPorts": 2
       }
     },
     {
-      "id": "be-rev-solo",
-      "type": "subAgent",
-      "name": "be-rev-solo",
+      "id": "be-hs-eng-solo",
+      "type": "subAgentFlow",
+      "name": "be-hs-eng-solo",
       "position": {
         "x": 1600,
-        "y": 200
+        "y": 50
       },
       "data": {
-        "description": "Review and fix backend code (solo)",
-        "prompt": "Review the backend code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.",
+        "subAgentFlowId": "tdd-backend-haskell-flow",
+        "label": "TDD-Haskell",
+        "description": "TDD Haskell backend implementation via tdd-workflow skill",
+        "outputPorts": 1,
+        "color": "blue",
+        "model": "opus"
+      }
+    },
+    {
+      "id": "be-hs-rev-solo",
+      "type": "subAgent",
+      "name": "be-hs-rev-solo",
+      "position": {
+        "x": 1900,
+        "y": 50
+      },
+      "data": {
+        "description": "Review Haskell backend code (solo)",
+        "prompt": "Review the Haskell backend code changes. Perform the following checks:\n1. Run HLint and fix all warnings\n2. Run fourmolu formatter and ensure code is properly formatted\n3. Measure test coverage and ensure 100% coverage\n4. Verify the implementation correctly fulfills all requirements from the design documents\n\nFix any issues found during review.",
+        "model": "opus",
+        "color": "cyan",
+        "outputPorts": 1
+      }
+    },
+    {
+      "id": "be-py-eng-solo",
+      "type": "subAgentFlow",
+      "name": "be-py-eng-solo",
+      "position": {
+        "x": 1605,
+        "y": 300
+      },
+      "data": {
+        "subAgentFlowId": "tdd-backend-python-flow",
+        "label": "TDD-Python",
+        "description": "TDD Python backend implementation via tdd-workflow skill",
+        "outputPorts": 1,
+        "color": "blue",
+        "model": "opus"
+      }
+    },
+    {
+      "id": "be-py-rev-solo",
+      "type": "subAgent",
+      "name": "be-py-rev-solo",
+      "position": {
+        "x": 1905,
+        "y": 300
+      },
+      "data": {
+        "description": "Review Python backend code (solo)",
+        "prompt": "Review the Python backend code changes. Perform the following checks:\n1. Run ruff linter and fix all issues\n2. Run all tests and ensure they pass\n3. Measure test coverage and ensure 100% coverage\n4. Verify the implementation correctly fulfills all requirements from the design documents\n\nFix any issues found during review.",
         "model": "opus",
         "color": "cyan",
         "outputPorts": 1
@@ -150,15 +210,16 @@
       "type": "subAgentFlow",
       "name": "infra-eng-solo",
       "position": {
-        "x": 1300,
-        "y": 500
+        "x": 1305,
+        "y": 555
       },
       "data": {
         "subAgentFlowId": "tdd-infrastructure-flow",
         "label": "TDD-Infrastructure",
         "description": "TDD infrastructure implementation via tdd-workflow skill",
         "outputPorts": 1,
-        "color": "green"
+        "color": "green",
+        "model": "opus"
       }
     },
     {
@@ -167,7 +228,7 @@
       "name": "infra-rev-solo",
       "position": {
         "x": 1600,
-        "y": 500
+        "y": 550
       },
       "data": {
         "description": "Review and fix infrastructure code (solo)",
@@ -183,14 +244,15 @@
       "name": "designer-solo",
       "position": {
         "x": 1300,
-        "y": 800
+        "y": 850
       },
       "data": {
         "subAgentFlowId": "tdd-design-flow",
         "label": "TDD-Design",
         "description": "TDD design implementation via tdd-workflow skill",
         "outputPorts": 1,
-        "color": "yellow"
+        "color": "yellow",
+        "model": "opus"
       }
     },
     {
@@ -199,7 +261,7 @@
       "name": "design-rev-solo",
       "position": {
         "x": 1600,
-        "y": 800
+        "y": 850
       },
       "data": {
         "description": "Review and fix design compliance (solo)",
@@ -214,13 +276,13 @@
       "type": "subAgent",
       "name": "task-distributor-1",
       "position": {
-        "x": 1300,
-        "y": 1200
+        "x": 1305,
+        "y": 1305
       },
       "data": {
         "description": "Distribute tasks to all domain engineers",
         "prompt": "Distribute the decomposed tasks to all domain engineers (Frontend, Backend, Infrastructure, Design) for parallel execution.",
-        "model": "sonnet",
+        "model": "opus",
         "color": "yellow",
         "outputPorts": 1
       }
@@ -231,7 +293,7 @@
       "name": "fe-eng-all",
       "position": {
         "x": 1600,
-        "y": 1000
+        "y": 1050
       },
       "data": {
         "subAgentFlowId": "tdd-frontend-flow",
@@ -246,7 +308,7 @@
       "name": "fe-rev-all",
       "position": {
         "x": 1900,
-        "y": 1000
+        "y": 1050
       },
       "data": {
         "description": "Review and fix frontend (all domains)",
@@ -257,31 +319,89 @@
       }
     },
     {
-      "id": "be-eng-all",
-      "type": "subAgentFlow",
-      "name": "be-eng-all",
+      "id": "be-lang-switch-all",
+      "type": "ifElse",
+      "name": "be-lang-switch-all",
       "position": {
         "x": 1600,
-        "y": 1200
+        "y": 1300
       },
       "data": {
-        "subAgentFlowId": "tdd-backend-flow",
-        "label": "TDD-Backend",
-        "description": "TDD backend implementation via tdd-workflow skill",
-        "outputPorts": 1
+        "evaluationTarget": "Backend service language: Haskell or Python",
+        "branches": [
+          {
+            "label": "Haskell",
+            "condition": "Target service uses Haskell (svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log)"
+          },
+          {
+            "label": "Python",
+            "condition": "Target service uses Python (svc-signal-generator, svc-feature-engineering)"
+          }
+        ],
+        "outputPorts": 2
       }
     },
     {
-      "id": "be-rev-all",
-      "type": "subAgent",
-      "name": "be-rev-all",
+      "id": "be-hs-eng-all",
+      "type": "subAgentFlow",
+      "name": "be-hs-eng-all",
       "position": {
         "x": 1900,
         "y": 1200
       },
       "data": {
-        "description": "Review and fix backend (all domains)",
-        "prompt": "Review the backend code changes for quality, correctness, and adherence to project conventions. Fix any issues found during review.",
+        "subAgentFlowId": "tdd-backend-haskell-flow",
+        "label": "TDD-Haskell",
+        "description": "TDD Haskell backend implementation via tdd-workflow skill",
+        "outputPorts": 1,
+        "color": "blue",
+        "model": "opus"
+      }
+    },
+    {
+      "id": "be-hs-rev-all",
+      "type": "subAgent",
+      "name": "be-hs-rev-all",
+      "position": {
+        "x": 2200,
+        "y": 1200
+      },
+      "data": {
+        "description": "Review Haskell backend code (all domains)",
+        "prompt": "Review the Haskell backend code changes. Perform the following checks:\n1. Run HLint and fix all warnings\n2. Run fourmolu formatter and ensure code is properly formatted\n3. Measure test coverage and ensure 100% coverage\n4. Verify the implementation correctly fulfills all requirements from the design documents\n\nFix any issues found during review.",
+        "model": "opus",
+        "color": "cyan",
+        "outputPorts": 1
+      }
+    },
+    {
+      "id": "be-py-eng-all",
+      "type": "subAgentFlow",
+      "name": "be-py-eng-all",
+      "position": {
+        "x": 1900,
+        "y": 1400
+      },
+      "data": {
+        "subAgentFlowId": "tdd-backend-python-flow",
+        "label": "TDD-Python",
+        "description": "TDD Python backend implementation via tdd-workflow skill",
+        "outputPorts": 1,
+        "color": "blue",
+        "model": "opus"
+      }
+    },
+    {
+      "id": "be-py-rev-all",
+      "type": "subAgent",
+      "name": "be-py-rev-all",
+      "position": {
+        "x": 2200,
+        "y": 1400
+      },
+      "data": {
+        "description": "Review Python backend code (all domains)",
+        "prompt": "Review the Python backend code changes. Perform the following checks:\n1. Run ruff linter and fix all issues\n2. Run all tests and ensure they pass\n3. Measure test coverage and ensure 100% coverage\n4. Verify the implementation correctly fulfills all requirements from the design documents\n\nFix any issues found during review.",
         "model": "opus",
         "color": "cyan",
         "outputPorts": 1
@@ -293,13 +413,14 @@
       "name": "infra-eng-all",
       "position": {
         "x": 1600,
-        "y": 1400
+        "y": 1600
       },
       "data": {
         "subAgentFlowId": "tdd-infrastructure-flow",
         "label": "TDD-Infrastructure",
         "description": "TDD infrastructure implementation via tdd-workflow skill",
-        "outputPorts": 1
+        "outputPorts": 1,
+        "model": "opus"
       }
     },
     {
@@ -308,7 +429,7 @@
       "name": "infra-rev-all",
       "position": {
         "x": 1900,
-        "y": 1400
+        "y": 1600
       },
       "data": {
         "description": "Review and fix infrastructure (all domains)",
@@ -324,13 +445,14 @@
       "name": "designer-all",
       "position": {
         "x": 1600,
-        "y": 1600
+        "y": 1850
       },
       "data": {
         "subAgentFlowId": "tdd-design-flow",
         "label": "TDD-Design",
         "description": "TDD design implementation via tdd-workflow skill",
-        "outputPorts": 1
+        "outputPorts": 1,
+        "model": "opus"
       }
     },
     {
@@ -339,7 +461,7 @@
       "name": "design-rev-all",
       "position": {
         "x": 1900,
-        "y": 1600
+        "y": 1850
       },
       "data": {
         "description": "Review and fix design (all domains)",
@@ -354,7 +476,7 @@
       "type": "subAgent",
       "name": "git-finalize-1",
       "position": {
-        "x": 2200,
+        "x": 2500,
         "y": 600
       },
       "data": {
@@ -369,7 +491,7 @@
       "type": "end",
       "name": "end-1",
       "position": {
-        "x": 2500,
+        "x": 2800,
         "y": 600
       },
       "data": {
@@ -407,13 +529,6 @@
       "toPort": "input"
     },
     {
-      "id": "c6",
-      "from": "domain-switch-1",
-      "to": "be-eng-solo",
-      "fromPort": "branch-1",
-      "toPort": "input"
-    },
-    {
       "id": "c7",
       "from": "domain-switch-1",
       "to": "infra-eng-solo",
@@ -443,147 +558,210 @@
     },
     {
       "id": "c11",
-      "from": "be-eng-solo",
-      "to": "be-rev-solo",
-      "fromPort": "output",
+      "from": "be-lang-switch-solo",
+      "to": "be-hs-eng-solo",
+      "fromPort": "branch-0",
       "toPort": "input"
     },
     {
       "id": "c12",
+      "from": "be-lang-switch-solo",
+      "to": "be-py-eng-solo",
+      "fromPort": "branch-1",
+      "toPort": "input"
+    },
+    {
+      "id": "c13",
+      "from": "be-hs-eng-solo",
+      "to": "be-hs-rev-solo",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c14",
+      "from": "be-py-eng-solo",
+      "to": "be-py-rev-solo",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c15",
       "from": "infra-eng-solo",
       "to": "infra-rev-solo",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c13",
+      "id": "c16",
       "from": "designer-solo",
       "to": "design-rev-solo",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c14",
+      "id": "c17",
       "from": "task-distributor-1",
       "to": "fe-eng-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c15",
+      "id": "c18",
       "from": "task-distributor-1",
-      "to": "be-eng-all",
+      "to": "be-lang-switch-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c16",
+      "id": "c19",
       "from": "task-distributor-1",
       "to": "infra-eng-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c17",
+      "id": "c20",
       "from": "task-distributor-1",
       "to": "designer-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c18",
+      "id": "c21",
       "from": "fe-eng-all",
       "to": "fe-rev-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c19",
-      "from": "be-eng-all",
-      "to": "be-rev-all",
+      "id": "c22",
+      "from": "be-lang-switch-all",
+      "to": "be-hs-eng-all",
+      "fromPort": "branch-0",
+      "toPort": "input"
+    },
+    {
+      "id": "c23",
+      "from": "be-lang-switch-all",
+      "to": "be-py-eng-all",
+      "fromPort": "branch-1",
+      "toPort": "input"
+    },
+    {
+      "id": "c24",
+      "from": "be-hs-eng-all",
+      "to": "be-hs-rev-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c20",
+      "id": "c25",
+      "from": "be-py-eng-all",
+      "to": "be-py-rev-all",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c26",
       "from": "infra-eng-all",
       "to": "infra-rev-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c21",
+      "id": "c27",
       "from": "designer-all",
       "to": "design-rev-all",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c22",
+      "id": "c28",
       "from": "fe-rev-solo",
       "to": "git-finalize-1",
       "fromPort": "output",
       "toPort": "input"
     },
     {
-      "id": "c23",
-      "from": "be-rev-solo",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
-      "id": "c24",
-      "from": "infra-rev-solo",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
-      "id": "c25",
-      "from": "design-rev-solo",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
-      "id": "c26",
-      "from": "fe-rev-all",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
-      "id": "c27",
-      "from": "be-rev-all",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
-      "id": "c28",
-      "from": "infra-rev-all",
-      "to": "git-finalize-1",
-      "fromPort": "output",
-      "toPort": "input"
-    },
-    {
       "id": "c29",
-      "from": "design-rev-all",
+      "from": "be-hs-rev-solo",
       "to": "git-finalize-1",
       "fromPort": "output",
       "toPort": "input"
     },
     {
       "id": "c30",
+      "from": "be-py-rev-solo",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c31",
+      "from": "infra-rev-solo",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c32",
+      "from": "design-rev-solo",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c33",
+      "from": "fe-rev-all",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c34",
+      "from": "be-hs-rev-all",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c35",
+      "from": "be-py-rev-all",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c36",
+      "from": "infra-rev-all",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c37",
+      "from": "design-rev-all",
+      "to": "git-finalize-1",
+      "fromPort": "output",
+      "toPort": "input"
+    },
+    {
+      "id": "c38",
       "from": "git-finalize-1",
       "to": "end-1",
       "fromPort": "output",
       "toPort": "input"
+    },
+    {
+      "id": "reactflow__edge-domain-switch-1branch-1-be-lang-switch-soloinput",
+      "from": "domain-switch-1",
+      "to": "be-lang-switch-solo",
+      "fromPort": "branch-1",
+      "toPort": "input"
     }
   ],
-  "createdAt": "2026-03-04T11:33:51.889Z",
-  "updatedAt": "2026-03-04T11:33:51.889Z",
+  "createdAt": "2026-03-04T21:03:42.023Z",
+  "updatedAt": "2026-03-04T21:03:42.023Z",
   "subAgentFlows": [
     {
       "id": "tdd-frontend-flow",
@@ -617,7 +795,7 @@
             "skillPath": ".claude/skills/tdd-workflow/SKILL.md",
             "validationStatus": "valid",
             "executionMode": "execute",
-            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for frontend implementation. Focus on UI components, client-side logic, routing, and state management. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green.",
+            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for frontend implementation. Focus on UI components, client-side logic, routing, and state management.",
             "outputPorts": 1
           }
         },
@@ -652,14 +830,14 @@
       ]
     },
     {
-      "id": "tdd-backend-flow",
-      "name": "TDD-Backend",
-      "description": "Execute tdd-workflow skill for backend implementation",
+      "id": "tdd-backend-haskell-flow",
+      "name": "TDD-Backend-Haskell",
+      "description": "Execute tdd-workflow skill for Haskell backend implementation",
       "nodes": [
         {
-          "id": "sf-be-start",
+          "id": "sf-hs-start",
           "type": "start",
-          "name": "sf-be-start",
+          "name": "sf-hs-start",
           "position": {
             "x": 100,
             "y": 300
@@ -669,9 +847,9 @@
           }
         },
         {
-          "id": "sf-be-skill",
+          "id": "sf-hs-skill",
           "type": "skill",
-          "name": "sf-be-skill",
+          "name": "sf-hs-skill",
           "position": {
             "x": 400,
             "y": 300
@@ -683,14 +861,14 @@
             "skillPath": ".claude/skills/tdd-workflow/SKILL.md",
             "validationStatus": "valid",
             "executionMode": "execute",
-            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for backend implementation. Focus on API endpoints, business logic, data access, and service layer. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green.",
+            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for Haskell backend implementation. Target services: svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log. Tech stack: GHC 9.12.2, Cabal, Servant, Warp, aeson, hspec + QuickCheck. Focus on API endpoints, business logic, domain types, and service layer.",
             "outputPorts": 1
           }
         },
         {
-          "id": "sf-be-end",
+          "id": "sf-hs-end",
           "type": "end",
-          "name": "sf-be-end",
+          "name": "sf-hs-end",
           "position": {
             "x": 700,
             "y": 300
@@ -702,16 +880,82 @@
       ],
       "connections": [
         {
-          "id": "sf-be-c1",
-          "from": "sf-be-start",
-          "to": "sf-be-skill",
+          "id": "sf-hs-c1",
+          "from": "sf-hs-start",
+          "to": "sf-hs-skill",
           "fromPort": "output",
           "toPort": "input"
         },
         {
-          "id": "sf-be-c2",
-          "from": "sf-be-skill",
-          "to": "sf-be-end",
+          "id": "sf-hs-c2",
+          "from": "sf-hs-skill",
+          "to": "sf-hs-end",
+          "fromPort": "output",
+          "toPort": "input"
+        }
+      ]
+    },
+    {
+      "id": "tdd-backend-python-flow",
+      "name": "TDD-Backend-Python",
+      "description": "Execute tdd-workflow skill for Python backend implementation",
+      "nodes": [
+        {
+          "id": "sf-py-start",
+          "type": "start",
+          "name": "sf-py-start",
+          "position": {
+            "x": 100,
+            "y": 300
+          },
+          "data": {
+            "label": "Start"
+          }
+        },
+        {
+          "id": "sf-py-skill",
+          "type": "skill",
+          "name": "sf-py-skill",
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "data": {
+            "name": "tdd-workflow",
+            "description": "TDD（テスト駆動開発）で実装します。赤-緑-リファクタリングのサイクルに従って開発を進めます。",
+            "scope": "project",
+            "skillPath": ".claude/skills/tdd-workflow/SKILL.md",
+            "validationStatus": "valid",
+            "executionMode": "execute",
+            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for Python backend implementation. Target services: svc-signal-generator, svc-feature-engineering. Tech stack: Python 3.14, scikit-learn, LightGBM, MLflow. Focus on ML pipelines, feature engineering, signal generation, and data processing.",
+            "outputPorts": 1
+          }
+        },
+        {
+          "id": "sf-py-end",
+          "type": "end",
+          "name": "sf-py-end",
+          "position": {
+            "x": 700,
+            "y": 300
+          },
+          "data": {
+            "label": "End"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "sf-py-c1",
+          "from": "sf-py-start",
+          "to": "sf-py-skill",
+          "fromPort": "output",
+          "toPort": "input"
+        },
+        {
+          "id": "sf-py-c2",
+          "from": "sf-py-skill",
+          "to": "sf-py-end",
           "fromPort": "output",
           "toPort": "input"
         }
@@ -749,7 +993,7 @@
             "skillPath": ".claude/skills/tdd-workflow/SKILL.md",
             "validationStatus": "valid",
             "executionMode": "execute",
-            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for infrastructure implementation. Focus on Terraform modules, CI/CD pipelines, cloud resources, and deployment configuration. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green.",
+            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for infrastructure implementation. Focus on Terraform modules, CI/CD pipelines, cloud resources, and deployment configuration.",
             "outputPorts": 1
           }
         },
@@ -815,7 +1059,7 @@
             "skillPath": ".claude/skills/tdd-workflow/SKILL.md",
             "validationStatus": "valid",
             "executionMode": "execute",
-            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for design system implementation. Focus on design system tokens, component styles, theming, and visual consistency. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green.",
+            "executionPrompt": "Execute TDD (Red-Green-Refactor) cycle for design system implementation. Focus on design system tokens, component styles, theming, and visual consistency.",
             "outputPorts": 1
           }
         },

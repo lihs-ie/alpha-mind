@@ -1,7 +1,7 @@
 ---
 name: dev_tdd-infrastructure
 description: Execute tdd-workflow skill for infrastructure implementation
-model: sonnet
+model: opus
 color: green
 ---
 ```mermaid
@@ -29,4 +29,4 @@ Follow the Mermaid flowchart above to execute the workflow. Each node type has s
 
 #### sf_infra_skill(tdd-workflow)
 
-- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for infrastructure implementation. Focus on Terraform modules, CI/CD pipelines, cloud resources, and deployment configuration. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green."
+- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for infrastructure implementation. Focus on Terraform modules, CI/CD pipelines, cloud resources, and deployment configuration."

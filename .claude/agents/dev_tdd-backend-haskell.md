@@ -1,17 +1,17 @@
 ---
-name: dev_tdd-design
-description: Execute tdd-workflow skill for design implementation
+name: dev_tdd-backend-haskell
+description: Execute tdd-workflow skill for Haskell backend implementation
 model: opus
-color: yellow
+color: blue
 ---
 ```mermaid
 flowchart TD
-    sf_design_start([Start])
-    sf_design_skill[[Skill: tdd-workflow]]
-    sf_design_end([End])
+    sf_hs_start([Start])
+    sf_hs_skill[[Skill: tdd-workflow]]
+    sf_hs_end([End])
 
-    sf_design_start --> sf_design_skill
-    sf_design_skill --> sf_design_end
+    sf_hs_start --> sf_hs_skill
+    sf_hs_skill --> sf_hs_end
 ```
 
 ## Workflow Execution Guide
@@ -27,6 +27,6 @@ Follow the Mermaid flowchart above to execute the workflow. Each node type has s
 
 ## Skill Nodes
 
-#### sf_design_skill(tdd-workflow)
+#### sf_hs_skill(tdd-workflow)
 
-- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for design system implementation. Focus on design system tokens, component styles, theming, and visual consistency."
+- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for Haskell backend implementation. Target services: svc-bff, svc-data-collector, svc-portfolio-planner, svc-risk-guard, svc-execution, svc-audit-log. Tech stack: GHC 9.12.2, Cabal, Servant, Warp, aeson, hspec + QuickCheck. Focus on API endpoints, business logic, domain types, and service layer."

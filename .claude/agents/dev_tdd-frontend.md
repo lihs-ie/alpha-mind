@@ -1,7 +1,7 @@
 ---
 name: dev_tdd-frontend
 description: Execute tdd-workflow skill for frontend implementation
-model: sonnet
+model: opus
 color: red
 ---
 ```mermaid
@@ -29,4 +29,4 @@ Follow the Mermaid flowchart above to execute the workflow. Each node type has s
 
 #### sf_fe_skill(tdd-workflow)
 
-- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for frontend implementation. Focus on UI components, client-side logic, routing, and state management. Red: Write failing tests. Green: Implement minimum code to pass. Refactor: Clean up while keeping tests green."
+- **Prompt**: skill "tdd-workflow" "Execute TDD (Red-Green-Refactor) cycle for frontend implementation. Focus on UI components, client-side logic, routing, and state management."
