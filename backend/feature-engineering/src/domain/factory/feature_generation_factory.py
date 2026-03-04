@@ -21,10 +21,12 @@ class FeatureGenerationFactory:
     def __init__(self, feature_version_generator: FeatureVersionGenerator) -> None:
         self._feature_version_generator = feature_version_generator
 
-    @property
-    def feature_version_generator(self) -> FeatureVersionGenerator:
-        """Expose the feature version generator for use by application services."""
-        return self._feature_version_generator
+    def generate_feature_version(self, target_date: datetime.date) -> str:
+        """Generate a unique feature version for the given target date.
+
+        RULE-FE-006: featureVersion は一意に採番し、生成後に変更しない。
+        """
+        return self._feature_version_generator.generate(target_date)
 
     def from_market_collected_event(
         self,

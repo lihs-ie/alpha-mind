@@ -12,7 +12,8 @@ class FeatureDispatch:
     """Aggregate root for feature dispatch lifecycle.
 
     Enforces invariants:
-    - INV-FE-004: same event identifier can only transition to published once
+    - INV-FE-004: same event identifier can only transition to published once (idempotent)
+    - dispatch_decision is always present (保持数 = 1)
     """
 
     def __init__(
@@ -20,7 +21,7 @@ class FeatureDispatch:
         identifier: str,
         dispatch_status: DispatchStatus,
         trace: str,
-        dispatch_decision: DispatchDecision | None = None,
+        dispatch_decision: DispatchDecision,
         processed_at: datetime.datetime | None = None,
     ) -> None:
         if not identifier:
@@ -28,16 +29,12 @@ class FeatureDispatch:
         if not trace:
             raise ValueError("trace must not be empty")
 
-        # failed 状態には dispatch_decision に reason_code が必要
-        if dispatch_status == DispatchStatus.FAILED and (
-            dispatch_decision is None or dispatch_decision.reason_code is None
-        ):
+        # failed status requires reason_code in dispatch_decision
+        if dispatch_status == DispatchStatus.FAILED and dispatch_decision.reason_code is None:
             raise ValueError("failed dispatch status requires reason_code in dispatch_decision")
 
-        # published 状態には dispatch_decision に published_event が必要
-        if dispatch_status == DispatchStatus.PUBLISHED and (
-            dispatch_decision is None or dispatch_decision.published_event is None
-        ):
+        # published status requires published_event in dispatch_decision
+        if dispatch_status == DispatchStatus.PUBLISHED and dispatch_decision.published_event is None:
             raise ValueError("published dispatch status requires published_event in dispatch_decision")
 
         self._identifier = identifier
@@ -59,18 +56,16 @@ class FeatureDispatch:
         return self._trace
 
     @property
-    def dispatch_decision(self) -> DispatchDecision | None:
+    def dispatch_decision(self) -> DispatchDecision:
         return self._dispatch_decision
 
     @property
     def published_event(self) -> PublishedEventType | None:
-        # 後方互換のため dispatch_decision に委譲
-        return self._dispatch_decision.published_event if self._dispatch_decision else None
+        return self._dispatch_decision.published_event
 
     @property
     def reason_code(self) -> ReasonCode | None:
-        # 後方互換のため dispatch_decision に委譲
-        return self._dispatch_decision.reason_code if self._dispatch_decision else None
+        return self._dispatch_decision.reason_code
 
     @property
     def processed_at(self) -> datetime.datetime | None:
@@ -82,7 +77,6 @@ class FeatureDispatch:
         processed_at: datetime.datetime,
     ) -> None:
         """Transition to published state. Enforces INV-FE-004 (idempotent)."""
-        # INV-FE-004: 冪等扱い — 既に published なら no-op
         if self._dispatch_status == DispatchStatus.PUBLISHED:
             return
         if self._dispatch_status != DispatchStatus.PENDING:

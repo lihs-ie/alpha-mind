@@ -129,13 +129,14 @@ class TestFeatureGenerationFactory:
 
         assert generation.status == FeatureGenerationStatus.PENDING
 
-    def test_exposes_feature_version_generator(self) -> None:
-        """RULE-FE-006: ファクトリが FeatureVersionGenerator を公開する。"""
+    def test_generate_feature_version_delegates_to_generator(self) -> None:
+        """RULE-FE-006: ファクトリが FeatureVersionGenerator.generate() を呼び出す。"""
         from domain.factory.feature_generation_factory import FeatureGenerationFactory
 
         generator = _StubFeatureVersionGenerator()
         factory = FeatureGenerationFactory(feature_version_generator=generator)  # type: ignore[arg-type]
-        assert factory.feature_version_generator is generator
+        version = factory.generate_feature_version(datetime.date(2026, 3, 3))
+        assert version == "v20260303-001"
 
     def test_feature_version_generator_produces_version(self) -> None:
         """RULE-FE-006: FeatureVersionGenerator が一意バージョンを生成する。"""

@@ -159,7 +159,9 @@ class FeatureGeneration:
     ) -> None:
         """Transition to failed state. Enforces INV-FE-002."""
         if self._status != FeatureGenerationStatus.PENDING:
-            raise InvalidStateTransitionError(f"Cannot fail from status {self._status.value}, must be pending")
+            raise InvalidStateTransitionError(
+                f"STATE_CONFLICT: Cannot fail from status {self._status.value}, must be pending"
+            )
 
         self._failure_detail = failure_detail
         self._status = FeatureGenerationStatus.FAILED
