@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from google.cloud.firestore_v1 import Client
+from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
 from domain.model.feature_dispatch import FeatureDispatch
 from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
@@ -21,10 +22,13 @@ class FirestoreFeatureDispatchRepository(FeatureDispatchRepository):
         self._client = client
 
     def find(self, identifier: str) -> FeatureDispatch | None:
-        snapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()
+        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()  # type: ignore[assignment]
         if not snapshot.exists:
             return None
-        return _deserialize(snapshot.to_dict())  # type: ignore[arg-type]
+        data = snapshot.to_dict()
+        if data is None:
+            return None
+        return _deserialize(data)
 
     def persist(self, feature_dispatch: FeatureDispatch) -> None:
         data = _serialize(feature_dispatch)

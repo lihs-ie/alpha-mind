@@ -29,7 +29,7 @@ class FirestoreInsightRecordRepository(InsightRecordRepository):
             snapshot = _build_snapshot(documents, filtered_by_target_date=True)
         else:
             collection_reference = self._client.collection(COLLECTION_NAME)
-            documents = [document.to_dict() for document in collection_reference.stream()]
+            documents = [data for document in collection_reference.stream() if (data := document.to_dict()) is not None]
             snapshot = _build_snapshot(documents, filtered_by_target_date=False)
         return [snapshot]
 
@@ -49,7 +49,7 @@ class FirestoreInsightRecordRepository(InsightRecordRepository):
             .where(filter=FieldFilter("collectedAt", ">=", start_of_day))
             .where(filter=FieldFilter("collectedAt", "<", end_of_day))
         )
-        return [document.to_dict() for document in query.stream()]
+        return [data for document in query.stream() if (data := document.to_dict()) is not None]
 
 
 def _build_snapshot(

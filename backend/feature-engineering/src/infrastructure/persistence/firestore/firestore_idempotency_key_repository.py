@@ -6,6 +6,7 @@ import datetime
 from typing import Any
 
 from google.cloud.firestore_v1 import Client
+from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
 
@@ -21,11 +22,14 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         self._service_name = service_name
 
     def find(self, identifier: str) -> datetime.datetime | None:
-        snapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()
+        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()  # type: ignore[assignment]
         if not snapshot.exists:
             return None
-        data: dict[str, Any] = snapshot.to_dict()  # type: ignore[assignment]
-        return data["processedAt"]  # type: ignore[return-value]
+        data = snapshot.to_dict()
+        if data is None:
+            return None
+        processed_at: datetime.datetime = data["processedAt"]
+        return processed_at
 
     def persist(self, identifier: str, processed_at: datetime.datetime) -> None:
         expires_at = processed_at + datetime.timedelta(days=TTL_DAYS)

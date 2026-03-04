@@ -6,6 +6,7 @@ import datetime
 from typing import Any
 
 from google.cloud.firestore_v1 import Client, FieldFilter
+from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
 from domain.model.feature_generation import FeatureGeneration
 from domain.repository.feature_generation_repository import FeatureGenerationRepository
@@ -30,21 +31,26 @@ class FirestoreFeatureGenerationRepository(FeatureGenerationRepository):
         self._client = client
 
     def find(self, identifier: str) -> FeatureGeneration | None:
-        snapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()
+        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()  # type: ignore[assignment]
         if not snapshot.exists:
             return None
-        return _deserialize(snapshot.to_dict())  # type: ignore[arg-type]
+        data = snapshot.to_dict()
+        if data is None:
+            return None
+        return _deserialize(data)
 
     def find_by_status(self, status: FeatureGenerationStatus) -> list[FeatureGeneration]:
         query = self._client.collection(COLLECTION_NAME).where(filter=FieldFilter("status", "==", status.value))
-        return [_deserialize(document.to_dict()) for document in query.stream()]
+        return [_deserialize(data) for document in query.stream() if (data := document.to_dict()) is not None]
 
     def search(self, target_date: datetime.date | None = None) -> list[FeatureGeneration]:
         collection_reference = self._client.collection(COLLECTION_NAME)
         if target_date is not None:
             query = collection_reference.where(filter=FieldFilter("market.targetDate", "==", target_date.isoformat()))
-            return [_deserialize(document.to_dict()) for document in query.stream()]
-        return [_deserialize(document.to_dict()) for document in collection_reference.stream()]
+            return [_deserialize(data) for document in query.stream() if (data := document.to_dict()) is not None]
+        return [
+            _deserialize(data) for document in collection_reference.stream() if (data := document.to_dict()) is not None
+        ]
 
     def persist(self, feature_generation: FeatureGeneration) -> None:
         data = _serialize(feature_generation)
