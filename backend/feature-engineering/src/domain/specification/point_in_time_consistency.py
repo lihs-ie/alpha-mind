@@ -20,7 +20,8 @@ class PointInTimeConsistencySpecification:
             return False
 
         if snapshot.latest_collected_at is None:
-            return True
+            # record_count > 0 なのに収集時刻が不明な場合は安全と見なせない
+            return snapshot.record_count == 0
 
         # target_date の終わり (翌日 00:00:00 UTC) より前であること
         target_date_end = datetime.datetime(

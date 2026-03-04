@@ -130,6 +130,12 @@ class FeatureGeneration:
         if not insight.filtered_by_target_date:
             raise InvariantViolationError("INV-FE-003: insight must be filtered by target_date")
 
+        # INV-FE-003: record_count > 0 なのに latest_collected_at が None の場合は拒否
+        if insight.latest_collected_at is None and insight.record_count > 0:
+            raise InvariantViolationError(
+                "INV-FE-003: insight has records but latest_collected_at is None - cannot verify point-in-time consistency"
+            )
+
         # INV-FE-003: insight.latest_collected_at <= target_date (end of day)
         if insight.latest_collected_at is not None:
             target_date_end = datetime.datetime(

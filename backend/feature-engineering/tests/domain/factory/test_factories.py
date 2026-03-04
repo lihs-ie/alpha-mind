@@ -159,7 +159,38 @@ class TestFeatureGenerationFactory:
         assert version == "v20260303-001"
 
 
-def _make_feature_generation() -> FeatureGeneration:
+def _make_generated_feature_generation() -> FeatureGeneration:
+    from domain.value_object.feature_artifact import FeatureArtifact
+    from domain.value_object.insight_snapshot import InsightSnapshot
+
+    generation = FeatureGeneration(
+        identifier="01JNPQRS000000000000000001",
+        status=FeatureGenerationStatus.PENDING,
+        market=MarketSnapshot(
+            target_date=datetime.date(2026, 3, 3),
+            storage_path="gs://bucket/market/2026-03-03.parquet",
+            source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
+        ),
+        trace="trace-abc-123",
+    )
+    generation.complete(
+        feature_artifact=FeatureArtifact(
+            feature_version="v20260303-001",
+            storage_path="gs://bucket/features/v20260303-001.parquet",
+            row_count=500,
+            feature_count=120,
+        ),
+        insight=InsightSnapshot(
+            record_count=10,
+            latest_collected_at=datetime.datetime(2026, 3, 3, 15, 0, 0, tzinfo=datetime.UTC),
+            filtered_by_target_date=True,
+        ),
+        processed_at=datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC),
+    )
+    return generation
+
+
+def _make_pending_feature_generation() -> FeatureGeneration:
     return FeatureGeneration(
         identifier="01JNPQRS000000000000000001",
         status=FeatureGenerationStatus.PENDING,
@@ -173,12 +204,12 @@ def _make_feature_generation() -> FeatureGeneration:
 
 
 class TestFeatureDispatchFactory:
-    def test_creates_pending_dispatch(self) -> None:
+    def test_creates_pending_dispatch_from_generated(self) -> None:
         from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
         from domain.value_object.enums import DispatchStatus
 
         factory = FeatureDispatchFactory()
-        generation = _make_feature_generation()
+        generation = _make_generated_feature_generation()
         dispatch = factory.from_feature_generation(feature_generation=generation)
 
         assert dispatch.identifier == "01JNPQRS000000000000000001"
@@ -194,10 +225,21 @@ class TestFeatureDispatchFactory:
         from domain.value_object.enums import DispatchStatus
 
         factory = FeatureDispatchFactory()
-        generation = _make_feature_generation()
+        generation = _make_generated_feature_generation()
         dispatch = factory.from_feature_generation(feature_generation=generation)
 
         assert dispatch.dispatch_decision is not None
         assert dispatch.dispatch_decision.dispatch_status == DispatchStatus.PENDING
         assert dispatch.dispatch_decision.published_event is None
         assert dispatch.dispatch_decision.reason_code is None
+
+    def test_rejects_pending_generation(self) -> None:
+        import pytest
+
+        from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
+
+        factory = FeatureDispatchFactory()
+        generation = _make_pending_feature_generation()
+
+        with pytest.raises(ValueError, match="non-terminal generation status"):
+            factory.from_feature_generation(feature_generation=generation)

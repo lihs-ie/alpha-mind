@@ -215,6 +215,23 @@ class TestFeatureGenerationCompleteTransition:
         )
         assert generation.status == FeatureGenerationStatus.GENERATED
 
+    def test_inv_fe_003_rejects_records_without_collected_at(self) -> None:
+        """INV-FE-003: record_count > 0 で latest_collected_at が None の場合は拒否。"""
+        generation = _make_pending_generation()
+        processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
+        malformed_insight = InsightSnapshot(
+            record_count=5,
+            latest_collected_at=None,
+            filtered_by_target_date=True,
+        )
+
+        with pytest.raises(InvariantViolationError, match="INV-FE-003"):
+            generation.complete(
+                feature_artifact=_make_artifact(),
+                insight=malformed_insight,
+                processed_at=processed_at,
+            )
+
     def test_inv_fe_003_rejects_not_filtered_by_target_date(self) -> None:
         """INV-FE-003: filtered_by_target_date が False の場合は完了を拒否する。"""
         generation = _make_pending_generation()

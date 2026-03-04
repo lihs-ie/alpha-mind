@@ -149,6 +149,18 @@ class TestPointInTimeConsistencySpecification:
         )
         assert specification.is_satisfied_by(snapshot) is True
 
+    def test_not_satisfied_when_records_present_but_collected_at_none(self) -> None:
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
+
+        specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
+        snapshot = InsightSnapshot(
+            record_count=5,
+            latest_collected_at=None,
+            filtered_by_target_date=True,
+        )
+        assert specification.is_satisfied_by(snapshot) is False
+
     def test_not_satisfied_when_not_filtered_by_target_date(self) -> None:
         from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
         from domain.value_object.insight_snapshot import InsightSnapshot
