@@ -2,6 +2,7 @@
 
 import datetime
 
+from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
@@ -43,7 +44,12 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             "expiresAt": expires_at,
         }
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
-        document_reference.set(document_data)
+        try:
+            document_reference.create(document_data)
+        except AlreadyExists as error:
+            raise ValueError(
+                f"Idempotency key '{identifier}' already exists. Duplicate event processing detected."
+            ) from error
 
     def terminate(self, identifier: str) -> None:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)

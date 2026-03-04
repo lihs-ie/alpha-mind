@@ -3,6 +3,9 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
+from google.api_core.exceptions import AlreadyExists
+
 from signal_generator.domain.repositories.idempotency_key_repository import (
     IdempotencyKeyRepository,
 )
@@ -59,7 +62,7 @@ class TestFirestoreIdempotencyKeyRepository:
         mock_client.collection.assert_called_once_with("idempotency_keys")
         mock_client.collection.return_value.document.assert_called_once_with("01JTEST000000000000000000")
 
-        call_args = mock_document_reference.set.call_args
+        call_args = mock_document_reference.create.call_args
         document_data = call_args[0][0]
 
         assert document_data["identifier"] == "01JTEST000000000000000000"
@@ -76,7 +79,7 @@ class TestFirestoreIdempotencyKeyRepository:
         processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
         repository.persist("01JTEST000000000000000000", processed_at)
 
-        call_args = mock_document_reference.set.call_args
+        call_args = mock_document_reference.create.call_args
         document_data = call_args[0][0]
         expected_expires_at = processed_at + datetime.timedelta(days=30)
 
@@ -108,7 +111,20 @@ class TestFirestoreIdempotencyKeyRepository:
             trace="01JTRACE00000000000000000",
         )
 
-        call_args = mock_document_reference.set.call_args
+        call_args = mock_document_reference.create.call_args
         document_data = call_args[0][0]
 
         assert document_data["trace"] == "01JTRACE00000000000000000"
+
+    def test_persist_raises_value_error_when_identifier_already_exists(self) -> None:
+        """同一 identifier の二重処理を検出して ValueError を送出する。"""
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_document_reference.create.side_effect = AlreadyExists("Document already exists")
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreIdempotencyKeyRepository(firestore_client=mock_client)
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+
+        with pytest.raises(ValueError, match="already exists"):
+            repository.persist("01JTEST000000000000000000", processed_at)

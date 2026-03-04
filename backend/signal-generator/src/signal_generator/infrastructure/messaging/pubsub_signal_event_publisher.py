@@ -13,8 +13,10 @@ from signal_generator.domain.events.signal_generation_failed_event import (
 )
 
 _SCHEMA_VERSION = "1.0"
-_TOPIC_SIGNAL_GENERATED = "signal.generated"
-_TOPIC_SIGNAL_GENERATION_FAILED = "signal.generation.failed"
+_EVENT_TYPE_SIGNAL_GENERATED = "signal.generated"
+_EVENT_TYPE_SIGNAL_GENERATION_FAILED = "signal.generation.failed"
+_TOPIC_SIGNAL_GENERATED = "event-signal-generated-v1"
+_TOPIC_SIGNAL_GENERATION_FAILED = "event-signal-generation-failed-v1"
 
 
 class PubSubSignalEventPublisher:
@@ -55,7 +57,7 @@ def _build_signal_generated_envelope(
     """SignalGenerationCompletedEvent から CloudEvents エンベロープを構築する。"""
     return {
         "identifier": event.identifier,
-        "eventType": _TOPIC_SIGNAL_GENERATED,
+        "eventType": _EVENT_TYPE_SIGNAL_GENERATED,
         "occurredAt": event.occurred_at.isoformat(),
         "trace": event.trace,
         "schemaVersion": _SCHEMA_VERSION,
@@ -80,7 +82,7 @@ def _build_signal_generation_failed_envelope(
     """SignalGenerationFailedEvent から CloudEvents エンベロープを構築する。"""
     return {
         "identifier": event.identifier,
-        "eventType": _TOPIC_SIGNAL_GENERATION_FAILED,
+        "eventType": _EVENT_TYPE_SIGNAL_GENERATION_FAILED,
         "occurredAt": event.occurred_at.isoformat(),
         "trace": event.trace,
         "schemaVersion": _SCHEMA_VERSION,

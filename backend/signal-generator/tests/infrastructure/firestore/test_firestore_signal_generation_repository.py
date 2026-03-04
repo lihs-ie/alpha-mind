@@ -151,6 +151,50 @@ class TestFirestoreSignalGenerationRepository:
         assert result.failure_detail.reason_code == ReasonCode.MODEL_NOT_APPROVED
         assert result.failure_detail.retryable is False
 
+    def test_find_returns_failed_signal_generation_with_model_snapshot(self) -> None:
+        """モデル解決後に推論失敗した場合、modelSnapshot も復元されることを確認する。"""
+        mock_client = MagicMock()
+        processed_at = datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC)
+        approved_at = datetime.datetime(2026, 3, 1, 12, 0, 0, tzinfo=datetime.UTC)
+        mock_document_snapshot = MagicMock()
+        mock_document_snapshot.exists = True
+        mock_document_snapshot.to_dict.return_value = {
+            "identifier": "01JTEST000000000000000000",
+            "trace": "01JTRACE00000000000000000",
+            "status": "failed",
+            "featureSnapshot": {
+                "targetDate": "2026-03-05",
+                "featureVersion": "fv-20260305",
+                "storagePath": "gs://bucket/features/2026-03-05.parquet",
+            },
+            "universeCount": 100,
+            "modelSnapshot": {
+                "modelVersion": "v1.0.0",
+                "status": "approved",
+                "approvedAt": approved_at,
+            },
+            "signalArtifact": None,
+            "modelDiagnosticsSnapshot": None,
+            "failureDetail": {
+                "reasonCode": "DEPENDENCY_TIMEOUT",
+                "retryable": True,
+                "detail": "Inference timed out",
+            },
+            "processedAt": processed_at,
+        }
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        result = repository.find("01JTEST000000000000000000")
+
+        assert result is not None
+        assert result.status == GenerationStatus.FAILED
+        assert result.model_snapshot is not None
+        assert result.model_snapshot.model_version == "v1.0.0"
+        assert result.model_snapshot.status == ModelStatus.APPROVED
+        assert result.failure_detail is not None
+        assert result.failure_detail.reason_code == ReasonCode.DEPENDENCY_TIMEOUT
+
     def test_find_returns_none_when_not_found(self) -> None:
         mock_client = MagicMock()
         mock_document_snapshot = MagicMock()

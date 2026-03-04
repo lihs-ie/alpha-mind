@@ -113,6 +113,15 @@ def _to_signal_generation(document_data: dict[str, Any] | None) -> SignalGenerat
         signal_generation.complete(signal_artifact, model_diagnostics, processed_at)
 
     elif status == GenerationStatus.FAILED:
+        model_snapshot_data = document_data.get("modelSnapshot")
+        if model_snapshot_data is not None:
+            model_snapshot = ModelSnapshot(
+                model_version=model_snapshot_data["modelVersion"],
+                status=ModelStatus(model_snapshot_data["status"]),
+                approved_at=model_snapshot_data.get("approvedAt"),
+            )
+            signal_generation.resolve_model(model_snapshot)
+
         failure_detail_data = document_data["failureDetail"]
         failure_detail = FailureDetail(
             reason_code=ReasonCode(failure_detail_data["reasonCode"]),

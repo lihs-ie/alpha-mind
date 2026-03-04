@@ -58,7 +58,7 @@ class TestPubSubSignalEventPublisher:
 
         # topic の形式を確認
         topic_path = publish_call[0][0]
-        assert topic_path == "projects/my-project/topics/signal.generated"
+        assert topic_path == "projects/my-project/topics/event-signal-generated-v1"
 
         # CloudEvents エンベロープの内容を確認
         message_data = json.loads(publish_call[1]["data"])
@@ -101,7 +101,7 @@ class TestPubSubSignalEventPublisher:
         publish_call = mock_publisher_client.publish.call_args
 
         topic_path = publish_call[0][0]
-        assert topic_path == "projects/my-project/topics/signal.generation.failed"
+        assert topic_path == "projects/my-project/topics/event-signal-generation-failed-v1"
 
         message_data = json.loads(publish_call[1]["data"])
         assert message_data["identifier"] == "01JTEST000000000000000000"
