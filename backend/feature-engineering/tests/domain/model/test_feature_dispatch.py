@@ -3,8 +3,9 @@
 import datetime
 
 import pytest
-from src.domain.model.feature_dispatch import FeatureDispatch, InvalidDispatchTransitionError
-from src.domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+
+from domain.model.feature_dispatch import FeatureDispatch, InvalidDispatchTransitionError
+from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
 
 
 def _make_pending_dispatch() -> FeatureDispatch:

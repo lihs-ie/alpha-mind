@@ -5,10 +5,10 @@ import datetime
 
 class TestMarketPayloadIntegritySpecification:
     def test_satisfied_when_all_fields_present(self) -> None:
-        from src.domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         specification = MarketPayloadIntegritySpecification()
         snapshot = MarketSnapshot(
@@ -19,10 +19,10 @@ class TestMarketPayloadIntegritySpecification:
         assert specification.is_satisfied_by(snapshot) is True
 
     def test_not_satisfied_when_storage_path_empty(self) -> None:
-        from src.domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         specification = MarketPayloadIntegritySpecification()
         snapshot = MarketSnapshot(
@@ -35,36 +35,36 @@ class TestMarketPayloadIntegritySpecification:
 
 class TestSourceStatusHealthySpecification:
     def test_satisfied_when_both_ok(self) -> None:
-        from src.domain.specification.source_status_healthy import SourceStatusHealthySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.source_status_healthy import SourceStatusHealthySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         specification = SourceStatusHealthySpecification()
         status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         assert specification.is_satisfied_by(status) is True
 
     def test_not_satisfied_when_jp_failed(self) -> None:
-        from src.domain.specification.source_status_healthy import SourceStatusHealthySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.source_status_healthy import SourceStatusHealthySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         specification = SourceStatusHealthySpecification()
         status = SourceStatus(jp=SourceStatusValue.FAILED, us=SourceStatusValue.OK)
         assert specification.is_satisfied_by(status) is False
 
     def test_not_satisfied_when_us_failed(self) -> None:
-        from src.domain.specification.source_status_healthy import SourceStatusHealthySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.source_status_healthy import SourceStatusHealthySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         specification = SourceStatusHealthySpecification()
         status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.FAILED)
         assert specification.is_satisfied_by(status) is False
 
     def test_not_satisfied_when_both_failed(self) -> None:
-        from src.domain.specification.source_status_healthy import SourceStatusHealthySpecification
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.specification.source_status_healthy import SourceStatusHealthySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         specification = SourceStatusHealthySpecification()
         status = SourceStatus(jp=SourceStatusValue.FAILED, us=SourceStatusValue.FAILED)
@@ -73,8 +73,8 @@ class TestSourceStatusHealthySpecification:
 
 class TestPointInTimeConsistencySpecification:
     def test_satisfied_when_latest_collected_at_before_target_date(self) -> None:
-        from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
         snapshot = InsightSnapshot(
@@ -85,8 +85,8 @@ class TestPointInTimeConsistencySpecification:
         assert specification.is_satisfied_by(snapshot) is True
 
     def test_satisfied_when_latest_collected_at_equals_target_date_end_of_day(self) -> None:
-        from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
         # End of target_date (23:59:59 UTC) should be valid
@@ -98,8 +98,8 @@ class TestPointInTimeConsistencySpecification:
         assert specification.is_satisfied_by(snapshot) is True
 
     def test_not_satisfied_when_latest_collected_at_after_target_date(self) -> None:
-        from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
         snapshot = InsightSnapshot(
@@ -110,8 +110,8 @@ class TestPointInTimeConsistencySpecification:
         assert specification.is_satisfied_by(snapshot) is False
 
     def test_satisfied_when_no_records(self) -> None:
-        from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
         snapshot = InsightSnapshot(
@@ -122,8 +122,8 @@ class TestPointInTimeConsistencySpecification:
         assert specification.is_satisfied_by(snapshot) is True
 
     def test_not_satisfied_when_not_filtered_by_target_date(self) -> None:
-        from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         specification = PointInTimeConsistencySpecification(target_date=datetime.date(2026, 3, 3))
         snapshot = InsightSnapshot(

@@ -3,7 +3,7 @@
 import datetime
 from dataclasses import dataclass
 
-from src.domain.value_object.enums import ReasonCode
+from domain.value_object.enums import ReasonCode
 
 
 @dataclass(frozen=True)

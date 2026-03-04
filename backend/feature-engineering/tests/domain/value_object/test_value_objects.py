@@ -7,32 +7,32 @@ import pytest
 
 class TestSourceStatus:
     def test_create_with_both_ok(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         assert status.jp == SourceStatusValue.OK
         assert status.us == SourceStatusValue.OK
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         with pytest.raises(AttributeError):
             status.jp = SourceStatusValue.FAILED  # type: ignore[misc]
 
     def test_equality_by_value(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         status_a = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         status_b = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         assert status_a == status_b
 
     def test_inequality_when_different(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.source_status import SourceStatus
 
         status_a = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         status_b = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.FAILED)
@@ -41,9 +41,9 @@ class TestSourceStatus:
 
 class TestMarketSnapshot:
     def test_create(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         target_date = datetime.date(2026, 3, 3)
         source_status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
@@ -57,9 +57,9 @@ class TestMarketSnapshot:
         assert snapshot.source_status == source_status
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         snapshot = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
@@ -70,9 +70,9 @@ class TestMarketSnapshot:
             snapshot.target_date = datetime.date(2026, 3, 4)  # type: ignore[misc]
 
     def test_equality_by_value(self) -> None:
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         source_status = SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK)
         snapshot_a = MarketSnapshot(
@@ -90,7 +90,7 @@ class TestMarketSnapshot:
 
 class TestInsightSnapshot:
     def test_create_with_records(self) -> None:
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         latest = datetime.datetime(2026, 3, 3, 10, 0, 0, tzinfo=datetime.UTC)
         snapshot = InsightSnapshot(
@@ -103,7 +103,7 @@ class TestInsightSnapshot:
         assert snapshot.filtered_by_target_date is True
 
     def test_create_with_no_records(self) -> None:
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         snapshot = InsightSnapshot(
             record_count=0,
@@ -114,32 +114,32 @@ class TestInsightSnapshot:
         assert snapshot.latest_collected_at is None
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         snapshot = InsightSnapshot(record_count=1, latest_collected_at=None, filtered_by_target_date=True)
         with pytest.raises(AttributeError):
             snapshot.record_count = 99  # type: ignore[misc]
 
     def test_rejects_negative_record_count(self) -> None:
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         with pytest.raises(ValueError, match="record_count must be non-negative"):
             InsightSnapshot(record_count=-1, latest_collected_at=None, filtered_by_target_date=True)
 
     def test_rejects_naive_datetime(self) -> None:
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         with pytest.raises(ValueError, match="latest_collected_at must be timezone-aware"):
             InsightSnapshot(
                 record_count=1,
-                latest_collected_at=datetime.datetime(2026, 3, 3, 12, 0, 0),  # noqa: DTZ001
+                latest_collected_at=datetime.datetime(2026, 3, 3, 12, 0, 0),
                 filtered_by_target_date=True,
             )
 
 
 class TestFeatureArtifact:
     def test_create(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         artifact = FeatureArtifact(
             feature_version="v20260303-001",
@@ -153,7 +153,7 @@ class TestFeatureArtifact:
         assert artifact.feature_count == 120
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         artifact = FeatureArtifact(
             feature_version="v1",
@@ -165,32 +165,32 @@ class TestFeatureArtifact:
             artifact.row_count = 999  # type: ignore[misc]
 
     def test_equality_by_value(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         artifact_a = FeatureArtifact(feature_version="v1", storage_path="gs://p", row_count=10, feature_count=5)
         artifact_b = FeatureArtifact(feature_version="v1", storage_path="gs://p", row_count=10, feature_count=5)
         assert artifact_a == artifact_b
 
     def test_rejects_empty_feature_version(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         with pytest.raises(ValueError, match="feature_version must not be empty"):
             FeatureArtifact(feature_version="", storage_path="gs://p", row_count=10, feature_count=5)
 
     def test_rejects_empty_storage_path(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         with pytest.raises(ValueError, match="storage_path must not be empty"):
             FeatureArtifact(feature_version="v1", storage_path="", row_count=10, feature_count=5)
 
     def test_rejects_negative_row_count(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         with pytest.raises(ValueError, match="row_count must be non-negative"):
             FeatureArtifact(feature_version="v1", storage_path="gs://p", row_count=-1, feature_count=5)
 
     def test_rejects_negative_feature_count(self) -> None:
-        from src.domain.value_object.feature_artifact import FeatureArtifact
+        from domain.value_object.feature_artifact import FeatureArtifact
 
         with pytest.raises(ValueError, match="feature_count must be non-negative"):
             FeatureArtifact(feature_version="v1", storage_path="gs://p", row_count=10, feature_count=-1)
@@ -198,8 +198,8 @@ class TestFeatureArtifact:
 
 class TestFailureDetail:
     def test_create(self) -> None:
-        from src.domain.value_object.enums import ReasonCode
-        from src.domain.value_object.failure_detail import FailureDetail
+        from domain.value_object.enums import ReasonCode
+        from domain.value_object.failure_detail import FailureDetail
 
         detail = FailureDetail(
             reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
@@ -211,8 +211,8 @@ class TestFailureDetail:
         assert detail.retryable is True
 
     def test_create_without_detail_text(self) -> None:
-        from src.domain.value_object.enums import ReasonCode
-        from src.domain.value_object.failure_detail import FailureDetail
+        from domain.value_object.enums import ReasonCode
+        from domain.value_object.failure_detail import FailureDetail
 
         detail = FailureDetail(
             reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED,
@@ -222,8 +222,8 @@ class TestFailureDetail:
         assert detail.detail is None
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.enums import ReasonCode
-        from src.domain.value_object.failure_detail import FailureDetail
+        from domain.value_object.enums import ReasonCode
+        from domain.value_object.failure_detail import FailureDetail
 
         detail = FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False)
         with pytest.raises(AttributeError):
@@ -232,8 +232,8 @@ class TestFailureDetail:
 
 class TestDispatchDecision:
     def test_create_published(self) -> None:
-        from src.domain.value_object.dispatch_decision import DispatchDecision
-        from src.domain.value_object.enums import DispatchStatus, PublishedEventType
+        from domain.value_object.dispatch_decision import DispatchDecision
+        from domain.value_object.enums import DispatchStatus, PublishedEventType
 
         decision = DispatchDecision(
             dispatch_status=DispatchStatus.PUBLISHED,
@@ -245,8 +245,8 @@ class TestDispatchDecision:
         assert decision.reason_code is None
 
     def test_create_failed(self) -> None:
-        from src.domain.value_object.dispatch_decision import DispatchDecision
-        from src.domain.value_object.enums import DispatchStatus, ReasonCode
+        from domain.value_object.dispatch_decision import DispatchDecision
+        from domain.value_object.enums import DispatchStatus, ReasonCode
 
         decision = DispatchDecision(
             dispatch_status=DispatchStatus.FAILED,
@@ -258,8 +258,8 @@ class TestDispatchDecision:
         assert decision.reason_code == ReasonCode.DISPATCH_FAILED
 
     def test_is_immutable(self) -> None:
-        from src.domain.value_object.dispatch_decision import DispatchDecision
-        from src.domain.value_object.enums import DispatchStatus
+        from domain.value_object.dispatch_decision import DispatchDecision
+        from domain.value_object.enums import DispatchStatus
 
         decision = DispatchDecision(dispatch_status=DispatchStatus.PENDING, published_event=None, reason_code=None)
         with pytest.raises(AttributeError):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 
-from src.domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
 
 
 class FeatureDispatch:

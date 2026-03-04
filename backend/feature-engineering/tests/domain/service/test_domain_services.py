@@ -5,8 +5,8 @@ import datetime
 
 class TestPointInTimeJoinPolicy:
     def test_approve_when_snapshot_is_consistent(self) -> None:
-        from src.domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = PointInTimeJoinPolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -20,8 +20,8 @@ class TestPointInTimeJoinPolicy:
         assert result.reason is None
 
     def test_reject_when_future_data_detected(self) -> None:
-        from src.domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = PointInTimeJoinPolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -35,8 +35,8 @@ class TestPointInTimeJoinPolicy:
         assert result.reason is not None
 
     def test_reject_when_not_filtered(self) -> None:
-        from src.domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = PointInTimeJoinPolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -49,8 +49,8 @@ class TestPointInTimeJoinPolicy:
         assert result.approved is False
 
     def test_approve_when_no_records(self) -> None:
-        from src.domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = PointInTimeJoinPolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -61,8 +61,8 @@ class TestPointInTimeJoinPolicy:
 
 class TestFeatureLeakagePolicy:
     def test_no_leakage_when_consistent(self) -> None:
-        from src.domain.service.feature_leakage_policy import FeatureLeakagePolicy
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.feature_leakage_policy import FeatureLeakagePolicy
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = FeatureLeakagePolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -76,9 +76,9 @@ class TestFeatureLeakagePolicy:
         assert result.reason_code is None
 
     def test_leakage_detected_when_future_data(self) -> None:
-        from src.domain.service.feature_leakage_policy import FeatureLeakagePolicy
-        from src.domain.value_object.enums import ReasonCode
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.feature_leakage_policy import FeatureLeakagePolicy
+        from domain.value_object.enums import ReasonCode
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = FeatureLeakagePolicy()
         target_date = datetime.date(2026, 3, 3)
@@ -92,9 +92,9 @@ class TestFeatureLeakagePolicy:
         assert result.reason_code == ReasonCode.DATA_QUALITY_LEAK_DETECTED
 
     def test_leakage_detected_when_not_filtered(self) -> None:
-        from src.domain.service.feature_leakage_policy import FeatureLeakagePolicy
-        from src.domain.value_object.enums import ReasonCode
-        from src.domain.value_object.insight_snapshot import InsightSnapshot
+        from domain.service.feature_leakage_policy import FeatureLeakagePolicy
+        from domain.value_object.enums import ReasonCode
+        from domain.value_object.insight_snapshot import InsightSnapshot
 
         policy = FeatureLeakagePolicy()
         target_date = datetime.date(2026, 3, 3)

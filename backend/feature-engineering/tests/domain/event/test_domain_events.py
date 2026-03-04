@@ -7,7 +7,7 @@ import pytest
 
 class TestFeatureGenerationStarted:
     def test_create(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationStarted
+        from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
             identifier="01JNPQRS0000000000000001",
@@ -21,7 +21,7 @@ class TestFeatureGenerationStarted:
         assert event.occurred_at == datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=datetime.UTC)
 
     def test_event_type(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationStarted
+        from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
             identifier="01JNPQRS0000000000000001",
@@ -32,7 +32,7 @@ class TestFeatureGenerationStarted:
         assert event.event_type == "feature.generation.started"
 
     def test_is_immutable(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationStarted
+        from domain.event.domain_events import FeatureGenerationStarted
 
         event = FeatureGenerationStarted(
             identifier="01JNPQRS0000000000000001",
@@ -46,7 +46,7 @@ class TestFeatureGenerationStarted:
 
 class TestFeatureGenerationCompleted:
     def test_create(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationCompleted
+        from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
             identifier="01JNPQRS0000000000000001",
@@ -61,7 +61,7 @@ class TestFeatureGenerationCompleted:
         assert event.storage_path == "gs://bucket/features/v20260303-001.parquet"
 
     def test_event_type(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationCompleted
+        from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
             identifier="01JNPQRS0000000000000001",
@@ -74,7 +74,7 @@ class TestFeatureGenerationCompleted:
         assert event.event_type == "feature.generation.completed"
 
     def test_is_immutable(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationCompleted
+        from domain.event.domain_events import FeatureGenerationCompleted
 
         event = FeatureGenerationCompleted(
             identifier="01JNPQRS0000000000000001",
@@ -90,8 +90,8 @@ class TestFeatureGenerationCompleted:
 
 class TestFeatureGenerationFailed:
     def test_create(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationFailed
-        from src.domain.value_object.enums import ReasonCode
+        from domain.event.domain_events import FeatureGenerationFailed
+        from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
             identifier="01JNPQRS0000000000000001",
@@ -105,8 +105,8 @@ class TestFeatureGenerationFailed:
         assert event.detail == "JP source returned 503"
 
     def test_create_without_detail(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationFailed
-        from src.domain.value_object.enums import ReasonCode
+        from domain.event.domain_events import FeatureGenerationFailed
+        from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
             identifier="01JNPQRS0000000000000001",
@@ -118,8 +118,8 @@ class TestFeatureGenerationFailed:
         assert event.detail is None
 
     def test_event_type(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationFailed
-        from src.domain.value_object.enums import ReasonCode
+        from domain.event.domain_events import FeatureGenerationFailed
+        from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
             identifier="01JNPQRS0000000000000001",
@@ -131,8 +131,8 @@ class TestFeatureGenerationFailed:
         assert event.event_type == "feature.generation.failed"
 
     def test_is_immutable(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationFailed
-        from src.domain.value_object.enums import ReasonCode
+        from domain.event.domain_events import FeatureGenerationFailed
+        from domain.value_object.enums import ReasonCode
 
         event = FeatureGenerationFailed(
             identifier="01JNPQRS0000000000000001",

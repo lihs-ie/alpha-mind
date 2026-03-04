@@ -2,10 +2,10 @@
 
 import datetime
 
-from src.domain.event.domain_events import FeatureGenerationStarted
-from src.domain.model.feature_generation import FeatureGeneration
-from src.domain.value_object.enums import FeatureGenerationStatus
-from src.domain.value_object.market_snapshot import MarketSnapshot
+from domain.event.domain_events import FeatureGenerationStarted
+from domain.model.feature_generation import FeatureGeneration
+from domain.value_object.enums import FeatureGenerationStatus
+from domain.value_object.market_snapshot import MarketSnapshot
 
 
 class FeatureGenerationFactory:

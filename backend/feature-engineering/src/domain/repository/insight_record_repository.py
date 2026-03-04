@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 from abc import ABC, abstractmethod
 
-from src.domain.value_object.insight_snapshot import InsightSnapshot
+from domain.value_object.insight_snapshot import InsightSnapshot
 
 
 class InsightRecordRepository(ABC):

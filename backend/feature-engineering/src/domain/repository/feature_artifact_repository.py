@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from src.domain.value_object.feature_artifact import FeatureArtifact
+from domain.value_object.feature_artifact import FeatureArtifact
 
 
 class FeatureArtifactRepository(ABC):

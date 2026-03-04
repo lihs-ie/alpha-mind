@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 from abc import ABC, abstractmethod
 
-from src.domain.value_object.market_snapshot import MarketSnapshot
+from domain.value_object.market_snapshot import MarketSnapshot
 
 
 class MarketDataRepository(ABC):

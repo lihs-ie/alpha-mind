@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from src.domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
 
 
 @dataclass(frozen=True)

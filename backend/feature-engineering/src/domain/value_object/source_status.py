@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from src.domain.value_object.enums import SourceStatusValue
+from domain.value_object.enums import SourceStatusValue
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@
 
 import datetime
 
-from src.domain.value_object.insight_snapshot import InsightSnapshot
+from domain.value_object.insight_snapshot import InsightSnapshot
 
 
 class PointInTimeConsistencySpecification:

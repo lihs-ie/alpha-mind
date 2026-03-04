@@ -1,7 +1,7 @@
 """Specification for RULE-FE-002: source status health check."""
 
-from src.domain.value_object.enums import SourceStatusValue
-from src.domain.value_object.source_status import SourceStatus
+from domain.value_object.enums import SourceStatusValue
+from domain.value_object.source_status import SourceStatus
 
 
 class SourceStatusHealthySpecification:

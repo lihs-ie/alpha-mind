@@ -1,6 +1,6 @@
 """Specification for RULE-FE-001: market.collected payload integrity check."""
 
-from src.domain.value_object.market_snapshot import MarketSnapshot
+from domain.value_object.market_snapshot import MarketSnapshot
 
 
 class MarketPayloadIntegritySpecification:

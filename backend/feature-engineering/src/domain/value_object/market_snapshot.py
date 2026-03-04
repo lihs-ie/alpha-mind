@@ -3,7 +3,7 @@
 import datetime
 from dataclasses import dataclass
 
-from src.domain.value_object.source_status import SourceStatus
+from domain.value_object.source_status import SourceStatus
 
 
 @dataclass(frozen=True)

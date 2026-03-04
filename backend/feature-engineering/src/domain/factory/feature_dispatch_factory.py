@@ -1,7 +1,7 @@
 """Factory for creating FeatureDispatch aggregates."""
 
-from src.domain.model.feature_dispatch import FeatureDispatch
-from src.domain.value_object.enums import DispatchStatus
+from domain.model.feature_dispatch import FeatureDispatch
+from domain.value_object.enums import DispatchStatus
 
 
 class FeatureDispatchFactory:

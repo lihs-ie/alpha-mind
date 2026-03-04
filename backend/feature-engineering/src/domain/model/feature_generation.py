@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import datetime
 
-from src.domain.event.domain_events import (
+from domain.event.domain_events import (
     FeatureGenerationCompleted,
     FeatureGenerationFailed,
     FeatureGenerationStarted,
 )
-from src.domain.value_object.enums import FeatureGenerationStatus
-from src.domain.value_object.failure_detail import FailureDetail
-from src.domain.value_object.feature_artifact import FeatureArtifact
-from src.domain.value_object.insight_snapshot import InsightSnapshot
-from src.domain.value_object.market_snapshot import MarketSnapshot
+from domain.value_object.enums import FeatureGenerationStatus
+from domain.value_object.failure_detail import FailureDetail
+from domain.value_object.feature_artifact import FeatureArtifact
+from domain.value_object.insight_snapshot import InsightSnapshot
+from domain.value_object.market_snapshot import MarketSnapshot
 
 DomainEvent = FeatureGenerationStarted | FeatureGenerationCompleted | FeatureGenerationFailed
 

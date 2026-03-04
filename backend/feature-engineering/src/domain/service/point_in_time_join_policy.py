@@ -3,8 +3,8 @@
 import datetime
 from dataclasses import dataclass
 
-from src.domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
-from src.domain.value_object.insight_snapshot import InsightSnapshot
+from domain.specification.point_in_time_consistency import PointInTimeConsistencySpecification
+from domain.value_object.insight_snapshot import InsightSnapshot
 
 
 @dataclass(frozen=True)

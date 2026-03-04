@@ -3,18 +3,19 @@
 import datetime
 
 import pytest
-from src.domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
-from src.domain.model.feature_generation import FeatureGeneration, InvalidStateTransitionError
-from src.domain.value_object.enums import (
+
+from domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
+from domain.model.feature_generation import FeatureGeneration, InvalidStateTransitionError
+from domain.value_object.enums import (
     FeatureGenerationStatus,
     ReasonCode,
     SourceStatusValue,
 )
-from src.domain.value_object.failure_detail import FailureDetail
-from src.domain.value_object.feature_artifact import FeatureArtifact
-from src.domain.value_object.insight_snapshot import InsightSnapshot
-from src.domain.value_object.market_snapshot import MarketSnapshot
-from src.domain.value_object.source_status import SourceStatus
+from domain.value_object.failure_detail import FailureDetail
+from domain.value_object.feature_artifact import FeatureArtifact
+from domain.value_object.insight_snapshot import InsightSnapshot
+from domain.value_object.market_snapshot import MarketSnapshot
+from domain.value_object.source_status import SourceStatus
 
 
 def _make_pending_generation() -> FeatureGeneration:

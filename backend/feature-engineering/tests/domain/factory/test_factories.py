@@ -5,10 +5,10 @@ import datetime
 
 class TestFeatureGenerationFactory:
     def test_creates_pending_feature_generation(self) -> None:
-        from src.domain.factory.feature_generation_factory import FeatureGenerationFactory
-        from src.domain.value_object.enums import FeatureGenerationStatus, SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.factory.feature_generation_factory import FeatureGenerationFactory
+        from domain.value_object.enums import FeatureGenerationStatus, SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         factory = FeatureGenerationFactory()
         market = MarketSnapshot(
@@ -32,11 +32,11 @@ class TestFeatureGenerationFactory:
         assert generation.processed_at is None
 
     def test_raises_started_domain_event(self) -> None:
-        from src.domain.event.domain_events import FeatureGenerationStarted
-        from src.domain.factory.feature_generation_factory import FeatureGenerationFactory
-        from src.domain.value_object.enums import SourceStatusValue
-        from src.domain.value_object.market_snapshot import MarketSnapshot
-        from src.domain.value_object.source_status import SourceStatus
+        from domain.event.domain_events import FeatureGenerationStarted
+        from domain.factory.feature_generation_factory import FeatureGenerationFactory
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
 
         factory = FeatureGenerationFactory()
         market = MarketSnapshot(
@@ -60,8 +60,8 @@ class TestFeatureGenerationFactory:
 
 class TestFeatureDispatchFactory:
     def test_creates_pending_dispatch(self) -> None:
-        from src.domain.factory.feature_dispatch_factory import FeatureDispatchFactory
-        from src.domain.value_object.enums import DispatchStatus
+        from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
+        from domain.value_object.enums import DispatchStatus
 
         factory = FeatureDispatchFactory()
         dispatch = factory.from_feature_generation(
