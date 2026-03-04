@@ -23,11 +23,16 @@ jobs:
         with:
           filters: |
             haskell:
-              - "backend/**"
-              - "!backend/feature-engineering/**"
-              - "!backend/signal-generator/**"
-              - "!backend/hypothesis-lab/**"
-              - "!backend/pyproject.toml"
+              - "backend/bff/**"
+              - "backend/audit-log/**"
+              - "backend/data-collector/**"
+              - "backend/execution/**"
+              - "backend/insight-collector/**"
+              - "backend/portfolio-planner/**"
+              - "backend/risk-guard/**"
+              - "backend/agent-orchestrator/**"
+              - "backend/cabal.project"
+              - "backend/fourmolu.yaml"
 
   build-and-test:
     name: Build and Test
