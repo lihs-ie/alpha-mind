@@ -1,10 +1,6 @@
 """Tests for CloudStorageFeatureArtifactRepository."""
 
-import io
 from unittest.mock import MagicMock
-
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 from domain.value_object.feature_artifact import FeatureArtifact
 from infrastructure.persistence.cloud_storage.cloud_storage_feature_artifact_repository import (
@@ -19,14 +15,6 @@ def _make_artifact() -> FeatureArtifact:
         row_count=3,
         feature_count=2,
     )
-
-
-def _make_parquet_bytes() -> bytes:
-    """Create minimal Parquet bytes for testing."""
-    table = pa.table({"feature_a": [1.0, 2.0, 3.0], "feature_b": [4.0, 5.0, 6.0]})
-    buffer = io.BytesIO()
-    pq.write_table(table, buffer)
-    return buffer.getvalue()
 
 
 class TestCloudStorageFeatureArtifactRepositoryPersist:

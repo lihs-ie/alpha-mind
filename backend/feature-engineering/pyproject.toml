@@ -13,7 +13,6 @@ dependencies = [
     "google-cloud-firestore>=2.19,<3",
     "google-cloud-storage>=2.18,<3",
     "google-cloud-pubsub>=2.23,<3",
-    "pyarrow>=19.0,<20",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +37,7 @@ warn_return_any = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["lightgbm.*", "sklearn.*", "ulid.*", "google.cloud.*", "google.api_core.*", "pyarrow.*"]
+module = ["lightgbm.*", "sklearn.*", "ulid.*", "google.cloud.*", "google.api_core.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
