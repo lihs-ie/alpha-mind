@@ -26,15 +26,11 @@ class TestMLflowModelLoader:
             )
 
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
-            mock_mlflow.set_tracking_uri.assert_called_once_with(
-                "http://localhost:5000"
-            )
+            mock_mlflow.set_tracking_uri.assert_called_once_with("http://localhost:5000")
 
             result = loader.load("my-model", "v1.0.0")
 
-            mock_mlflow.pyfunc.load_model.assert_called_once_with(
-                model_uri="models:/my-model/v1.0.0"
-            )
+            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/v1.0.0")
             assert result is mock_model
 
     def test_load_raises_model_load_error_on_exception(self) -> None:
@@ -65,9 +61,7 @@ class TestMLflowModelLoader:
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
             result = loader.load("my-model", stage="Production")
 
-            mock_mlflow.pyfunc.load_model.assert_called_once_with(
-                model_uri="models:/my-model/Production"
-            )
+            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/Production")
             assert result is mock_model
 
     def test_load_raises_value_error_when_no_version_or_stage(self) -> None:

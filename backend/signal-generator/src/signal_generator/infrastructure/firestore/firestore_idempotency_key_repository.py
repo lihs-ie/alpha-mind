@@ -3,6 +3,7 @@
 import datetime
 
 from google.cloud.firestore_v1 import Client as FirestoreClient
+from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
 from signal_generator.domain.repositories.idempotency_key_repository import (
     IdempotencyKeyRepository,
@@ -23,11 +24,9 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         self._firestore_client = firestore_client
 
     def find(self, identifier: str) -> bool:
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(identifier)
-        document_snapshot = document_reference.get()
-        return document_snapshot.exists
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
+        document_snapshot: DocumentSnapshot = document_reference.get()  # type: ignore[assignment]
+        return bool(document_snapshot.exists)
 
     def persist(
         self,
@@ -43,13 +42,9 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             "trace": trace if trace is not None else identifier,
             "expiresAt": expires_at,
         }
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(identifier)
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         document_reference.set(document_data)
 
     def terminate(self, identifier: str) -> None:
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(identifier)
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         document_reference.delete()

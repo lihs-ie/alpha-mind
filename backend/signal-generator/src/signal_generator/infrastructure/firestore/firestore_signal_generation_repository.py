@@ -1,8 +1,11 @@
 """Firestore implementation of SignalGenerationRepository."""
 
 import datetime
+from typing import Any
 
 from google.cloud.firestore_v1 import Client as FirestoreClient
+from google.cloud.firestore_v1.base_document import DocumentSnapshot
+from google.cloud.firestore_v1.base_query import BaseQuery
 
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
@@ -30,44 +33,40 @@ class FirestoreSignalGenerationRepository(SignalGenerationRepository):
         self._firestore_client = firestore_client
 
     def find(self, identifier: str) -> SignalGeneration | None:
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(identifier)
-        document_snapshot = document_reference.get()
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
+        document_snapshot: DocumentSnapshot = document_reference.get()  # type: ignore[assignment]
         if not document_snapshot.exists:
             return None
         return _to_signal_generation(document_snapshot.to_dict())
 
     def find_by_status(self, status: GenerationStatus) -> list[SignalGeneration]:
-        documents = (
-            self._firestore_client.collection(_COLLECTION_NAME)
-            .where("status", "==", status.value)
-            .stream()
-        )
+        documents = self._firestore_client.collection(_COLLECTION_NAME).where("status", "==", status.value).stream()
         return [_to_signal_generation(document.to_dict()) for document in documents]
 
     def search(self, criteria: dict[str, object]) -> list[SignalGeneration]:
-        query = self._firestore_client.collection(_COLLECTION_NAME)
+        query: BaseQuery = self._firestore_client.collection(_COLLECTION_NAME)  # type: ignore[assignment]
         for field_name, value in criteria.items():
             query = query.where(field_name, "==", value)
-        return [_to_signal_generation(document.to_dict()) for document in query.stream()]
+        return [
+            _to_signal_generation(document.to_dict())
+            for document in query.stream()  # type: ignore[union-attr]
+        ]
 
     def persist(self, signal_generation: SignalGeneration) -> None:
         document_data = _from_signal_generation(signal_generation)
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(signal_generation.identifier)
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(signal_generation.identifier)
         document_reference.set(document_data)
 
     def terminate(self, identifier: str) -> None:
-        document_reference = self._firestore_client.collection(
-            _COLLECTION_NAME
-        ).document(identifier)
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         document_reference.delete()
 
 
-def _to_signal_generation(document_data: dict) -> SignalGeneration:
+def _to_signal_generation(document_data: dict[str, Any] | None) -> SignalGeneration:
     """Firestore ドキュメントから SignalGeneration 集約を復元する。"""
+    if document_data is None:
+        raise ValueError("document_data must not be None")
+
     feature_snapshot_data = document_data["featureSnapshot"]
     feature_snapshot = FeatureSnapshot(
         target_date=datetime.date.fromisoformat(feature_snapshot_data["targetDate"]),
@@ -83,7 +82,7 @@ def _to_signal_generation(document_data: dict) -> SignalGeneration:
     )
 
     status = GenerationStatus(document_data["status"])
-    processed_at = document_data.get("processedAt")
+    processed_at: datetime.datetime | None = document_data.get("processedAt")
 
     if status == GenerationStatus.GENERATED:
         model_snapshot_data = document_data["modelSnapshot"]
@@ -110,6 +109,7 @@ def _to_signal_generation(document_data: dict) -> SignalGeneration:
             slippage_adjusted_sharpe=diagnostics_data.get("slippageAdjustedSharpe"),
         )
 
+        assert processed_at is not None
         signal_generation.complete(signal_artifact, model_diagnostics, processed_at)
 
     elif status == GenerationStatus.FAILED:
@@ -119,16 +119,17 @@ def _to_signal_generation(document_data: dict) -> SignalGeneration:
             retryable=failure_detail_data["retryable"],
             detail=failure_detail_data.get("detail"),
         )
+        assert processed_at is not None
         signal_generation.fail(failure_detail, processed_at)
 
     return signal_generation
 
 
-def _from_signal_generation(signal_generation: SignalGeneration) -> dict:
+def _from_signal_generation(signal_generation: SignalGeneration) -> dict[str, Any]:
     """SignalGeneration 集約を Firestore ドキュメントに変換する。"""
     feature_snapshot = signal_generation.feature_snapshot
 
-    document_data: dict = {
+    document_data: dict[str, Any] = {
         "identifier": signal_generation.identifier,
         "trace": signal_generation.trace,
         "status": signal_generation.status.value,

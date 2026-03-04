@@ -31,9 +31,7 @@ class TestCloudStorageFeatureReader:
             result = reader.read("gs://feature-bucket/features/2026-03-05.parquet")
 
             mock_storage_client.bucket.assert_called_once_with("feature-bucket")
-            mock_bucket.blob.assert_called_once_with(
-                "features/2026-03-05.parquet"
-            )
+            mock_bucket.blob.assert_called_once_with("features/2026-03-05.parquet")
             mock_blob.download_as_bytes.assert_called_once()
             mock_read_parquet.assert_called_once()
             assert result is mock_dataframe
@@ -70,6 +68,4 @@ class TestCloudStorageFeatureReader:
             reader.read("gs://my-bucket/path/to/nested/features.parquet")
 
             mock_storage_client.bucket.assert_called_once_with("my-bucket")
-            mock_bucket.blob.assert_called_once_with(
-                "path/to/nested/features.parquet"
-            )
+            mock_bucket.blob.assert_called_once_with("path/to/nested/features.parquet")

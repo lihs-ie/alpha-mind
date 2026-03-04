@@ -1,6 +1,7 @@
 """Pub/Sub publisher for signal events."""
 
 import json
+from typing import Any
 
 from google.cloud.pubsub_v1 import PublisherClient
 
@@ -30,27 +31,19 @@ class PubSubSignalEventPublisher:
         self._publisher_client = publisher_client
         self._project_id = project_id
 
-    def publish_signal_generated(
-        self, event: SignalGenerationCompletedEvent
-    ) -> str:
+    def publish_signal_generated(self, event: SignalGenerationCompletedEvent) -> str:
         """signal.generated イベントを発行し、メッセージ ID を返す。"""
         topic_path = self._build_topic_path(_TOPIC_SIGNAL_GENERATED)
         envelope = _build_signal_generated_envelope(event)
-        future = self._publisher_client.publish(
-            topic_path, data=json.dumps(envelope).encode("utf-8")
-        )
-        return future.result()
+        future = self._publisher_client.publish(topic_path, data=json.dumps(envelope).encode("utf-8"))
+        return str(future.result())
 
-    def publish_signal_generation_failed(
-        self, event: SignalGenerationFailedEvent
-    ) -> str:
+    def publish_signal_generation_failed(self, event: SignalGenerationFailedEvent) -> str:
         """signal.generation.failed イベントを発行し、メッセージ ID を返す。"""
         topic_path = self._build_topic_path(_TOPIC_SIGNAL_GENERATION_FAILED)
         envelope = _build_signal_generation_failed_envelope(event)
-        future = self._publisher_client.publish(
-            topic_path, data=json.dumps(envelope).encode("utf-8")
-        )
-        return future.result()
+        future = self._publisher_client.publish(topic_path, data=json.dumps(envelope).encode("utf-8"))
+        return str(future.result())
 
     def _build_topic_path(self, topic_name: str) -> str:
         return f"projects/{self._project_id}/topics/{topic_name}"
@@ -58,7 +51,7 @@ class PubSubSignalEventPublisher:
 
 def _build_signal_generated_envelope(
     event: SignalGenerationCompletedEvent,
-) -> dict:
+) -> dict[str, Any]:
     """SignalGenerationCompletedEvent から CloudEvents エンベロープを構築する。"""
     return {
         "identifier": event.identifier,
@@ -83,7 +76,7 @@ def _build_signal_generated_envelope(
 
 def _build_signal_generation_failed_envelope(
     event: SignalGenerationFailedEvent,
-) -> dict:
+) -> dict[str, Any]:
     """SignalGenerationFailedEvent から CloudEvents エンベロープを構築する。"""
     return {
         "identifier": event.identifier,

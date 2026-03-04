@@ -22,9 +22,7 @@ class TestCloudStorageSignalWriter:
         mock_dataframe = MagicMock()
 
         writer = CloudStorageSignalWriter(storage_client=mock_storage_client)
-        writer.write(
-            mock_dataframe, "gs://signal-bucket/signals/2026-03-05.parquet"
-        )
+        writer.write(mock_dataframe, "gs://signal-bucket/signals/2026-03-05.parquet")
 
         mock_storage_client.bucket.assert_called_once_with("signal-bucket")
         mock_bucket.blob.assert_called_once_with("signals/2026-03-05.parquet")
@@ -49,9 +47,7 @@ class TestCloudStorageSignalWriter:
         mock_dataframe = MagicMock()
 
         writer = CloudStorageSignalWriter(storage_client=mock_storage_client)
-        writer.write(
-            mock_dataframe, "gs://signal-bucket/signals/2026-03-05.parquet"
-        )
+        writer.write(mock_dataframe, "gs://signal-bucket/signals/2026-03-05.parquet")
 
         upload_call = mock_blob.upload_from_file.call_args
         assert upload_call[1]["content_type"] == "application/octet-stream"

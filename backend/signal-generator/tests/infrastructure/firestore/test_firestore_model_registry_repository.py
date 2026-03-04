@@ -3,6 +3,8 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
+
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.repositories.model_registry_repository import (
     ModelRegistryRepository,
@@ -41,9 +43,7 @@ class TestFirestoreModelRegistryRepository:
             "decidedAt": approved_at,
             "decidedBy": "admin@example.com",
         }
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
         result = repository.find("v1.2.0")
@@ -58,9 +58,7 @@ class TestFirestoreModelRegistryRepository:
         mock_client = MagicMock()
         mock_document_snapshot = MagicMock()
         mock_document_snapshot.exists = False
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
         result = repository.find("v999.0.0")
@@ -82,12 +80,8 @@ class TestFirestoreModelRegistryRepository:
         }
 
         mock_query = MagicMock()
-        mock_query.limit.return_value.stream.return_value = iter(
-            [mock_document_snapshot]
-        )
-        mock_client.collection.return_value.where.return_value.order_by.return_value = (
-            mock_query
-        )
+        mock_query.limit.return_value.stream.return_value = iter([mock_document_snapshot])
+        mock_client.collection.return_value.where.return_value.order_by.return_value = mock_query
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
         result = repository.find_by_status(ModelStatus.APPROVED)
@@ -100,9 +94,7 @@ class TestFirestoreModelRegistryRepository:
         mock_client = MagicMock()
         mock_query = MagicMock()
         mock_query.limit.return_value.stream.return_value = iter([])
-        mock_client.collection.return_value.where.return_value.order_by.return_value = (
-            mock_query
-        )
+        mock_client.collection.return_value.where.return_value.order_by.return_value = mock_query
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
         result = repository.find_by_status(ModelStatus.APPROVED)
@@ -168,9 +160,7 @@ class TestFirestoreModelRegistryRepository:
             "featureVersion": "fv-20260305",
             "createdAt": datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC),
         }
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
         result = repository.find("v3.0.0")
@@ -178,3 +168,15 @@ class TestFirestoreModelRegistryRepository:
         assert result is not None
         assert result.status == ModelStatus.CANDIDATE
         assert result.approved_at is None
+
+    def test_find_raises_value_error_when_document_data_is_none(self) -> None:
+        mock_client = MagicMock()
+        mock_document_snapshot = MagicMock()
+        mock_document_snapshot.exists = True
+        mock_document_snapshot.to_dict.return_value = None
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
+
+        repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
+
+        with pytest.raises(ValueError, match="document_data must not be None"):
+            repository.find("v1.0.0")

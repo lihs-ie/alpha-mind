@@ -3,6 +3,8 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
+
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
 from signal_generator.domain.enums.generation_status import GenerationStatus
@@ -51,9 +53,7 @@ class TestFirestoreSignalGenerationRepository:
             "failureDetail": None,
             "processedAt": None,
         }
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         result = repository.find("01JTEST000000000000000000")
@@ -101,9 +101,7 @@ class TestFirestoreSignalGenerationRepository:
             "failureDetail": None,
             "processedAt": processed_at,
         }
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         result = repository.find("01JTEST000000000000000000")
@@ -115,9 +113,7 @@ class TestFirestoreSignalGenerationRepository:
         assert result.signal_artifact is not None
         assert result.signal_artifact.signal_version == "sv-20260305"
         assert result.model_diagnostics_snapshot is not None
-        assert (
-            result.model_diagnostics_snapshot.degradation_flag == DegradationFlag.NORMAL
-        )
+        assert result.model_diagnostics_snapshot.degradation_flag == DegradationFlag.NORMAL
 
     def test_find_returns_failed_signal_generation(self) -> None:
         mock_client = MagicMock()
@@ -144,9 +140,7 @@ class TestFirestoreSignalGenerationRepository:
             },
             "processedAt": processed_at,
         }
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         result = repository.find("01JTEST000000000000000000")
@@ -161,9 +155,7 @@ class TestFirestoreSignalGenerationRepository:
         mock_client = MagicMock()
         mock_document_snapshot = MagicMock()
         mock_document_snapshot.exists = False
-        mock_client.collection.return_value.document.return_value.get.return_value = (
-            mock_document_snapshot
-        )
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         result = repository.find("01JTEST_NONEXISTENT")
@@ -173,9 +165,7 @@ class TestFirestoreSignalGenerationRepository:
     def test_persist_pending_signal_generation(self) -> None:
         mock_client = MagicMock()
         mock_document_reference = MagicMock()
-        mock_client.collection.return_value.document.return_value = (
-            mock_document_reference
-        )
+        mock_client.collection.return_value.document.return_value = mock_document_reference
 
         feature_snapshot = FeatureSnapshot(
             target_date=datetime.date(2026, 3, 5),
@@ -205,9 +195,7 @@ class TestFirestoreSignalGenerationRepository:
     def test_persist_generated_signal_generation(self) -> None:
         mock_client = MagicMock()
         mock_document_reference = MagicMock()
-        mock_client.collection.return_value.document.return_value = (
-            mock_document_reference
-        )
+        mock_client.collection.return_value.document.return_value = mock_document_reference
 
         feature_snapshot = FeatureSnapshot(
             target_date=datetime.date(2026, 3, 5),
@@ -253,9 +241,7 @@ class TestFirestoreSignalGenerationRepository:
     def test_persist_failed_signal_generation(self) -> None:
         mock_client = MagicMock()
         mock_document_reference = MagicMock()
-        mock_client.collection.return_value.document.return_value = (
-            mock_document_reference
-        )
+        mock_client.collection.return_value.document.return_value = mock_document_reference
 
         feature_snapshot = FeatureSnapshot(
             target_date=datetime.date(2026, 3, 5),
@@ -307,9 +293,7 @@ class TestFirestoreSignalGenerationRepository:
             "failureDetail": None,
             "processedAt": None,
         }
-        mock_client.collection.return_value.where.return_value.stream.return_value = (
-            iter([mock_document])
-        )
+        mock_client.collection.return_value.where.return_value.stream.return_value = iter([mock_document])
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         results = repository.find_by_status(GenerationStatus.PENDING)
@@ -348,12 +332,22 @@ class TestFirestoreSignalGenerationRepository:
     def test_terminate_deletes_document(self) -> None:
         mock_client = MagicMock()
         mock_document_reference = MagicMock()
-        mock_client.collection.return_value.document.return_value = (
-            mock_document_reference
-        )
+        mock_client.collection.return_value.document.return_value = mock_document_reference
 
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         repository.terminate("01JTEST000000000000000000")
 
         mock_client.collection.assert_called_once_with("signal_generations")
         mock_document_reference.delete.assert_called_once()
+
+    def test_find_raises_value_error_when_document_data_is_none(self) -> None:
+        mock_client = MagicMock()
+        mock_document_snapshot = MagicMock()
+        mock_document_snapshot.exists = True
+        mock_document_snapshot.to_dict.return_value = None
+        mock_client.collection.return_value.document.return_value.get.return_value = mock_document_snapshot
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+
+        with pytest.raises(ValueError, match="document_data must not be None"):
+            repository.find("01JTEST000000000000000000")

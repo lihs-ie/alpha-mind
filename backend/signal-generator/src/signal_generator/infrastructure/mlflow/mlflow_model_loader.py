@@ -38,6 +38,4 @@ class MLflowModelLoader:
         try:
             return mlflow.pyfunc.load_model(model_uri=model_uri)
         except Exception as error:
-            raise ModelLoadError(
-                f"モデル '{model_name}' (uri={model_uri}) のロードに失敗: {error}"
-            ) from error
+            raise ModelLoadError(f"モデル '{model_name}' (uri={model_uri}) のロードに失敗: {error}") from error
