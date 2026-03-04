@@ -20,3 +20,7 @@ class SignalGenerationFailedEvent:
     occurred_at: datetime.datetime
     detail: str | None = None
     event_type: EventType = EventType.SIGNAL_GENERATION_FAILED
+
+    def __post_init__(self) -> None:
+        if self.event_type is not EventType.SIGNAL_GENERATION_FAILED:
+            raise ValueError(f"event_type は SIGNAL_GENERATION_FAILED 固定 (got: {self.event_type.value})")

@@ -48,7 +48,11 @@ class SignalDispatch:
         return self._processed_at
 
     def publish(self, published_event: EventType, processed_at: datetime.datetime) -> None:
-        """イベント発行を確定する。INV-SG-004: 二重発行は禁止。"""
+        """イベント発行を確定する。INV-SG-004: 二重発行は禁止。統合イベントのみ許可。"""
+        if not published_event.is_integration_event():
+            raise ValueError(
+                f"境界内ドメインイベント '{published_event.value}' は配信対象外。統合イベントのみ publish 可能"
+            )
         if self._dispatch_status == DispatchStatus.PUBLISHED:
             raise ValueError(
                 f"{ReasonCode.IDEMPOTENCY_DUPLICATE_EVENT}: identifier={self._identifier} は既に published"

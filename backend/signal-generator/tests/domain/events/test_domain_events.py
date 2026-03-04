@@ -27,6 +27,16 @@ class TestSignalGenerationStartedEvent:
         assert event.trace == "trace-001"
         assert event.event_type == EventType.SIGNAL_GENERATION_STARTED
 
+    def test_override_event_type_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="SIGNAL_GENERATION_STARTED 固定"):
+            SignalGenerationStartedEvent(
+                identifier="01JNABCDEF1234567890123456",
+                feature_version="v1.0.0",
+                trace="trace-001",
+                occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+                event_type=EventType.SIGNAL_GENERATION_COMPLETED,
+            )
+
     def test_immutability(self) -> None:
         event = SignalGenerationStartedEvent(
             identifier="01JNABCDEF1234567890123456",
@@ -75,6 +85,24 @@ class TestSignalGenerationCompletedEvent:
                 occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )
 
+    def test_override_event_type_raises_error(self) -> None:
+        diagnostics = ModelDiagnosticsSnapshot(
+            degradation_flag=DegradationFlag.NORMAL,
+            requires_compliance_review=False,
+        )
+        with pytest.raises(ValueError, match="SIGNAL_GENERATION_COMPLETED 固定"):
+            SignalGenerationCompletedEvent(
+                identifier="01JNABCDEF1234567890123456",
+                signal_version="signal-v1.0.0",
+                model_version="model-v1.0.0",
+                feature_version="v1.0.0",
+                storage_path="gs://signal_store/2026-01-01/signals.parquet",
+                model_diagnostics=diagnostics,
+                trace="trace-001",
+                occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+                event_type=EventType.SIGNAL_GENERATION_FAILED,
+            )
+
     def test_immutability(self) -> None:
         diagnostics = ModelDiagnosticsSnapshot(
             degradation_flag=DegradationFlag.NORMAL,
@@ -117,6 +145,16 @@ class TestSignalGenerationFailedEvent:
             detail="MLflow connection timed out",
         )
         assert event.detail == "MLflow connection timed out"
+
+    def test_override_event_type_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="SIGNAL_GENERATION_FAILED 固定"):
+            SignalGenerationFailedEvent(
+                identifier="01JNABCDEF1234567890123456",
+                reason_code=ReasonCode.MODEL_NOT_APPROVED,
+                trace="trace-001",
+                occurred_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+                event_type=EventType.SIGNAL_GENERATION_STARTED,
+            )
 
     def test_immutability(self) -> None:
         event = SignalGenerationFailedEvent(

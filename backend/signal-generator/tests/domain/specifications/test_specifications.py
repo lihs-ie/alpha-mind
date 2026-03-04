@@ -22,7 +22,8 @@ from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
 class TestFeaturePayloadIntegritySpecification:
     def test_complete_feature_snapshot_satisfies_specification(self) -> None:
         # RULE-SG-001: 必須項目が全て揃っている場合は satisfied
-        spec = FeaturePayloadIntegritySpecification()
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
         feature = FeatureSnapshot(
             target_date=datetime.date(2026, 1, 1),
             feature_version="v1.0.0",

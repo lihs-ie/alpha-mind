@@ -15,3 +15,7 @@ class SignalGenerationStartedEvent:
     trace: str
     occurred_at: datetime.datetime
     event_type: EventType = EventType.SIGNAL_GENERATION_STARTED
+
+    def __post_init__(self) -> None:
+        if self.event_type is not EventType.SIGNAL_GENERATION_STARTED:
+            raise ValueError(f"event_type は SIGNAL_GENERATION_STARTED 固定 (got: {self.event_type.value})")

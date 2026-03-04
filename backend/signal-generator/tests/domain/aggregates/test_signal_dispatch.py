@@ -50,6 +50,29 @@ class TestSignalDispatchPublish:
         with pytest.raises(ValueError, match="IDEMPOTENCY_DUPLICATE_EVENT"):
             dispatch.publish(published_event=EventType.SIGNAL_GENERATED, processed_at=processed_at)
 
+    def test_publish_internal_event_raises_error(self) -> None:
+        dispatch = SignalDispatch(
+            identifier="01JNABCDEF1234567890123456",
+            trace="trace-001",
+        )
+        with pytest.raises(ValueError, match="境界内ドメインイベント"):
+            dispatch.publish(
+                published_event=EventType.SIGNAL_GENERATION_STARTED,
+                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+            )
+
+    def test_publish_signal_generation_failed_is_allowed(self) -> None:
+        dispatch = SignalDispatch(
+            identifier="01JNABCDEF1234567890123456",
+            trace="trace-001",
+        )
+        dispatch.publish(
+            published_event=EventType.SIGNAL_GENERATION_FAILED,
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        )
+        assert dispatch.dispatch_status == DispatchStatus.PUBLISHED
+        assert dispatch.published_event == EventType.SIGNAL_GENERATION_FAILED
+
 
 class TestSignalDispatchFail:
     def test_fail_from_pending(self) -> None:

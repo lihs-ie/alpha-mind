@@ -13,3 +13,12 @@ class EventType(StrEnum):
 
     # 境界外統合イベント (AsyncAPI contract)
     SIGNAL_GENERATED = "signal.generated"
+
+    def is_integration_event(self) -> bool:
+        """境界外統合イベント (AsyncAPI contract) かどうかを判定する。"""
+        return self in _INTEGRATION_EVENT_TYPES
+
+
+_INTEGRATION_EVENT_TYPES: frozenset[EventType] = frozenset(
+    {EventType.SIGNAL_GENERATED, EventType.SIGNAL_GENERATION_FAILED}
+)
