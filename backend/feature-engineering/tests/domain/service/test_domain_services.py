@@ -1,6 +1,42 @@
 """Tests for domain services."""
 
 import datetime
+import inspect
+from abc import ABC
+
+
+class TestFeatureVersionGenerator:
+    def test_is_abstract_base_class(self) -> None:
+        # RULE-FE-006: featureVersion は一意採番・変更禁止のため抽象インターフェースで表現
+        from domain.service.feature_version_generator import FeatureVersionGenerator
+
+        assert issubclass(FeatureVersionGenerator, ABC)
+
+    def test_generate_is_abstract_method(self) -> None:
+        # generate() は抽象メソッドであり、実装クラスが一意採番を保証する
+        from domain.service.feature_version_generator import FeatureVersionGenerator
+
+        assert hasattr(FeatureVersionGenerator, "generate")
+        assert getattr(FeatureVersionGenerator.generate, "__isabstractmethod__", False)
+
+    def test_cannot_instantiate_directly(self) -> None:
+        # 抽象クラスは直接インスタンス化できない
+        from domain.service.feature_version_generator import FeatureVersionGenerator
+
+        try:
+            FeatureVersionGenerator()  # type: ignore[abstract]
+            raise AssertionError("Expected TypeError was not raised")
+        except TypeError:
+            pass
+
+    def test_generate_signature_accepts_target_date(self) -> None:
+        # generate() は target_date を受け取り str を返す
+        from domain.service.feature_version_generator import FeatureVersionGenerator
+
+        signature = inspect.signature(FeatureVersionGenerator.generate)
+        parameters = list(signature.parameters.keys())
+        assert "target_date" in parameters
+        assert signature.return_annotation is str
 
 
 class TestPointInTimeJoinPolicy:

@@ -112,8 +112,15 @@ class FeatureGeneration:
         processed_at: datetime.datetime,
     ) -> None:
         """Transition to generated state. Enforces INV-FE-001, INV-FE-003, INV-FE-005."""
+        # 設計書 5.1: generated -> generated は重複受信として冪等 (no-op)
+        if self._status == FeatureGenerationStatus.GENERATED:
+            return
         if self._status != FeatureGenerationStatus.PENDING:
             raise InvalidStateTransitionError(f"Cannot complete from status {self._status.value}, must be pending")
+
+        # INV-FE-003: insight must be filtered by target_date
+        if not insight.filtered_by_target_date:
+            raise InvariantViolationError("INV-FE-003: insight must be filtered by target_date")
 
         # INV-FE-003: insight.latest_collected_at <= target_date (end of day)
         if insight.latest_collected_at is not None:
@@ -151,6 +158,9 @@ class FeatureGeneration:
         processed_at: datetime.datetime,
     ) -> None:
         """Transition to failed state. Enforces INV-FE-002."""
+        # 設計書 5.1: failed -> failed は再実行として冪等 (no-op)
+        if self._status == FeatureGenerationStatus.FAILED:
+            return
         if self._status != FeatureGenerationStatus.PENDING:
             raise InvalidStateTransitionError(f"Cannot fail from status {self._status.value}, must be pending")
 

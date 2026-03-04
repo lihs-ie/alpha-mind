@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 
+from domain.value_object.dispatch_decision import DispatchDecision
 from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
 
 
@@ -19,8 +20,7 @@ class FeatureDispatch:
         identifier: str,
         dispatch_status: DispatchStatus,
         trace: str,
-        published_event: PublishedEventType | None = None,
-        reason_code: ReasonCode | None = None,
+        dispatch_decision: DispatchDecision | None = None,
         processed_at: datetime.datetime | None = None,
     ) -> None:
         if not identifier:
@@ -28,19 +28,22 @@ class FeatureDispatch:
         if not trace:
             raise ValueError("trace must not be empty")
 
-        # Invariant: failed status requires reason_code
-        if dispatch_status == DispatchStatus.FAILED and reason_code is None:
-            raise ValueError("failed dispatch status requires reason_code")
+        # failed 状態には dispatch_decision に reason_code が必要
+        if dispatch_status == DispatchStatus.FAILED and (
+            dispatch_decision is None or dispatch_decision.reason_code is None
+        ):
+            raise ValueError("failed dispatch status requires reason_code in dispatch_decision")
 
-        # Invariant: published status requires published_event
-        if dispatch_status == DispatchStatus.PUBLISHED and published_event is None:
-            raise ValueError("published dispatch status requires published_event")
+        # published 状態には dispatch_decision に published_event が必要
+        if dispatch_status == DispatchStatus.PUBLISHED and (
+            dispatch_decision is None or dispatch_decision.published_event is None
+        ):
+            raise ValueError("published dispatch status requires published_event in dispatch_decision")
 
         self._identifier = identifier
         self._dispatch_status = dispatch_status
         self._trace = trace
-        self._published_event = published_event
-        self._reason_code = reason_code
+        self._dispatch_decision = dispatch_decision
         self._processed_at = processed_at
 
     @property
@@ -56,12 +59,18 @@ class FeatureDispatch:
         return self._trace
 
     @property
+    def dispatch_decision(self) -> DispatchDecision | None:
+        return self._dispatch_decision
+
+    @property
     def published_event(self) -> PublishedEventType | None:
-        return self._published_event
+        # 後方互換のため dispatch_decision に委譲
+        return self._dispatch_decision.published_event if self._dispatch_decision else None
 
     @property
     def reason_code(self) -> ReasonCode | None:
-        return self._reason_code
+        # 後方互換のため dispatch_decision に委譲
+        return self._dispatch_decision.reason_code if self._dispatch_decision else None
 
     @property
     def processed_at(self) -> datetime.datetime | None:
@@ -78,7 +87,11 @@ class FeatureDispatch:
                 f"Cannot publish from status {self._dispatch_status.value}, must be pending"
             )
 
-        self._published_event = published_event
+        self._dispatch_decision = DispatchDecision(
+            dispatch_status=DispatchStatus.PUBLISHED,
+            published_event=published_event,
+            reason_code=None,
+        )
         self._dispatch_status = DispatchStatus.PUBLISHED
         self._processed_at = processed_at
 
@@ -93,7 +106,11 @@ class FeatureDispatch:
                 f"Cannot fail from status {self._dispatch_status.value}, must be pending"
             )
 
-        self._reason_code = reason_code
+        self._dispatch_decision = DispatchDecision(
+            dispatch_status=DispatchStatus.FAILED,
+            published_event=None,
+            reason_code=reason_code,
+        )
         self._dispatch_status = DispatchStatus.FAILED
         self._processed_at = processed_at
 

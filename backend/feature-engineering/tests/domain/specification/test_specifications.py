@@ -32,6 +32,34 @@ class TestMarketPayloadIntegritySpecification:
         )
         assert specification.is_satisfied_by(snapshot) is False
 
+    def test_not_satisfied_when_target_date_is_none(self) -> None:
+        # RULE-FE-001: target_date が None の場合は整合性チェック失敗
+        from domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
+        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.market_snapshot import MarketSnapshot
+        from domain.value_object.source_status import SourceStatus
+
+        specification = MarketPayloadIntegritySpecification()
+        snapshot = MarketSnapshot(
+            target_date=None,  # type: ignore[arg-type]
+            storage_path="gs://bucket/market/2026-03-03.parquet",
+            source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
+        )
+        assert specification.is_satisfied_by(snapshot) is False
+
+    def test_not_satisfied_when_source_status_is_none(self) -> None:
+        # RULE-FE-001: source_status が None の場合は整合性チェック失敗
+        from domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
+        from domain.value_object.market_snapshot import MarketSnapshot
+
+        specification = MarketPayloadIntegritySpecification()
+        snapshot = MarketSnapshot(
+            target_date=datetime.date(2026, 3, 3),
+            storage_path="gs://bucket/market/2026-03-03.parquet",
+            source_status=None,  # type: ignore[arg-type]
+        )
+        assert specification.is_satisfied_by(snapshot) is False
+
 
 class TestSourceStatusHealthySpecification:
     def test_satisfied_when_both_ok(self) -> None:

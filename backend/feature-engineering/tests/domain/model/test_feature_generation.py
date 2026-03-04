@@ -215,14 +215,34 @@ class TestFeatureGenerationCompleteTransition:
         )
         assert generation.status == FeatureGenerationStatus.GENERATED
 
-    def test_cannot_complete_from_generated(self) -> None:
-        """INV-FE-005: cannot re-complete after generated."""
+    def test_inv_fe_003_rejects_not_filtered_by_target_date(self) -> None:
+        """INV-FE-003: filtered_by_target_date が False の場合は完了を拒否する。"""
+        generation = _make_pending_generation()
+        processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
+        unfiltered_insight = InsightSnapshot(
+            record_count=10,
+            latest_collected_at=datetime.datetime(2026, 3, 3, 15, 0, 0, tzinfo=datetime.UTC),
+            filtered_by_target_date=False,
+        )
+
+        with pytest.raises(InvariantViolationError, match="INV-FE-003"):
+            generation.complete(
+                feature_artifact=_make_artifact(),
+                insight=unfiltered_insight,
+                processed_at=processed_at,
+            )
+
+    def test_complete_from_generated_is_idempotent(self) -> None:
+        # 設計書 5.1: generated -> generated は重複受信として冪等 (no-op, 新規イベントなし)
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         generation.complete(feature_artifact=_make_artifact(), insight=_make_insight(), processed_at=processed_at)
+        event_count_before = len(generation.domain_events)
 
-        with pytest.raises(InvalidStateTransitionError):
-            generation.complete(feature_artifact=_make_artifact(), insight=_make_insight(), processed_at=processed_at)
+        generation.complete(feature_artifact=_make_artifact(), insight=_make_insight(), processed_at=processed_at)
+
+        assert generation.status == FeatureGenerationStatus.GENERATED
+        assert len(generation.domain_events) == event_count_before
 
     def test_cannot_complete_from_failed(self) -> None:
         generation = _make_pending_generation()
@@ -293,19 +313,26 @@ class TestFeatureGenerationFailTransition:
                 processed_at=processed_at,
             )
 
-    def test_cannot_fail_from_failed(self) -> None:
+    def test_fail_from_failed_is_idempotent(self) -> None:
+        # 設計書 5.1: failed -> failed は再実行として冪等 (no-op, 新規イベントなし)
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         generation.fail(
             failure_detail=FailureDetail(reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False),
             processed_at=processed_at,
         )
+        event_count_before = len(generation.domain_events)
 
-        with pytest.raises(InvalidStateTransitionError):
-            generation.fail(
-                failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
-                processed_at=processed_at,
-            )
+        generation.fail(
+            failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
+            processed_at=processed_at,
+        )
+
+        assert generation.status == FeatureGenerationStatus.FAILED
+        assert len(generation.domain_events) == event_count_before
+        # 元の failure_detail が保持されていることを確認
+        assert generation.failure_detail is not None
+        assert generation.failure_detail.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
 
 
 class TestFeatureGenerationDomainEvents:
