@@ -4,6 +4,7 @@ import datetime
 
 from domain.event.domain_events import FeatureGenerationStarted
 from domain.model.feature_generation import FeatureGeneration
+from domain.service.feature_version_generator import FeatureVersionGenerator
 from domain.specification.market_payload_integrity import MarketPayloadIntegritySpecification
 from domain.specification.source_status_healthy import SourceStatusHealthySpecification
 from domain.value_object.enums import FeatureGenerationStatus, ReasonCode
@@ -12,7 +13,18 @@ from domain.value_object.market_snapshot import MarketSnapshot
 
 
 class FeatureGenerationFactory:
-    """Creates FeatureGeneration aggregates from incoming market.collected events."""
+    """Creates FeatureGeneration aggregates from incoming market.collected events.
+
+    RULE-FE-006: featureVersion の一意採番は FeatureVersionGenerator に委譲する。
+    """
+
+    def __init__(self, feature_version_generator: FeatureVersionGenerator) -> None:
+        self._feature_version_generator = feature_version_generator
+
+    @property
+    def feature_version_generator(self) -> FeatureVersionGenerator:
+        """Expose the feature version generator for use by application services."""
+        return self._feature_version_generator
 
     def from_market_collected_event(
         self,

@@ -133,14 +133,15 @@ class TestFeatureDispatchPublishTransition:
 
         assert dispatch.published_event == PublishedEventType.FEATURES_GENERATION_FAILED
 
-    def test_inv_fe_004_cannot_publish_twice(self) -> None:
-        """INV-FE-004: same event identifier can only transition to published once."""
+    def test_inv_fe_004_publish_twice_is_idempotent(self) -> None:
+        """INV-FE-004: 冪等扱い — 既に published なら no-op。"""
         dispatch = _make_pending_dispatch()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         dispatch.publish(published_event=PublishedEventType.FEATURES_GENERATED, processed_at=processed_at)
 
-        with pytest.raises(InvalidDispatchTransitionError):
-            dispatch.publish(published_event=PublishedEventType.FEATURES_GENERATED, processed_at=processed_at)
+        # 2回目の publish は no-op (例外なし)
+        dispatch.publish(published_event=PublishedEventType.FEATURES_GENERATED, processed_at=processed_at)
+        assert dispatch.dispatch_status == DispatchStatus.PUBLISHED
 
     def test_cannot_publish_from_failed(self) -> None:
         dispatch = _make_pending_dispatch()

@@ -81,7 +81,10 @@ class FeatureDispatch:
         published_event: PublishedEventType,
         processed_at: datetime.datetime,
     ) -> None:
-        """Transition to published state. Enforces INV-FE-004."""
+        """Transition to published state. Enforces INV-FE-004 (idempotent)."""
+        # INV-FE-004: 冪等扱い — 既に published なら no-op
+        if self._dispatch_status == DispatchStatus.PUBLISHED:
+            return
         if self._dispatch_status != DispatchStatus.PENDING:
             raise InvalidDispatchTransitionError(
                 f"Cannot publish from status {self._dispatch_status.value}, must be pending"

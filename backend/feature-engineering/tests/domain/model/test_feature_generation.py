@@ -313,26 +313,20 @@ class TestFeatureGenerationFailTransition:
                 processed_at=processed_at,
             )
 
-    def test_fail_from_failed_is_idempotent(self) -> None:
-        # 設計書 5.1: failed -> failed は再実行として冪等 (no-op, 新規イベントなし)
+    def test_cannot_fail_from_failed(self) -> None:
+        """設計書 5.1: failed -> failed は STATE_CONFLICT で拒否。"""
         generation = _make_pending_generation()
         processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
         generation.fail(
             failure_detail=FailureDetail(reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE, detail=None, retryable=False),
             processed_at=processed_at,
         )
-        event_count_before = len(generation.domain_events)
 
-        generation.fail(
-            failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
-            processed_at=processed_at,
-        )
-
-        assert generation.status == FeatureGenerationStatus.FAILED
-        assert len(generation.domain_events) == event_count_before
-        # 元の failure_detail が保持されていることを確認
-        assert generation.failure_detail is not None
-        assert generation.failure_detail.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        with pytest.raises(InvalidStateTransitionError):
+            generation.fail(
+                failure_detail=FailureDetail(reason_code=ReasonCode.STATE_CONFLICT, detail=None, retryable=False),
+                processed_at=processed_at,
+            )
 
 
 class TestFeatureGenerationDomainEvents:

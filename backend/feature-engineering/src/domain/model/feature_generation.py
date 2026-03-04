@@ -158,9 +158,6 @@ class FeatureGeneration:
         processed_at: datetime.datetime,
     ) -> None:
         """Transition to failed state. Enforces INV-FE-002."""
-        # 設計書 5.1: failed -> failed は再実行として冪等 (no-op)
-        if self._status == FeatureGenerationStatus.FAILED:
-            return
         if self._status != FeatureGenerationStatus.PENDING:
             raise InvalidStateTransitionError(f"Cannot fail from status {self._status.value}, must be pending")
 

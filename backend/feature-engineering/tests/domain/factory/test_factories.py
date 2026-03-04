@@ -2,6 +2,15 @@
 
 import datetime
 
+import pytest
+
+
+class _StubFeatureVersionGenerator:
+    """Stub implementation for testing."""
+
+    def generate(self, target_date: datetime.date) -> str:
+        return f"v{target_date.strftime('%Y%m%d')}-001"
+
 
 class TestFeatureGenerationFactory:
     def test_creates_pending_feature_generation(self) -> None:
@@ -10,7 +19,7 @@ class TestFeatureGenerationFactory:
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
-        factory = FeatureGenerationFactory()
+        factory = FeatureGenerationFactory(feature_version_generator=_StubFeatureVersionGenerator())  # type: ignore[arg-type]
         market = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
             storage_path="gs://bucket/market/2026-03-03.parquet",
@@ -38,7 +47,7 @@ class TestFeatureGenerationFactory:
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
-        factory = FeatureGenerationFactory()
+        factory = FeatureGenerationFactory(feature_version_generator=_StubFeatureVersionGenerator())  # type: ignore[arg-type]
         market = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
             storage_path="gs://bucket/path",
@@ -58,37 +67,32 @@ class TestFeatureGenerationFactory:
         assert events[0].trace == "trace-abc-123"
 
     def test_rule_fe_001_rejects_when_storage_path_empty(self) -> None:
-        # RULE-FE-001: storage_path が空の場合は生成開始しない
         from domain.factory.feature_generation_factory import FeatureGenerationFactory
         from domain.value_object.enums import SourceStatusValue
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
-        factory = FeatureGenerationFactory()
+        factory = FeatureGenerationFactory(feature_version_generator=_StubFeatureVersionGenerator())  # type: ignore[arg-type]
         market = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
             storage_path="",
             source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
         )
 
-        try:
+        with pytest.raises(ValueError, match="RULE-FE-001"):
             factory.from_market_collected_event(
                 identifier="01JNPQRS0000000000000001",
                 market=market,
                 trace="trace-abc-123",
             )
-            raise AssertionError("Expected ValueError was not raised")
-        except ValueError as error:
-            assert "RULE-FE-001" in str(error)
 
     def test_rule_fe_002_auto_fails_when_source_unhealthy(self) -> None:
-        # RULE-FE-002: source_status が unhealthy の場合は即時 FAILED に遷移
         from domain.factory.feature_generation_factory import FeatureGenerationFactory
         from domain.value_object.enums import FeatureGenerationStatus, ReasonCode, SourceStatusValue
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
-        factory = FeatureGenerationFactory()
+        factory = FeatureGenerationFactory(feature_version_generator=_StubFeatureVersionGenerator())  # type: ignore[arg-type]
         market = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
             storage_path="gs://bucket/market/2026-03-03.parquet",
@@ -106,13 +110,12 @@ class TestFeatureGenerationFactory:
         assert generation.failure_detail.retryable is True
 
     def test_rule_fe_002_remains_pending_when_source_healthy(self) -> None:
-        # RULE-FE-002: source_status が healthy の場合は PENDING のまま
         from domain.factory.feature_generation_factory import FeatureGenerationFactory
         from domain.value_object.enums import FeatureGenerationStatus, SourceStatusValue
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
-        factory = FeatureGenerationFactory()
+        factory = FeatureGenerationFactory(feature_version_generator=_StubFeatureVersionGenerator())  # type: ignore[arg-type]
         market = MarketSnapshot(
             target_date=datetime.date(2026, 3, 3),
             storage_path="gs://bucket/market/2026-03-03.parquet",
@@ -125,6 +128,20 @@ class TestFeatureGenerationFactory:
         )
 
         assert generation.status == FeatureGenerationStatus.PENDING
+
+    def test_exposes_feature_version_generator(self) -> None:
+        """RULE-FE-006: ファクトリが FeatureVersionGenerator を公開する。"""
+        from domain.factory.feature_generation_factory import FeatureGenerationFactory
+
+        generator = _StubFeatureVersionGenerator()
+        factory = FeatureGenerationFactory(feature_version_generator=generator)  # type: ignore[arg-type]
+        assert factory.feature_version_generator is generator
+
+    def test_feature_version_generator_produces_version(self) -> None:
+        """RULE-FE-006: FeatureVersionGenerator が一意バージョンを生成する。"""
+        generator = _StubFeatureVersionGenerator()
+        version = generator.generate(datetime.date(2026, 3, 3))
+        assert version == "v20260303-001"
 
 
 class TestFeatureDispatchFactory:
@@ -144,3 +161,19 @@ class TestFeatureDispatchFactory:
         assert dispatch.published_event is None
         assert dispatch.reason_code is None
         assert dispatch.processed_at is None
+
+    def test_creates_dispatch_with_pending_dispatch_decision(self) -> None:
+        """DispatchDecision は PENDING 状態で初期化される。"""
+        from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
+        from domain.value_object.enums import DispatchStatus
+
+        factory = FeatureDispatchFactory()
+        dispatch = factory.from_feature_generation(
+            identifier="01JNPQRS0000000000000001",
+            trace="trace-abc-123",
+        )
+
+        assert dispatch.dispatch_decision is not None
+        assert dispatch.dispatch_decision.dispatch_status == DispatchStatus.PENDING
+        assert dispatch.dispatch_decision.published_event is None
+        assert dispatch.dispatch_decision.reason_code is None
