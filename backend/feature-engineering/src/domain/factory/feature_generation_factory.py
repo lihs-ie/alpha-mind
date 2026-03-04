@@ -34,11 +34,6 @@ class FeatureGenerationFactory:
         market: MarketSnapshot,
         trace: str,
     ) -> FeatureGeneration:
-        # RULE-FE-001: 必須フィールド欠損時は生成開始しない
-        integrity_specification = MarketPayloadIntegritySpecification()
-        if not integrity_specification.is_satisfied_by(market):
-            raise ValueError("RULE-FE-001: market payload integrity check failed - required fields missing")
-
         generation = FeatureGeneration(
             identifier=identifier,
             status=FeatureGenerationStatus.PENDING,
@@ -54,6 +49,19 @@ class FeatureGenerationFactory:
                 occurred_at=datetime.datetime.now(tz=datetime.UTC),
             )
         )
+
+        # RULE-FE-001: 必須フィールド欠損時は failed 遷移 (REQUEST_VALIDATION_FAILED)
+        integrity_specification = MarketPayloadIntegritySpecification()
+        if not integrity_specification.is_satisfied_by(market):
+            generation.fail(
+                failure_detail=FailureDetail(
+                    reason_code=ReasonCode.REQUEST_VALIDATION_FAILED,
+                    detail="RULE-FE-001: market payload integrity check failed - required fields missing",
+                    retryable=False,
+                ),
+                processed_at=datetime.datetime.now(tz=datetime.UTC),
+            )
+            return generation
 
         # RULE-FE-002: source status が unhealthy の場合は即時 FAILED に遷移
         source_health_specification = SourceStatusHealthySpecification()

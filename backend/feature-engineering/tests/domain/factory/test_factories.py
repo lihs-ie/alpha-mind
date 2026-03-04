@@ -2,8 +2,6 @@
 
 import datetime
 
-import pytest
-
 from domain.model.feature_generation import FeatureGeneration
 from domain.value_object.enums import FeatureGenerationStatus, SourceStatusValue
 from domain.value_object.market_snapshot import MarketSnapshot
@@ -71,9 +69,10 @@ class TestFeatureGenerationFactory:
         assert events[0].target_date == datetime.date(2026, 3, 3)
         assert events[0].trace == "trace-abc-123"
 
-    def test_rule_fe_001_rejects_when_storage_path_empty(self) -> None:
+    def test_rule_fe_001_fails_when_storage_path_empty(self) -> None:
+        from domain.event.domain_events import FeatureGenerationFailed
         from domain.factory.feature_generation_factory import FeatureGenerationFactory
-        from domain.value_object.enums import SourceStatusValue
+        from domain.value_object.enums import ReasonCode, SourceStatusValue
         from domain.value_object.market_snapshot import MarketSnapshot
         from domain.value_object.source_status import SourceStatus
 
@@ -84,12 +83,22 @@ class TestFeatureGenerationFactory:
             source_status=SourceStatus(jp=SourceStatusValue.OK, us=SourceStatusValue.OK),
         )
 
-        with pytest.raises(ValueError, match="RULE-FE-001"):
-            factory.from_market_collected_event(
-                identifier="01JNPQRS000000000000000001",
-                market=market,
-                trace="trace-abc-123",
-            )
+        generation = factory.from_market_collected_event(
+            identifier="01JNPQRS000000000000000001",
+            market=market,
+            trace="trace-abc-123",
+        )
+
+        assert generation.status == FeatureGenerationStatus.FAILED
+        assert generation.failure_detail is not None
+        assert generation.failure_detail.reason_code == ReasonCode.REQUEST_VALIDATION_FAILED
+        assert generation.failure_detail.retryable is False
+
+        # Started + Failed の2イベントが発行される
+        events = generation.domain_events
+        assert len(events) == 2
+        assert isinstance(events[1], FeatureGenerationFailed)
+        assert events[1].reason_code == ReasonCode.REQUEST_VALIDATION_FAILED
 
     def test_rule_fe_002_auto_fails_when_source_unhealthy(self) -> None:
         from domain.factory.feature_generation_factory import FeatureGenerationFactory

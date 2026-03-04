@@ -15,5 +15,8 @@ class InsightSnapshot:
     def __post_init__(self) -> None:
         if self.record_count < 0:
             raise ValueError(f"record_count must be non-negative, got {self.record_count}")
-        if self.latest_collected_at is not None and self.latest_collected_at.tzinfo is None:
-            raise ValueError("latest_collected_at must be timezone-aware (UTC expected)")
+        if self.latest_collected_at is not None:
+            if self.latest_collected_at.tzinfo is None:
+                raise ValueError("latest_collected_at must be timezone-aware (UTC required)")
+            if self.latest_collected_at.utcoffset() != datetime.timedelta(0):
+                raise ValueError("latest_collected_at must be UTC (offset must be zero)")

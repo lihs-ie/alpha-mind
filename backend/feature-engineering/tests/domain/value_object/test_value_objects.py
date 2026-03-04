@@ -136,6 +136,17 @@ class TestInsightSnapshot:
                 filtered_by_target_date=True,
             )
 
+    def test_rejects_non_utc_timezone(self) -> None:
+        from domain.value_object.insight_snapshot import InsightSnapshot
+
+        jst = datetime.timezone(datetime.timedelta(hours=9))
+        with pytest.raises(ValueError, match="latest_collected_at must be UTC"):
+            InsightSnapshot(
+                record_count=1,
+                latest_collected_at=datetime.datetime(2026, 3, 3, 12, 0, 0, tzinfo=jst),
+                filtered_by_target_date=True,
+            )
+
 
 class TestFeatureArtifact:
     def test_create(self) -> None:
@@ -270,3 +281,25 @@ class TestDispatchDecision:
         decision = DispatchDecision(dispatch_status=DispatchStatus.PENDING, published_event=None, reason_code=None)
         with pytest.raises(AttributeError):
             decision.dispatch_status = DispatchStatus.PUBLISHED  # type: ignore[misc]
+
+    def test_rejects_failed_with_published_event(self) -> None:
+        from domain.value_object.dispatch_decision import DispatchDecision
+        from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+
+        with pytest.raises(ValueError, match="failed dispatch decision must not have published_event"):
+            DispatchDecision(
+                dispatch_status=DispatchStatus.FAILED,
+                published_event=PublishedEventType.FEATURES_GENERATED,
+                reason_code=ReasonCode.DISPATCH_FAILED,
+            )
+
+    def test_rejects_published_with_reason_code(self) -> None:
+        from domain.value_object.dispatch_decision import DispatchDecision
+        from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
+
+        with pytest.raises(ValueError, match="published dispatch decision must not have reason_code"):
+            DispatchDecision(
+                dispatch_status=DispatchStatus.PUBLISHED,
+                published_event=PublishedEventType.FEATURES_GENERATED,
+                reason_code=ReasonCode.STATE_CONFLICT,
+            )
