@@ -111,11 +111,25 @@ class FeatureGeneration:
         insight: InsightSnapshot,
         processed_at: datetime.datetime,
     ) -> None:
-        """Transition to generated state. Enforces INV-FE-001, INV-FE-005."""
+        """Transition to generated state. Enforces INV-FE-001, INV-FE-003, INV-FE-005."""
         if self._status != FeatureGenerationStatus.PENDING:
             raise InvalidStateTransitionError(
                 f"Cannot complete from status {self._status.value}, must be pending"
             )
+
+        # INV-FE-003: insight.latest_collected_at <= target_date (end of day)
+        if insight.latest_collected_at is not None:
+            target_date_end = datetime.datetime(
+                self._market.target_date.year,
+                self._market.target_date.month,
+                self._market.target_date.day,
+                tzinfo=datetime.UTC,
+            ) + datetime.timedelta(days=1)
+            if insight.latest_collected_at >= target_date_end:
+                raise InvariantViolationError(
+                    f"INV-FE-003: insight.latest_collected_at ({insight.latest_collected_at}) "
+                    f"exceeds target_date ({self._market.target_date})"
+                )
 
         self._feature_artifact = feature_artifact
         self._insight = insight
@@ -161,3 +175,7 @@ class FeatureGeneration:
 
 class InvalidStateTransitionError(Exception):
     """Raised when an invalid state transition is attempted on an aggregate."""
+
+
+class InvariantViolationError(Exception):
+    """Raised when a domain invariant is violated."""

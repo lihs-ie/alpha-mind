@@ -5,7 +5,7 @@ import datetime
 import pytest
 
 from domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
-from domain.model.feature_generation import FeatureGeneration, InvalidStateTransitionError
+from domain.model.feature_generation import FeatureGeneration, InvalidStateTransitionError, InvariantViolationError
 from domain.value_object.enums import (
     FeatureGenerationStatus,
     ReasonCode,
@@ -163,6 +163,57 @@ class TestFeatureGenerationCompleteTransition:
         assert events[0].feature_version == "v20260303-001"
         assert events[0].target_date == datetime.date(2026, 3, 3)
         assert events[0].trace == "trace-abc-123"
+
+    def test_inv_fe_003_rejects_future_insight(self) -> None:
+        """INV-FE-003: insight.latest_collected_at must not exceed target_date."""
+        generation = _make_pending_generation()  # target_date = 2026-03-03
+        processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
+        future_insight = InsightSnapshot(
+            record_count=5,
+            latest_collected_at=datetime.datetime(2026, 3, 4, 0, 0, 0, tzinfo=datetime.UTC),
+            filtered_by_target_date=True,
+        )
+
+        with pytest.raises(InvariantViolationError, match="INV-FE-003"):
+            generation.complete(
+                feature_artifact=_make_artifact(),
+                insight=future_insight,
+                processed_at=processed_at,
+            )
+
+    def test_inv_fe_003_allows_end_of_target_date(self) -> None:
+        """INV-FE-003: latest_collected_at at end of target_date should be allowed."""
+        generation = _make_pending_generation()  # target_date = 2026-03-03
+        processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
+        boundary_insight = InsightSnapshot(
+            record_count=5,
+            latest_collected_at=datetime.datetime(2026, 3, 3, 23, 59, 59, tzinfo=datetime.UTC),
+            filtered_by_target_date=True,
+        )
+
+        generation.complete(
+            feature_artifact=_make_artifact(),
+            insight=boundary_insight,
+            processed_at=processed_at,
+        )
+        assert generation.status == FeatureGenerationStatus.GENERATED
+
+    def test_inv_fe_003_allows_none_collected_at(self) -> None:
+        """INV-FE-003: None latest_collected_at (no records) should be allowed."""
+        generation = _make_pending_generation()
+        processed_at = datetime.datetime(2026, 3, 3, 12, 5, 0, tzinfo=datetime.UTC)
+        empty_insight = InsightSnapshot(
+            record_count=0,
+            latest_collected_at=None,
+            filtered_by_target_date=True,
+        )
+
+        generation.complete(
+            feature_artifact=_make_artifact(),
+            insight=empty_insight,
+            processed_at=processed_at,
+        )
+        assert generation.status == FeatureGenerationStatus.GENERATED
 
     def test_cannot_complete_from_generated(self) -> None:
         """INV-FE-005: cannot re-complete after generated."""
