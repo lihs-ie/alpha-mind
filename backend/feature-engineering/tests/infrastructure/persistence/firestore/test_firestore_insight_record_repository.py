@@ -1,0 +1,134 @@
+"""Tests for FirestoreInsightRecordRepository."""
+
+import datetime
+from unittest.mock import MagicMock
+
+from domain.value_object.insight_snapshot import InsightSnapshot
+from infrastructure.persistence.firestore.firestore_insight_record_repository import (
+    FirestoreInsightRecordRepository,
+)
+
+
+class TestFirestoreInsightRecordRepositorySearch:
+    def test_search_without_filter_returns_all_snapshots(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_client.collection.return_value = mock_collection
+
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 15, 8, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_doc2 = MagicMock()
+        mock_doc2.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 14, 7, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_collection.stream.return_value = [mock_doc1, mock_doc2]
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        results = repository.search()
+
+        assert len(results) == 1
+        snapshot = results[0]
+        assert isinstance(snapshot, InsightSnapshot)
+        assert snapshot.record_count == 2
+        assert snapshot.filtered_by_target_date is False
+
+    def test_search_with_target_date_filters_by_date(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        mock_query.where.return_value = mock_query
+
+        mock_doc = MagicMock()
+        mock_doc.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 15, 8, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_query.stream.return_value = [mock_doc]
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        results = repository.search(target_date=datetime.date(2026, 1, 15))
+
+        assert len(results) == 1
+        snapshot = results[0]
+        assert snapshot.record_count == 1
+        assert snapshot.filtered_by_target_date is True
+        assert snapshot.latest_collected_at == datetime.datetime(2026, 1, 15, 8, 0, 0, tzinfo=datetime.UTC)
+
+    def test_search_returns_empty_when_no_records(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.stream.return_value = []
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        results = repository.search()
+
+        assert len(results) == 1
+        assert results[0].record_count == 0
+        assert results[0].latest_collected_at is None
+
+
+class TestFirestoreInsightRecordRepositoryFindByTargetDate:
+    def test_find_by_target_date_returns_snapshot(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        mock_query.where.return_value = mock_query
+
+        mock_doc = MagicMock()
+        mock_doc.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 15, 6, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_query.stream.return_value = [mock_doc]
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        result = repository.find_by_target_date(datetime.date(2026, 1, 15))
+
+        assert result is not None
+        assert result.record_count == 1
+        assert result.filtered_by_target_date is True
+        assert result.latest_collected_at == datetime.datetime(2026, 1, 15, 6, 0, 0, tzinfo=datetime.UTC)
+
+    def test_find_by_target_date_returns_none_when_no_records(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        mock_query.where.return_value = mock_query
+        mock_query.stream.return_value = []
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        result = repository.find_by_target_date(datetime.date(2026, 1, 15))
+
+        assert result is None
+
+    def test_find_by_target_date_picks_latest_collected_at(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        mock_query.where.return_value = mock_query
+
+        mock_doc1 = MagicMock()
+        mock_doc1.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 15, 6, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_doc2 = MagicMock()
+        mock_doc2.to_dict.return_value = {
+            "collectedAt": datetime.datetime(2026, 1, 15, 10, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_query.stream.return_value = [mock_doc1, mock_doc2]
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        result = repository.find_by_target_date(datetime.date(2026, 1, 15))
+
+        assert result is not None
+        assert result.record_count == 2
+        assert result.latest_collected_at == datetime.datetime(2026, 1, 15, 10, 0, 0, tzinfo=datetime.UTC)
