@@ -1,6 +1,6 @@
 # hypothesis-lab 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/hypothesis-lab.json`
 
 ## 1. サービス概要
@@ -24,7 +24,7 @@ JSON対応: `内部設計/json/hypothesis-lab.json`
 
 ## 4. 依存関係
 
-- Firestore: `hypothesis_registry`, `backtest_runs`, `demo_trade_runs`, `failure_knowledge`, `idempotency_keys`, `audit_logs`
+- Firestore: `hypothesis_registry`, `backtest_runs`, `demo_trade_runs`, `failure_knowledge`, `idempotency_keys`
 - Cloud Storage: `backtest_artifacts`, `demo_artifacts`
 
 ## 5. 処理フロー

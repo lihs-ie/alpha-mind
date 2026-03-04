@@ -5,6 +5,8 @@ required:
 - summary
 - sourceUrl
 - collectedAt
+- signalClass
+- soWhatScore
 properties:
   identifier:
     type: string
@@ -26,9 +28,20 @@ properties:
   collectedAt:
     type: string
     format: date-time
+  signalClass:
+    type: string
+    enum:
+    - structural_anomaly
+    - event_noise
+  soWhatScore:
+    type: number
+    minimum: 0
+    maximum: 1
 example:
   identifier: 01ARZ3NDEKTSV4RRFFQ69G5FAV
   sourceType: x
   summary: string
   sourceUrl: https://example.com/resource
   collectedAt: '2026-01-15T09:00:00Z'
+  signalClass: structural_anomaly
+  soWhatScore: 0.82

@@ -1,5 +1,5 @@
 {
-  "version": "2026-02-24",
+  "version": "2026-03-03",
   "window": "30d",
   "slos": [
     {
@@ -56,6 +56,35 @@
       "service": "hypothesis-lab",
       "sli": "validated_hypotheses_within_7d / proposed_hypotheses",
       "objective": 0.95
+    },
+    {
+      "id": "SLO-008",
+      "name": "Feature generation success within 15 minutes",
+      "service": "feature-engineering",
+      "sli": "features_generated_within_15m / market_collected_events",
+      "objective": 0.99
+    },
+    {
+      "id": "SLO-009",
+      "name": "Order proposal success within 5 minutes",
+      "service": "portfolio-planner",
+      "sli": "orders_proposed_within_5m / signal_generated_events",
+      "objective": 0.99
+    },
+    {
+      "id": "SLO-010",
+      "name": "Audit record completeness",
+      "service": "audit-log",
+      "sli": "audit_records_persisted / auditable_events_received",
+      "objective": 0.999,
+      "note": "Loss rate must remain below 0.1%"
+    },
+    {
+      "id": "SLO-011",
+      "name": "Hypothesis proposal completion within 10 minutes",
+      "service": "agent-orchestrator",
+      "sli": "hypotheses_proposed_within_10m / hypothesis_generation_requests",
+      "objective": 0.99
     }
   ],
   "burnRateAlerts": [

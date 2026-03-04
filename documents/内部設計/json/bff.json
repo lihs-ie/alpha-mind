@@ -64,11 +64,14 @@
       "Firestore:settings",
       "Firestore:compliance_controls",
       "Firestore:orders",
+      "Firestore:risk_assessments",
+      "Firestore:order_executions",
       "Firestore:model_registry",
       "Firestore:audit_logs",
       "Firestore:insight_records",
       "Firestore:hypothesis_registry",
-      "Firestore:idempotency_keys"
+      "Firestore:idempotency_keys",
+      "Firestore:access_decisions"
     ],
     "messaging": [
       "Pub/Sub"

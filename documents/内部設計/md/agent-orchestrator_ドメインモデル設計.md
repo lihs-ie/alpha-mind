@@ -1,6 +1,6 @@
 # agent-orchestrator ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `agent-orchestrator`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -116,7 +116,7 @@ Feature: hypothesis orchestration
     Example: 契約とドメインモデルの命名整合
       Given OpenAPI/AsyncAPI/Domain Model を突合する
       When 識別子項目を検査する
-      Then Id サフィックス項目は存在しない
+      Then 識別子サフィックス項目は存在しない
       And 当該関心の識別子は identifier を使用する
 ```
 
@@ -350,7 +350,7 @@ Feature: hypothesis orchestration
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -412,7 +412,7 @@ Feature: hypothesis orchestration
 | `HypothesisProposal` | `agent-orchestrator` | `Firestore:hypothesis_registry` | `identifier`（仮説）単位 | `trace`, `identifier`, `symbol`, `status`, `skillVersion`, `instructionProfileVersion` |
 | `OrchestrationDispatch` | `agent-orchestrator` | `Firestore:idempotency_keys` | `identifier`（イベント）単位 | `trace`, `identifier`, `sourceEventType`, `processedAt` |
 | `FailureKnowledgeSummary` | `agent-orchestrator` | `Firestore:failure_knowledge` | 別Tx（失敗確定後） | `trace`, `identifier`, `reasonCode` |
-| `ProposalExecutionAudit` | `agent-orchestrator` | `Firestore:audit_logs` | 別Tx（各状態確定後） | `trace`, `identifier`, `eventType`, `result`, `reason` |
+| `ProposalExecutionAudit` | `agent-orchestrator` | `Cloud Logging` | 別Tx（各状態確定後） | `trace`, `identifier`, `eventType`, `result`, `reason` |
 | `ProposalArtifact` | `agent-orchestrator` | `Cloud Storage:hypothesis_reports` | `identifier` 単位 | `trace`, `identifier`, `reportPath` |
 
 - 他集約更新は同一Txで行わない。

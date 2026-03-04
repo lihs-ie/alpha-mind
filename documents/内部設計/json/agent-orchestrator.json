@@ -27,8 +27,7 @@
       "Firestore:code_reference_templates",
       "Firestore:failure_knowledge",
       "Firestore:hypothesis_registry",
-      "Firestore:idempotency_keys",
-      "Firestore:audit_logs"
+      "Firestore:idempotency_keys"
     ],
     "external": [
       "LLM Runtime"

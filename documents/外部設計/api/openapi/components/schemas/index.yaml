@@ -14,6 +14,8 @@ KillSwitchRequest:
   "$ref": "./KillSwitchRequest.yaml"
 RunCycleRequest:
   "$ref": "./RunCycleRequest.yaml"
+RunInsightCycleRequest:
+  "$ref": "./RunInsightCycleRequest.yaml"
 CommandAccepted:
   "$ref": "./CommandAccepted.yaml"
 OperationResult:

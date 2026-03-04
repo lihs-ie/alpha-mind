@@ -28,7 +28,6 @@
       "Firestore:demo_trade_runs",
       "Firestore:failure_knowledge",
       "Firestore:idempotency_keys",
-      "Firestore:audit_logs",
       "Cloud Storage:backtest_artifacts",
       "Cloud Storage:demo_artifacts"
     ]

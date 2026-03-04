@@ -1,6 +1,6 @@
 # execution 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/execution.json`
 
 ## 1. サービス概要
@@ -24,7 +24,7 @@ JSON対応: `内部設計/json/execution.json`
 
 ## 4. 依存関係
 
-- Firestore: `orders`, `audit_logs`, `idempotency_keys`, `demo_trade_runs`
+- Firestore: `order_executions`, `idempotency_keys`, `demo_trade_runs`
 - External: Broker Order API, Secret Manager
 
 ## 5. 処理フロー

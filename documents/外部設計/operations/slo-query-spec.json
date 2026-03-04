@@ -1,5 +1,5 @@
 {
-  "version": "2026-02-24",
+  "version": "2026-03-03",
   "provider": "google-cloud-monitoring",
   "window": "30d",
   "slos": [
@@ -107,6 +107,66 @@
       },
       "denominator": {
         "metricType": "custom.googleapis.com/invest_ai/hypothesis/proposed_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-008",
+      "name": "Feature generation success within 15 minutes",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/feature/generated_within_15m_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/feature/market_collected_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-009",
+      "name": "Order proposal success within 5 minutes",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/portfolio/proposed_within_5m_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/portfolio/signal_generated_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-010",
+      "name": "Audit record completeness",
+      "objective": 0.999,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/audit/record_success_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/audit/record_attempt_total",
+        "resourceType": "global",
+        "filter": ""
+      }
+    },
+    {
+      "id": "SLO-011",
+      "name": "Hypothesis proposal completion within 10 minutes",
+      "objective": 0.99,
+      "numerator": {
+        "metricType": "custom.googleapis.com/invest_ai/orchestrator/hypothesis_proposed_within_10m_total",
+        "resourceType": "global",
+        "filter": ""
+      },
+      "denominator": {
+        "metricType": "custom.googleapis.com/invest_ai/orchestrator/hypothesis_generation_requested_total",
         "resourceType": "global",
         "filter": ""
       }

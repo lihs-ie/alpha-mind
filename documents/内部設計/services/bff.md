@@ -1,6 +1,6 @@
 # bff 内部設計書
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 JSON対応: `内部設計/json/bff.json`
 
 ## 1. サービス概要
@@ -66,7 +66,7 @@ JSON対応: `内部設計/json/bff.json`
 
 ## 4. 依存関係
 
-- Firestore: `operations`, `settings`, `compliance_controls`, `orders`, `model_registry`, `audit_logs`, `insight_records`, `hypothesis_registry`, `idempotency_keys`
+- Firestore: `operations`, `settings`, `compliance_controls`, `orders`, `risk_assessments`, `order_executions`, `model_registry`, `audit_logs`, `insight_records`, `hypothesis_registry`, `idempotency_keys`, `access_decisions`
 - Messaging: Pub/Sub
 - External: OIDC/JWT Provider, Secret Manager, risk-guard Private Command API
 

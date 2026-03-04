@@ -54,6 +54,8 @@ InsightCollectedEvent:
   "$ref": "./InsightCollectedEvent.yaml"
 InsightCollectedPayload:
   "$ref": "./InsightCollectedPayload.yaml"
+InsightSourceStatus:
+  "$ref": "./InsightSourceStatus.yaml"
 InsightCollectFailedEvent:
   "$ref": "./InsightCollectFailedEvent.yaml"
 HypothesisRetestRequestedEvent:

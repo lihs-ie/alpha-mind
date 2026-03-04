@@ -1,6 +1,6 @@
 # bff ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `bff`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -32,9 +32,9 @@
 
 | 用語 | 定義 | 使用箇所 | 禁止/注意 |
 |---|---|---|---|
-| Access Decision | リクエストごとの認証認可判定結果 | `audit_logs` | 判定未確定で更新処理を実行しない |
+| Access Decision | リクエストごとの認証認可判定結果 | `access_decisions` | 判定未確定で更新処理を実行しない |
 | Command Intake | 更新系APIの受付処理 | `idempotency_keys` | 同一identifierの副作用二重実行を許可しない |
-| Read Model Query | 画面向け参照用データ取得 | `orders`, `audit_logs`, `hypothesis_registry` など | 更新系を混在させない |
+| Read Model Query | 画面向け参照用データ取得 | `orders`, `risk_assessments`, `order_executions`, `audit_logs`, `hypothesis_registry` など | 更新系を混在させない |
 | Permission Requirement | エンドポイントが要求する権限 | `authz-matrix.json` | ハードコードでの逸脱運用をしない |
 | Publish Decision | コマンドに対するイベント発行可否 | AsyncAPI | 永続化前に発行しない |
 | Identifier | 識別子 | 全モデル/API/Event | `Id` 表記は禁止 |
@@ -50,7 +50,6 @@
 | `agent-orchestrator` | Downstream (`OHS+PL`) | `hypothesis.retest.requested` | `retest` 受付後に発行 |
 | `risk-guard` | Downstream (`OHS+PL`) | `operation.kill_switch.changed`, `orders.proposed`（retry時）, `POST /internal/orders/{identifier}/approve`, `POST /internal/orders/{identifier}/reject` | 状態更新成功後に発行、承認/却下APIは内部コマンドへ委譲 |
 | `audit-log` | Downstream (`OHS+PL`) | `audit_logs` 参照 | `trace` 軸で監査閲覧データへ変換 |
-| `Firestore` | Downstream (`Customer-Supplier`) | `operations`, `settings`, `orders`, `hypothesis_registry` 等 | DTO/コマンド入出力へ変換 |
 
 ## 3. 仕様駆動（Specification-Driven）
 
@@ -132,7 +131,7 @@ Feature: bff query
 
 | Aggregate | Aggregate Root | 責務 | 一貫性境界（同一Tx） | 不変条件 |
 |---|---|---|---|---|
-| `AccessDecision` | `AccessDecision` | JWT検証・権限判定・拒否理由確定 | `audit_logs/{identifier}` | 判定結果と理由の一貫性 |
+| `AccessDecision` | `AccessDecision` | JWT検証・権限判定・拒否理由確定 | `access_decisions/{identifier}` | 判定結果と理由の一貫性 |
 | `CommandIntake` | `CommandIntake` | 更新系コマンド受付、冪等制御、発行可否確定 | `idempotency_keys/{identifier}` | 副作用単一実行、更新後発行 |
 | `ReadModelQuery` | `ReadModelQuery` | 参照系クエリの条件検証と結果構成 | `request scope/{identifier}`（非永続） | 非更新、ページング条件整合 |
 
@@ -346,7 +345,9 @@ Feature: bff query
 | Repository | `CommandIntakeRepository` | コマンド受付状態の保存/参照 | `Find`, `FindByCommandType`, `Search`, `Persist`, `Terminate` |
 | Repository | `IdempotencyKeyRepository` | 冪等判定 | `Find`, `Persist`, `Terminate` |
 | Repository | `OperationsRepository` | `operations` 参照/更新 | `Find`, `Persist` |
-| Repository | `OrdersRepository` | `orders` 参照/更新 | `Find`, `FindByStatus`, `Search`, `Persist` |
+| Repository | `OrdersRepository` | `orders` 参照 | `Find`, `FindByStatus`, `Search` |
+| Repository | `RiskAssessmentRepository` | `risk_assessments` 参照 | `Find`, `Search` |
+| Repository | `OrderExecutionRepository` | `order_executions` 参照 | `Find`, `Search` |
 | Repository | `ReadModelRepository` | 画面表示向け参照 | `Find`, `Search` |
 | Factory | `CommandIntakeFactory` | HTTP入力からコマンド生成 | `fromHttpRequest` |
 | Factory | `ReadModelQueryFactory` | HTTPクエリから検索条件生成 | `fromHttpQuery` |
@@ -362,7 +363,7 @@ Feature: bff query
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -431,7 +432,7 @@ Feature: bff query
 
 | 保存対象 | オーナー | 保存先 | トランザクション境界 | 監査項目 |
 |---|---|---|---|---|
-| `AccessDecision` | `bff` | `Firestore:audit_logs` | `identifier` 単位 | `trace`, `identifier`, `user`, `endpoint`, `result`, `reasonCode` |
+| `AccessDecision` | `bff` | `Firestore:access_decisions` | `identifier` 単位 | `trace`, `identifier`, `user`, `endpoint`, `result`, `reasonCode` |
 | `CommandIntake` | `bff` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace`, `identifier`, `commandType`, `processedAt` |
 | `OperationsState` | `bff` | `Firestore:operations` | `runtime` ドキュメント単位 | `trace`, `user`, `actionReasonCode` |
 | `StrategySettings` | `bff` | `Firestore:settings` | `strategy` ドキュメント単位 | `trace`, `user` |

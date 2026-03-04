@@ -14,7 +14,11 @@ get:
             market: JP
             rebalanceFrequency: daily
             symbols:
-            - AAPL
+            - 1306.T
+            - 1321.T
+            - 1348.T
+            - 1475.T
+            - 2558.T
             dailyLossLimit: 0.0
             positionConcentrationLimit: 0.0
             dailyOrderLimit: 1
@@ -35,7 +39,11 @@ put:
           market: JP
           rebalanceFrequency: daily
           symbols:
-          - AAPL
+          - 1306.T
+          - 1321.T
+          - 1348.T
+          - 1475.T
+          - 2558.T
           dailyLossLimit: 0.0
           positionConcentrationLimit: 0.0
           dailyOrderLimit: 1

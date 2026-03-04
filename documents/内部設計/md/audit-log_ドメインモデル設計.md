@@ -1,6 +1,6 @@
 # audit-log ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `audit-log`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -42,13 +42,14 @@
 
 | 相手Context | 関係 | インターフェース | 変換方針 |
 |---|---|---|---|
-| `data-collector` | Upstream (`Customer-Supplier`) | `market.*` | 共通エンベロープを `SourceEventSnapshot` に正規化 |
-| `feature-engineering` | Upstream (`Customer-Supplier`) | `features.*` | `result/reason` を共通監査語彙へ変換 |
-| `signal-generator` | Upstream (`Customer-Supplier`) | `signal.*` | 失敗時 `payload.reasonCode` を `reason` へ写像 |
+| `bff` | Upstream (`Customer-Supplier`) | `market.collect.requested`, `operation.kill_switch.changed`, `insight.collect.requested`, `hypothesis.retest.requested` | コマンド起点イベントを監査形式へ正規化 |
+| `data-collector` | Upstream (`Customer-Supplier`) | `market.collected`, `market.collect.failed` | 共通エンベロープを `SourceEventSnapshot` に正規化 |
+| `feature-engineering` | Upstream (`Customer-Supplier`) | `features.generated`, `features.generation.failed` | `result/reason` を共通監査語彙へ変換 |
+| `signal-generator` | Upstream (`Customer-Supplier`) | `signal.generated`, `signal.generation.failed` | 失敗時 `payload.reasonCode` を `reason` へ写像 |
 | `portfolio-planner` | Upstream (`Customer-Supplier`) | `orders.proposed`, `orders.proposal.failed` | 成功/失敗を `result` に正規化 |
 | `risk-guard` | Upstream (`Customer-Supplier`) | `orders.approved`, `orders.rejected` | `reasonCode/actionReasonCode` を優先順位で正規化 |
 | `execution` | Upstream (`Customer-Supplier`) | `orders.executed`, `orders.execution.failed`, `hypothesis.demo.completed` | 執行結果を監査索引へ正規化 |
-| `insight-collector` | Upstream (`Customer-Supplier`) | `insight.*` | 根拠収集結果を要約して保存 |
+| `insight-collector` | Upstream (`Customer-Supplier`) | `insight.collected`, `insight.collect.failed` | 根拠収集結果を要約して保存 |
 | `agent-orchestrator` | Upstream (`Customer-Supplier`) | `hypothesis.proposed`, `hypothesis.proposal.failed` | 仮説生成結果を監査形式へ正規化 |
 | `hypothesis-lab` | Upstream (`Customer-Supplier`) | `hypothesis.backtested`, `hypothesis.promoted`, `hypothesis.rejected` | 昇格/却下の監査項目を保存 |
 | `bff` | Downstream (`OHS+PL`) | `GET /audit`, `GET /audit/{identifier}` | `audit_logs` から表示用DTOへ変換 |
@@ -117,7 +118,7 @@ Feature: audit recording
     Example: 契約とドメインモデルの命名整合
       Given OpenAPI/AsyncAPI/Domain Model を突合する
       When 識別子項目を検査する
-      Then Id サフィックス項目は存在しない
+      Then 識別子サフィックス項目は存在しない
       And 当該関心の識別子は identifier を使用する
 ```
 
@@ -305,7 +306,7 @@ Feature: audit recording
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -351,7 +352,7 @@ Feature: audit recording
 
 | ユースケース | Command/Query | OpenAPI | AsyncAPI | 備考 |
 |---|---|---|---|---|
-| 業務イベント監査記録 | `RecordAuditFromSourceEvent` | なし（イベント駆動） | `market.*`, `features.*`, `signal.*`, `orders.*`, `operation.kill_switch.changed`, `insight.*`, `hypothesis.*`（受信） | 受信対象は `内部設計/services/audit-log.md` を正本 |
+| 業務イベント監査記録 | `RecordAuditFromSourceEvent` | なし（イベント駆動） | `market.collect.requested`, `market.collected`, `market.collect.failed`, `features.generated`, `features.generation.failed`, `signal.generated`, `signal.generation.failed`, `orders.proposed`, `orders.proposal.failed`, `orders.approved`, `orders.rejected`, `orders.executed`, `orders.execution.failed`, `operation.kill_switch.changed`, `insight.collect.requested`, `insight.collected`, `insight.collect.failed`, `hypothesis.retest.requested`, `hypothesis.proposed`, `hypothesis.proposal.failed`, `hypothesis.demo.completed`, `hypothesis.backtested`, `hypothesis.promoted`, `hypothesis.rejected`（受信） | 受信対象は `内部設計/services/audit-log.md` を正本 |
 | 監査記録通知（任意） | `PublishAuditRecorded` | なし | `audit.recorded`（発行） | 保存成功時のみ |
 | 監査一覧参照 | `QueryAuditLogs` | `GET /audit` | なし | BFFが `audit_logs` を参照 |
 | 監査詳細参照 | `QueryAuditLogByIdentifier` | `GET /audit/{identifier}` | なし | BFFが `audit_logs/{identifier}` を参照 |

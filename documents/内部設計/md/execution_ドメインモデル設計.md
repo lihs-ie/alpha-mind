@@ -1,6 +1,6 @@
 # execution ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `execution`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -33,7 +33,7 @@
 |---|---|---|---|
 | Approved Order | リスク審査で承認済みの注文 | `orders.approved` | `PROPOSED` と混同しない |
 | Execution Attempt | ブローカーへ送信する1回の試行 | `execution` 内部 | 無限リトライ禁止 |
-| Broker Order | ブローカー側の注文識別子 | `orders.brokerOrder` | 内部 `identifier` と混同しない |
+| Broker Order | ブローカー側の注文識別子 | `order_executions.brokerOrder` | 内部 `identifier` と混同しない |
 | Execution Result | 執行成功/失敗の確定結果 | `orders.executed/failed` | 未確定状態で公開しない |
 | Demo Run Completion | デモ運用の評価完了通知 | `hypothesis.demo.completed` | 昇格判定そのものではない |
 | Identifier | 識別子 | 全モデル/API/Event | `Id` 表記は禁止 |
@@ -132,13 +132,13 @@ Feature: demo completion publish
 
 | Aggregate | Aggregate Root | 責務 | 一貫性境界（同一Tx） | 不変条件 |
 |---|---|---|---|---|
-| `OrderExecution` | `OrderExecution` | 1注文の執行結果を確定する | `orders/{identifier}` | 重複外部発注禁止、結果確定後は再確定禁止 |
+| `OrderExecution` | `OrderExecution` | 1注文の執行結果を確定する | `order_executions/{identifier}` | 重複外部発注禁止、結果確定後は再確定禁止 |
 | `DemoRunEvaluation` | `DemoRunEvaluation` | デモ完了通知の発行状態を確定する | `idempotency_keys/{identifier}` | 完了通知の重複発行禁止 |
 
 #### Aggregate詳細: `OrderExecution`
 
 - root: `OrderExecution`
-- 参照先集約: なし（`orders` 単一集約で完結）
+- 参照先集約: なし（`orders.approved` の入力スナップショットで完結）
 - 生成コマンド: `AcceptApprovedOrder`
 - 更新コマンド: `DispatchToBroker`, `RecordBrokerFailure`, `RecordBrokerSuccess`
 - 削除/無効化コマンド: `TerminateExecution`
@@ -152,7 +152,7 @@ Feature: demo completion publish
 
 | フィールド名 | 型 | 説明 | 保持数 |
 |---|---|---|---|
-| `identifier` | `string` | 注文識別子（`orders/{identifier}`） | `1` |
+| `identifier` | `string` | 注文識別子（`order_executions/{identifier}`） | `1` |
 | `status` | `enum(APPROVED, EXECUTED, FAILED)` | execution文脈で扱う状態 | `1` |
 | `request` | `ExecutionRequest` | 発注要求スナップショット | `1` |
 | `attemptCount` | `integer` | 執行試行回数 | `1` |
@@ -322,7 +322,7 @@ Feature: demo completion publish
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -367,8 +367,8 @@ Feature: demo completion publish
 
 | eventType | 公開先 | 契約 | 整合性 | リトライ/DLQ |
 |---|---|---|---|---|
-| `orders.executed` | `audit-log`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
-| `orders.execution.failed` | `audit-log`, `bff` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `orders.executed` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
+| `orders.execution.failed` | `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 | `hypothesis.demo.completed` | `hypothesis-lab`, `audit-log` | AsyncAPI | eventual consistency | max3 + DLQ |
 
 ## 7. API/イベント契約マッピング
@@ -384,11 +384,11 @@ Feature: demo completion publish
 
 | 保存対象 | オーナー | 保存先 | トランザクション境界 | 監査項目 |
 |---|---|---|---|---|
-| `OrderExecution` | `execution` | `Firestore:orders` | `orders/{identifier}` 単位 | `trace, identifier, brokerOrder, reasonCode` |
+| `OrderExecution` | `execution` | `Firestore:order_executions` | `order_executions/{identifier}` 単位 | `trace, identifier, brokerOrder, reasonCode` |
 | `ExecutionIdempotency` | `execution` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace, identifier, processedAt` |
 | `DemoRunSourceSnapshot` | `hypothesis-lab` | `Firestore:demo_trade_runs`（参照） | 読み取り専用 | `identifier, demoRun, endedAt` |
 | `DemoRunEvaluation` | `execution` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace, identifier, processedAt` |
-| `ExecutionAudit` | `execution` | `Firestore:audit_logs` | `identifier` 単位 | `trace, identifier, result` |
+| `ExecutionAudit` | `execution` | `Cloud Logging` | 別Tx（状態確定後） | `trace, identifier, result` |
 
 - 他集約更新は同一Txで行わない
 - 集約間整合はイベントで実現する
@@ -426,7 +426,7 @@ Feature: demo completion publish
 
 - `APPROVED` 以外の執行が混入していないか
 - リトライ可能/非可能の分類と `ReasonCode` が一致しているか
-- `orders` 更新とイベント発行の順序が保証されるか
+- `order_executions` 更新とイベント発行の順序が保証されるか
 - `hypothesis.demo.completed` の重複発行を防止できるか
 - Rule→Scenario→Model→Contract→Testのトレースが切れていないか
 

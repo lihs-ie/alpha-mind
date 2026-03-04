@@ -1,6 +1,6 @@
 # data-collector ドメインモデル設計
 
-最終更新日: 2026-02-28
+最終更新日: 2026-03-03
 対象Bounded Context: `data-collector`
 ドキュメント版: `v0.1.0`
 作成者: `codex`
@@ -302,7 +302,7 @@ Feature: market collection
 | 永続化 | Persist | 集約・エンティティを永続化する |
 | 削除 | Terminate | 集約・エンティティを削除する |
 | Identifierによる単一取得 | Find | 識別子を指定して集約・エンティティを単体で取得する |
-| Identifier以外の要素による単一取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを単体で取得する |
+| Identifier以外の要素による取得 | FindBy{XXX} | 識別子以外の要素を指定して集約・エンティティを取得する（単一/複数はI/F定義で明記） |
 | 複数取得 | Search | 検索条件（Criteria）を受け取り条件に合致する集約・エンティティを全て取得する |
 
 ## 5. 状態遷移と不変条件
@@ -337,7 +337,7 @@ Feature: market collection
 | eventType | 発行主体 | 発行タイミング | payload | 冪等キー |
 |---|---|---|---|---|
 | `market.collection.started` | `MarketCollection` | 受信処理開始時 | `identifier`, `targetDate`, `trace` | `identifier` |
-| `market.collection.completed` | `MarketCollection` | 収集確定時 | `identifier`, `targetDate`, `storagePath`, `trace` | `identifier` |
+| `market.collection.completed` | `MarketCollection` | 収集確定時 | `identifier`, `targetDate`, `storagePath`, `sourceStatus`, `trace` | `identifier` |
 | `market.collection.failed` | `MarketCollection` | 失敗確定時 | `identifier`, `reasonCode`, `detail`, `trace` | `identifier` |
 
 ### 6.2 Integration Event（境界外）
@@ -361,7 +361,7 @@ Feature: market collection
 |---|---|---|---|---|
 | `CollectedArtifact` | `data-collector` | `Cloud Storage:raw_market_data` | `identifier` 単位 | `trace`, `identifier`, `targetDate`, `sourceStatus` |
 | `CollectionDispatch` | `data-collector` | `Firestore:idempotency_keys` | `identifier` 単位 | `trace`, `identifier`, `processedAt` |
-| `CollectionAudit` | `data-collector` | `Firestore:audit_logs` | `identifier` 単位 | `trace`, `identifier`, `result`, `reasonCode` |
+| `CollectionAudit` | `data-collector` | `Cloud Logging` | 別Tx（状態確定後） | `trace`, `identifier`, `result`, `reasonCode` |
 
 - 他集約更新は同一Txで行わない。
 - 集約間整合は `market.*` イベントで実現する。

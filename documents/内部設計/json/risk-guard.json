@@ -32,9 +32,8 @@
       "Firestore:settings",
       "Firestore:operations",
       "Firestore:compliance_controls",
-      "Firestore:orders",
-      "Firestore:idempotency_keys",
-      "Firestore:audit_logs"
+      "Firestore:risk_assessments",
+      "Firestore:idempotency_keys"
     ],
     "messaging": [
       "Pub/Sub"
@@ -45,7 +44,7 @@
     "kill switch状態確認",
     "リスク制約評価",
     "承認/却下判定",
-    "orders状態更新",
+    "risk_assessments状態更新",
     "orders.approved or orders.rejected発行"
   ],
   "riskRules": [

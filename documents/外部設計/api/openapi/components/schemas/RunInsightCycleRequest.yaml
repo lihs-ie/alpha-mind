@@ -1,0 +1,51 @@
+type: object
+properties:
+  mode:
+    type: string
+    enum:
+    - manual
+    default: manual
+  targetDate:
+    type: string
+    format: date
+    description: 収集対象日（JST）。省略時は実行日のJST日付を使用する。
+  sourceTypes:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      enum:
+      - x
+      - youtube
+      - paper
+      - github
+    description: 指定時は指定ソースのみ収集する。省略時は有効化済みソース全件を対象とする。
+  options:
+    type: object
+    properties:
+      forceRecollect:
+        type: boolean
+        default: false
+        description: 同日収集済みデータがあっても再収集する。
+      dryRun:
+        type: boolean
+        default: false
+        description: 保存・イベント発行を行わず収集検証のみ実施する。
+      maxItemsPerSource:
+        type: integer
+        minimum: 1
+        maximum: 2000
+        description: ソース別収集上限件数。
+example:
+  mode: manual
+  targetDate: '2026-03-03'
+  sourceTypes:
+  - x
+  - youtube
+  - paper
+  - github
+  options:
+    forceRecollect: false
+    dryRun: false
+    maxItemsPerSource: 200

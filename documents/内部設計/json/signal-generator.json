@@ -24,8 +24,7 @@
       "Cloud Storage:feature_store",
       "Cloud Storage:signal_store",
       "Firestore:model_registry",
-      "Firestore:idempotency_keys",
-      "Firestore:audit_logs"
+      "Firestore:idempotency_keys"
     ],
     "messaging": [
       "Pub/Sub"
