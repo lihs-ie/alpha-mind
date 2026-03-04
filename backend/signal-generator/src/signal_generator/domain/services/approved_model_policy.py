@@ -17,7 +17,13 @@ class ApprovedModelPolicy:
         return model_snapshot.status.is_usable_for_inference()
 
     def reason_code(self, model_snapshot: ModelSnapshot | None) -> ReasonCode | None:
-        """ポリシー違反の理由コードを返す。満足している場合は None を返す。"""
+        """ポリシー違反の理由コードを返す。満足している場合は None を返す。
+
+        error-codes.json の定義に基づき、モデル未存在 (MODEL_NOT_FOUND: 404) と
+        モデル非承認 (MODEL_NOT_APPROVED: 409) を区別する。
+        """
         if self.is_satisfied_by(model_snapshot):
             return None
+        if model_snapshot is None:
+            return ReasonCode.MODEL_NOT_FOUND
         return ReasonCode.MODEL_NOT_APPROVED

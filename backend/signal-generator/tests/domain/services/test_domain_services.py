@@ -46,7 +46,7 @@ class TestApprovedModelPolicy:
         policy = ApprovedModelPolicy()
         assert policy.is_satisfied_by(None) is False
 
-    def test_failure_reason_code_when_not_satisfied(self) -> None:
+    def test_reason_code_model_not_approved_when_not_approved(self) -> None:
         policy = ApprovedModelPolicy()
         candidate_model = ModelSnapshot(
             model_version="model-v2.0.0",
@@ -54,6 +54,10 @@ class TestApprovedModelPolicy:
             approved_at=None,
         )
         assert policy.reason_code(candidate_model) == ReasonCode.MODEL_NOT_APPROVED
+
+    def test_reason_code_model_not_found_when_none(self) -> None:
+        policy = ApprovedModelPolicy()
+        assert policy.reason_code(None) == ReasonCode.MODEL_NOT_FOUND
 
     def test_no_reason_code_when_satisfied(self) -> None:
         policy = ApprovedModelPolicy()

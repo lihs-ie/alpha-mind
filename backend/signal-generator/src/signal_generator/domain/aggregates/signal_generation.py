@@ -79,7 +79,9 @@ class SignalGeneration:
         return self._processed_at
 
     def resolve_model(self, model_snapshot: ModelSnapshot) -> None:
-        """RULE-SG-002: approved モデルのみ推論に利用できる。"""
+        """RULE-SG-002: approved モデルのみ推論に利用できる。終端状態では拒否する。"""
+        if self._status != GenerationStatus.PENDING:
+            raise ValueError(f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} でのモデル解決は不正")
         if not model_snapshot.status.is_usable_for_inference():
             raise ValueError(
                 f"{ReasonCode.MODEL_NOT_APPROVED}: モデル '{model_snapshot.model_version}' は "
@@ -98,6 +100,11 @@ class SignalGeneration:
             raise ValueError(f"{ReasonCode.STATE_CONFLICT}: status={self._status.value} から generated への遷移は不正")
         if self._model_snapshot is None:
             raise ValueError("モデルが解決されていないため推論を完了できない")
+        if signal_artifact.universe_count != self._universe_count:
+            raise ValueError(
+                f"SignalArtifact の universe_count({signal_artifact.universe_count})が"
+                f"集約の universe_count({self._universe_count})と一致しない"
+            )
 
         self._signal_artifact = signal_artifact
         self._model_diagnostics_snapshot = model_diagnostics_snapshot

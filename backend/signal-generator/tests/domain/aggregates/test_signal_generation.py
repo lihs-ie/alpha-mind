@@ -109,6 +109,36 @@ class TestSignalGenerationResolveModel:
         with pytest.raises(ValueError, match="MODEL_NOT_APPROVED"):
             generation.resolve_model(candidate_model)
 
+    def test_resolve_model_on_generated_status_raises_state_conflict(self) -> None:
+        generation = SignalGeneration(
+            identifier="01JNABCDEF1234567890123456",
+            feature_snapshot=_make_feature_snapshot(),
+            universe_count=100,
+            trace="trace-001",
+        )
+        generation.resolve_model(_make_model_snapshot())
+        generation.complete(
+            signal_artifact=_make_signal_artifact(),
+            model_diagnostics_snapshot=_make_model_diagnostics(),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        )
+        with pytest.raises(ValueError, match="STATE_CONFLICT"):
+            generation.resolve_model(_make_model_snapshot())
+
+    def test_resolve_model_on_failed_status_raises_state_conflict(self) -> None:
+        generation = SignalGeneration(
+            identifier="01JNABCDEF1234567890123456",
+            feature_snapshot=_make_feature_snapshot(),
+            universe_count=100,
+            trace="trace-001",
+        )
+        generation.fail(
+            failure_detail=FailureDetail(reason_code=ReasonCode.MODEL_NOT_APPROVED, retryable=False),
+            processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+        )
+        with pytest.raises(ValueError, match="STATE_CONFLICT"):
+            generation.resolve_model(_make_model_snapshot())
+
 
 class TestSignalGenerationComplete:
     def test_complete_from_pending_to_generated(self) -> None:
@@ -165,6 +195,27 @@ class TestSignalGenerationComplete:
         with pytest.raises(ValueError, match="STATE_CONFLICT"):
             generation.complete(
                 signal_artifact=_make_signal_artifact(),
+                model_diagnostics_snapshot=_make_model_diagnostics(),
+                processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+            )
+
+    def test_complete_with_mismatched_universe_count_raises_error(self) -> None:
+        generation = SignalGeneration(
+            identifier="01JNABCDEF1234567890123456",
+            feature_snapshot=_make_feature_snapshot(),
+            universe_count=100,
+            trace="trace-001",
+        )
+        generation.resolve_model(_make_model_snapshot())
+        mismatched_artifact = SignalArtifact(
+            signal_version="signal-v1.0.0",
+            storage_path="gs://signal_store/2026-01-01/signals.parquet",
+            generated_count=90,
+            universe_count=90,
+        )
+        with pytest.raises(ValueError, match="集約の universe_count"):
+            generation.complete(
+                signal_artifact=mismatched_artifact,
                 model_diagnostics_snapshot=_make_model_diagnostics(),
                 processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )
