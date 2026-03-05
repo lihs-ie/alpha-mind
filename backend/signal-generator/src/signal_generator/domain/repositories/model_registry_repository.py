@@ -18,5 +18,5 @@ class ModelRegistryRepository(abc.ABC):
         """model_version を指定して ModelSnapshot を単体取得する。"""
 
     @abc.abstractmethod
-    def search(self, criteria: dict[str, object]) -> list[ModelSnapshot]:
-        """検索条件を受け取り条件に合致する ModelSnapshot を全て取得する。"""
+    def search(self, criteria: dict[str, object], limit: int = 100) -> list[ModelSnapshot]:
+        """検索条件を受け取り条件に合致する ModelSnapshot を取得する。"""

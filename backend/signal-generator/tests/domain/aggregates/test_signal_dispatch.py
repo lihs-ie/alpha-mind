@@ -61,6 +61,20 @@ class TestSignalDispatchPublish:
                 processed_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
             )
 
+    def test_publish_from_failed_raises_state_conflict(self) -> None:
+        dispatch = SignalDispatch(
+            identifier="01JNABCDEF1234567890123456",
+            trace="trace-001",
+        )
+        processed_at = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+        dispatch.fail(reason_code=ReasonCode.DEPENDENCY_TIMEOUT, processed_at=processed_at)
+
+        with pytest.raises(ValueError, match="STATE_CONFLICT"):
+            dispatch.publish(
+                published_event=EventType.SIGNAL_GENERATED,
+                processed_at=processed_at,
+            )
+
     def test_publish_signal_generation_failed_is_allowed(self) -> None:
         dispatch = SignalDispatch(
             identifier="01JNABCDEF1234567890123456",

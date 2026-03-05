@@ -11,12 +11,23 @@ runtime = [
     "pandas>=2.2,<4",
     "scikit-learn>=1.5,<2",
     "lightgbm>=4.5,<5",
+    "google-cloud-firestore>=2.0,<3",
+    "google-cloud-storage>=2.0,<3",
+    "google-cloud-pubsub>=2.0,<3",
+    "mlflow>=2.0,<3",
+    "pyarrow>=15.0,<20",
+    "python-ulid>=3.0,<4",
 ]
 dev = [
     "pytest>=8.0",
     "pytest-cov",
     "mypy>=1.0",
     "ruff",
+    "google-cloud-firestore>=2.0,<3",
+    "google-cloud-storage>=2.0,<3",
+    "google-cloud-pubsub>=2.0,<3",
+    "pandas>=2.2,<4",
+    "numpy>=2.0,<3",
 ]
 
 [tool.pytest.ini_options]
@@ -26,12 +37,22 @@ addopts = "-v --tb=short"
 
 [tool.mypy]
 python_version = "3.14"
+mypy_path = "src"
+explicit_package_bases = true
 strict = true
 warn_return_any = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["lightgbm.*", "sklearn.*"]
+module = [
+    "lightgbm.*",
+    "sklearn.*",
+    "ulid.*",
+    "mlflow.*",
+    "google.cloud.storage.*",
+    "google.cloud.pubsub_v1.*",
+    "pandas.*",
+]
 ignore_missing_imports = true
 
 [build-system]
