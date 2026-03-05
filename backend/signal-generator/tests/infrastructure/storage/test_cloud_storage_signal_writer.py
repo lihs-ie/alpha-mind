@@ -1,8 +1,9 @@
 """Tests for CloudStorageSignalWriter."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from google.api_core.exceptions import ServiceUnavailable
 
 from signal_generator.infrastructure.storage.cloud_storage_signal_writer import (
     CloudStorageSignalWriter,
@@ -51,3 +52,27 @@ class TestCloudStorageSignalWriter:
 
         upload_call = mock_blob.upload_from_file.call_args
         assert upload_call[1]["content_type"] == "application/octet-stream"
+
+    def test_write_rewinds_buffer_before_each_retry(self) -> None:
+        """リトライ時にバッファが巻き戻され、空/破損データのアップロードを防ぐ。"""
+        mock_storage_client = MagicMock()
+        mock_bucket = MagicMock()
+        mock_blob = MagicMock()
+        mock_bucket.blob.return_value = mock_blob
+        mock_storage_client.bucket.return_value = mock_bucket
+
+        mock_blob.upload_from_file.side_effect = [
+            ServiceUnavailable("transient"),
+            None,
+        ]
+
+        mock_dataframe = MagicMock()
+
+        writer = CloudStorageSignalWriter(storage_client=mock_storage_client)
+        with patch("signal_generator.infrastructure.retry.time.sleep"):
+            writer.write(mock_dataframe, "gs://signal-bucket/signals/2026-03-05.parquet")
+
+        assert mock_blob.upload_from_file.call_count == 2
+        for call in mock_blob.upload_from_file.call_args_list:
+            buffer = call[0][0]
+            assert buffer.tell() == 0, "Buffer should be rewound to position 0 before each upload"

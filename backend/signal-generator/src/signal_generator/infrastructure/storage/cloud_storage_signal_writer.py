@@ -24,5 +24,9 @@ class CloudStorageSignalWriter(SignalWriter):
 
         buffer = io.BytesIO()
         dataframe.to_parquet(buffer, index=False)
-        buffer.seek(0)
-        with_retry(lambda: blob.upload_from_file(buffer, content_type="application/octet-stream"))
+
+        def _upload() -> None:
+            buffer.seek(0)
+            blob.upload_from_file(buffer, content_type="application/octet-stream")
+
+        with_retry(_upload)
