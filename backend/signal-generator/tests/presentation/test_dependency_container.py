@@ -108,6 +108,8 @@ class TestBuildSignalGenerationService:
             patch("signal_generator.infrastructure.mlflow.mlflow_model_loader.MLflowModelLoader"),
             patch("signal_generator.infrastructure.messaging.pubsub_signal_event_publisher.PubSubSignalEventPublisher"),
             patch("google.cloud.firestore_v1.Client"),
+            patch("google.cloud.storage.Client"),
+            patch("google.cloud.pubsub_v1.PublisherClient"),
         ):
             from signal_generator.presentation.dependency_container import (
                 _build_signal_generation_service,
@@ -145,6 +147,8 @@ class TestProductionBuildUsesFirestoreRepositories:
             patch("signal_generator.infrastructure.mlflow.mlflow_model_loader.MLflowModelLoader"),
             patch("signal_generator.infrastructure.messaging.pubsub_signal_event_publisher.PubSubSignalEventPublisher"),
             patch("google.cloud.firestore_v1.Client"),
+            patch("google.cloud.storage.Client"),
+            patch("google.cloud.pubsub_v1.PublisherClient"),
         ):
             from signal_generator.presentation.dependency_container import (
                 _build_signal_generation_service,
