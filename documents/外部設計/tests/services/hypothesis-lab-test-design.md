@@ -1,7 +1,7 @@
-# hypothesis-lab テスト設計書
+# hypothesis-lab API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.1  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: hypothesis-lab
 
 ## 1. 文書情報
@@ -9,94 +9,166 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/hypothesis-lab.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 仮説検証（バックテスト/デモ評価）と昇格・却下判定の妥当性を検証する。
-- 対象は `hypothesis.proposed`, `hypothesis.demo.completed` の処理と結果イベント発行。
+- `hypothesis.proposed` / `hypothesis.demo.completed` 受信から `hypothesis.backtested` / `hypothesis.promoted` / `hypothesis.rejected` 発行までを実装可能な粒度で検証する。
+- 昇格制約、自己申告、失敗知見登録、trace伝播を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- 自動昇格の安全条件（ETF低リスク限定）を最優先で確認する。
-- `requiresComplianceReview=true` の昇格禁止を必須確認する。
-- 失敗時の `failure_knowledge` 保存を回帰対象に固定する。
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| HL-API-01 | Event購読 | `event-hypothesis-proposed-v1` | P0 |
+| HL-API-02 | Event購読 | `event-hypothesis-demo-completed-v1` | P0 |
+| HL-API-03 | Event発行 | `event-hypothesis-backtested-v1` | P0 |
+| HL-API-04 | Event発行 | `event-hypothesis-promoted-v1` | P0 |
+| HL-API-05 | Event発行 | `event-hypothesis-rejected-v1` | P0 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| HL-RSK-01 | 不正昇格 | 5 | 2 | 条件分岐テスト |
-| HL-RSK-02 | 失敗知見未登録 | 4 | 3 | 異常系永続化テスト |
-| HL-RSK-03 | 再現情報欠落 | 4 | 2 | 版情報必須検証 |
+```bash
+export BASE_URL="http://localhost:3011"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System / Acceptance |
-| タイプ | 機能、安全性、異常系、回帰 |
-| 技法 | デシジョンテーブル、状態遷移、境界値分析 |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-## 6. エントリ/イグジット基準
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-- エントリ: 検証データ・評価コード版・コンプライアンス設定が準備済み。
-- イグジット: 実行率100%、重大欠陥0件、昇格判定誤り0件。
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-## 7. テスト環境・データ・ツール
+## 5. 詳細テストケース
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `ruff check`, `pytest`, Cloud Logging, Cloud Monitoring |
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| HL-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| HL-IT-002 | 仮説バックテスト | P0 | `hypothesis.backtested` |
+| HL-IT-003 | 昇格可条件 | P0 | `hypothesis.promoted` |
+| HL-IT-004 | 昇格不可条件 | P0 | `hypothesis.rejected` |
+| HL-IT-005 | 必須監査属性 | P0 | 判定属性保持 |
 
-## 8. 要件トレーサビリティ
+### HL-IT-001
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-HL-01 | HL-COND-01 バックテスト | HL-TC-001 |
-| UC-HL-02 | HL-COND-02 デモ昇格判定 | HL-TC-002, HL-TC-003 |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 9. 主要テストケース
+### HL-IT-002
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| HL-TC-001 | 仮説提案受信 | 指標算出、`hypothesis.backtested`発行 |
-| HL-TC-002 | ETF低リスク条件成立 | `hypothesis.promoted`自動発行 |
-| HL-TC-003 | 個別株または要審査 | 自動昇格せず、手動承認待ち |
-| HL-TC-004 | `requiresComplianceReview=true` | 昇格禁止、却下または保留 |
-| HL-TC-005 | 検証失敗 | `failure_knowledge`へ要約付き保存 |
+```bash
+create_pull_sub sub-it-hypothesis-backtested event-hypothesis-backtested-v1
 
-## 10. 欠陥管理
+publish_event event-hypothesis-proposed-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAP",
+  "eventType":"hypothesis.proposed",
+  "occurredAt":"2026-03-05T01:40:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAP",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAP",
+    "symbol":"1306.T",
+    "instrumentType":"ETF",
+    "title":"rebound hypothesis",
+    "sourceEvidence":["insight-1"],
+    "skillVersion":"skill-v1",
+    "instructionProfileVersion":"profile-v1"
+  }
+}'
 
-- Critical: 昇格禁止条件の突破。
-- High: 判定理由未記録、失敗知見欠落。
+pull_one sub-it-hypothesis-backtested
+```
 
-## 11. 品質メトリクス
+### HL-IT-003
 
-| 指標 | 目標 |
-|---|---|
-| 昇格判定誤り | 0件 |
-| 検証再現情報充足率 | 100% |
-| 失敗知見登録率 | 100% |
+```bash
+create_pull_sub sub-it-hypothesis-promoted event-hypothesis-promoted-v1
 
-## 12. 体制・役割・スケジュール
+publish_event event-hypothesis-demo-completed-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAQ",
+  "eventType":"hypothesis.demo.completed",
+  "occurredAt":"2026-03-05T01:41:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAQ",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAQ",
+    "demoRun":"demo-1","symbol":"1306.T","instrumentType":"ETF","insiderRisk":"low",
+    "startedAt":"2026-01-01T00:00:00Z","endedAt":"2026-03-01T00:00:00Z","demoPeriodDays":60,
+    "promotable":true,"requiresComplianceReview":false,"mnpiSelfDeclared":true
+  }
+}'
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+pull_one sub-it-hypothesis-promoted
+```
 
-## 13. 変更履歴
+### HL-IT-004
+
+```bash
+create_pull_sub sub-it-hypothesis-rejected event-hypothesis-rejected-v1
+
+publish_event event-hypothesis-demo-completed-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAR",
+  "eventType":"hypothesis.demo.completed",
+  "occurredAt":"2026-03-05T01:42:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAR",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAR",
+    "demoRun":"demo-2","symbol":"7203.T","instrumentType":"STOCK","insiderRisk":"medium",
+    "startedAt":"2026-01-01T00:00:00Z","endedAt":"2026-03-01T00:00:00Z","demoPeriodDays":60,
+    "promotable":false,"requiresComplianceReview":true,"mnpiSelfDeclared":false
+  }
+}'
+
+pull_one sub-it-hypothesis-rejected
+```
+
+### HL-IT-005
+
+- 出力イベントに `trace` と判定根拠属性が含まれることを確認する。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/hypothesis-lab/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- 検証データ/判定ルール投入済み
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |

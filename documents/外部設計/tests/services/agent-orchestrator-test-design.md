@@ -1,7 +1,7 @@
-# agent-orchestrator テスト設計書
+# agent-orchestrator API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.1  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: agent-orchestrator
 
 ## 1. 文書情報
@@ -9,110 +9,149 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/agent-orchestrator.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-### 2.1 目的
+- `insight.collected` / `hypothesis.retest.requested` 受信から `hypothesis.proposed` / `hypothesis.proposal.failed` 発行までを実装可能な粒度で検証する。
+- 必須属性付与、重複抑止、テンプレート適用、trace伝播を対象とする。
 
-- Skill実行による仮説生成処理の機能妥当性と失敗時制御を検証する。
-- 重複抑止・監査記録・昇格安全制約の品質リスクを優先検証する。
+## 3. テスト対象API（イベント契約）
 
-### 2.2 適用範囲
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| AO-API-01 | Event購読 | `event-insight-collected-v1` | P0 |
+| AO-API-02 | Event購読 | `event-hypothesis-retest-requested-v1` | P0 |
+| AO-API-03 | Event発行 | `event-hypothesis-proposed-v1` | P0 |
+| AO-API-04 | Event発行 | `event-hypothesis-proposal-failed-v1` | P0 |
 
-| 区分 | 内容 |
-|---|---|
-| 対象IF | `insight.collected`, `hypothesis.retest.requested`, `hypothesis.proposed`, `hypothesis.proposal.failed` |
-| 対象外 | LLMモデル自体の学習品質評価 |
+## 4. テスト環境と前提
 
-## 3. テスト方針
+```bash
+export BASE_URL="http://localhost:3010"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-- リスクベースドで `重複抑止漏れ` と `不正昇格` を最優先とする。
-- `identifier` と `trace` の冪等性・監査整合を全更新系ケースで確認する。
-- 失敗時は `hypothesis.proposal.failed` の理由コードと監査ログ保存を必須確認する。
+補助関数:
 
-## 4. テスト対象と品質リスク
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| AO-RSK-01 | 類似失敗仮説を再提案する | 5 | 3 | 類似度閾値境界テスト |
-| AO-RSK-02 | 必須属性欠落で下流連携不能 | 4 | 3 | 出力スキーマ検証 |
-| AO-RSK-03 | 失敗知見が未保存 | 4 | 2 | 失敗時永続化テスト |
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-## 5. テストレベル・タイプ・技法
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、異常系、回帰、監査 |
-| 技法 | 同値分割、境界値分析、状態遷移 |
+## 5. 詳細テストケース
 
-## 6. エントリ/イグジット基準
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| AO-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| AO-IT-002 | insight入力で仮説生成 | P0 | `hypothesis.proposed` 受信 |
+| AO-IT-003 | retest入力 | P0 | `hypothesis.proposed` または `failed` |
+| AO-IT-004 | 入力欠損 | P0 | `hypothesis.proposal.failed` |
+| AO-IT-005 | 必須属性 | P0 | payload必須項目を保持 |
 
-### 6.1 エントリ基準
-- Skill定義・指示書・失敗知見DBが利用可能である。
-- イベントスキーマとFirestore接続設定が確定している。
+### AO-IT-001
 
-### 6.2 イグジット基準
-- 主要テストケース実行率100%。
-- 重大欠陥（Critical/High）0件。
-- 1サイクル処理時間が10分以内。
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 7. テスト環境・データ・ツール
+### AO-IT-002
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `cabal build` / `cabal test`, Cloud Logging, Cloud Monitoring |
+```bash
+create_pull_sub sub-it-hypothesis-proposed event-hypothesis-proposed-v1
 
-## 8. 要件トレーサビリティ
+publish_event event-insight-collected-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAL",
+  "eventType":"insight.collected",
+  "occurredAt":"2026-03-05T01:20:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAL",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAL",
+    "count":10,
+    "storagePath":"gs://alpha-mind-local/insight/2026-03-05.json",
+    "sourceStatus":[{"sourceType":"x","status":"success","collectedCount":10}],
+    "partialFailure":false
+  }
+}'
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-AO-01 | AO-COND-01 仮説生成成功 | AO-TC-001 |
-| UC-AO-02 | AO-COND-02 重複抑止 | AO-TC-002, AO-TC-003 |
-| UC-AO-03 | AO-COND-03 テンプレート適用 | AO-TC-004 |
+pull_one sub-it-hypothesis-proposed
+```
 
-## 9. 主要テストケース
+### AO-IT-003
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| AO-TC-001 | `insight.collected` 受信時の仮説生成 | `hypothesis.proposed` 発行、必須属性が全て存在 |
-| AO-TC-002 | 類似失敗仮説が閾値以上 | 仮説を棄却し `hypothesis.proposal.failed` 発行 |
-| AO-TC-003 | 重複境界値（閾値-1/閾値/閾値+1） | 判定結果が仕様通り |
-| AO-TC-004 | code reference template 登録済み | 出力プロンプトにテンプレート適用痕跡がある |
-| AO-TC-005 | 生成失敗時 | 失敗知見がMarkdown要約付きで保存される |
+```bash
+publish_event event-hypothesis-retest-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAM",
+  "eventType":"hypothesis.retest.requested",
+  "occurredAt":"2026-03-05T01:21:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAM",
+  "schemaVersion":"1.0.0",
+  "payload":{"identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAM"}
+}'
+```
 
-## 10. 欠陥管理
+### AO-IT-004
 
-- Severityは `Critical/High/Medium/Low` を使用する。
-- `Critical` は当日中に一次切り分け、暫定回避策を記録する。
+```bash
+create_pull_sub sub-it-hypothesis-proposal-failed event-hypothesis-proposal-failed-v1
 
-## 11. 品質メトリクス
+publish_event event-insight-collected-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAN",
+  "eventType":"insight.collected",
+  "occurredAt":"2026-03-05T01:22:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAN",
+  "schemaVersion":"1.0.0",
+  "payload":{"count":0}
+}'
 
-| 指標 | 目標 |
-|---|---|
-| 仮説必須属性充足率 | 100% |
-| 重複抑止誤判定率 | 1%未満 |
-| サイクル完了時間 | 10分以内 |
+pull_one sub-it-hypothesis-proposal-failed
+```
 
-## 12. 体制・役割・スケジュール
+### AO-IT-005
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+- `hypothesis.proposed.payload` に `identifier`,`symbol`,`instrumentType`,`title`,`sourceEvidence`,`skillVersion`,`instructionProfileVersion` があることを確認する。
 
-## 13. 変更履歴
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/agent-orchestrator/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- skill_registry / failure_knowledge シード済み
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |

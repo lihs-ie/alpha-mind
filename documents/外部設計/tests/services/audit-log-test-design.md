@@ -1,7 +1,7 @@
-# audit-log テスト設計書
+# audit-log API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.1  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: audit-log
 
 ## 1. 文書情報
@@ -9,93 +9,116 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/audit-log.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 全業務イベントの監査記録欠損を防ぎ、`trace` 横断検索可能性を担保する。
-- 対象は購読イベント群、Firestore保存、Cloud Logging連携。
+- 全業務イベントの監査記録取り込みを実装可能な粒度で検証する。
+- 必須属性、冪等性、trace検索復元、記録遅延を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- イベント網羅性を優先し、主要イベントの保存可否を回帰対象に固定する。
-- 重複イベント受信時の冪等処理を確認する。
-- 監査必須項目（`identifier`, `eventType`, `occurredAt`, `trace`, `service`, `result`）の欠落を不合格とする。
+| API-ID | 種別 | 契約 | 優先度 |
+|---|---|---|---|
+| AU-API-01 | Event購読 | 全業務イベント（24種） | P0 |
+| AU-API-02 | DB保存 | Firestore `audit_logs` | P0 |
+| AU-API-03 | Event発行 | `event-audit-recorded-v1`（任意） | P1 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| AU-RSK-01 | 監査ログ欠損 | 5 | 2 | イベント別保存確認 |
-| AU-RSK-02 | traceで時系列復元不可 | 5 | 2 | 検索条件テスト |
-| AU-RSK-03 | 重複記録増加 | 3 | 3 | 冪等キー検証 |
+```bash
+export BASE_URL="http://localhost:3008"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+export FIRESTORE_URL="http://localhost:8080/v1/projects/$PROJECT_ID/databases/(default)/documents"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Integration / System |
-| タイプ | 機能、異常系、性能、監査 |
-| 技法 | 同値分割、デシジョンテーブル |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
+```
 
-## 6. エントリ/イグジット基準
+## 5. 詳細テストケース
 
-- エントリ: Pub/Sub購読設定とFirestoreインデックスが適用済み。
-- イグジット: 実行率100%、重大欠陥0件、記録遅延5秒以内、欠損率0.1%未満。
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| AU-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| AU-IT-002 | イベント記録 | P0 | `audit_logs` に保存 |
+| AU-IT-003 | 必須属性 | P0 | 必須項目が保存される |
+| AU-IT-004 | 重複受信 | P0 | 二重記録なし |
+| AU-IT-005 | trace検索 | P0 | traceで時系列復元可能 |
 
-## 7. テスト環境・データ・ツール
+### AU-IT-001
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `cabal build` / `cabal test`, Cloud Logging, Cloud Monitoring |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 8. 要件トレーサビリティ
+### AU-IT-002
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-AU-01 | AU-COND-01 イベント保存 | AU-TC-001, AU-TC-002 |
-| UC-AU-02 | AU-COND-02 trace検索 | AU-TC-003 |
+```bash
+publish_event event-orders-proposed-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAW",
+  "eventType":"orders.proposed",
+  "occurredAt":"2026-03-05T02:20:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAW",
+  "schemaVersion":"1.0.0",
+  "payload":{"identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAW","orderCount":1,"orders":[{"identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAW","symbol":"AAPL","side":"BUY","qty":1}]}
+}'
 
-## 9. 主要テストケース
+sleep 2
+curl -sS "$FIRESTORE_URL/audit_logs?pageSize=50" | jq .
+```
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| AU-TC-001 | 主要イベント受信 | 監査レコードが必須項目付きで保存 |
-| AU-TC-002 | 同一identifier再受信 | 重複保存されない |
-| AU-TC-003 | trace指定検索 | 同一サイクルの時系列が復元できる |
-| AU-TC-004 | Firestore障害時 | 失敗を記録し再試行方針に従う |
+### AU-IT-003
 
-## 10. 欠陥管理
+```bash
+curl -sS "$FIRESTORE_URL/audit_logs?pageSize=200" | \
+  jq '.documents[] | {eventType:.fields.eventType.stringValue,trace:.fields.trace.stringValue,identifier:.fields.identifier.stringValue}'
+```
 
-- Critical: 監査欠損または追跡不能。
-- High: 項目欠落、検索不整合。
+確認点:
+- `identifier`,`eventType`,`occurredAt`,`trace`,`service`,`result` が存在。
 
-## 11. 品質メトリクス
+### AU-IT-004
 
-| 指標 | 目標 |
-|---|---|
-| 監査欠損率 | 0.1%未満 |
-| 記録遅延 | 5秒以内 |
-| 必須項目充足率 | 100% |
+- 同一identifierのイベントを再publishし、監査記録が重複しないことを確認する。
 
-## 12. 体制・役割・スケジュール
+### AU-IT-005
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+```bash
+TRACE="01ARZ3NDEKTSV4RRFFQ69G5FAW"
+curl -sS "$FIRESTORE_URL/audit_logs?pageSize=200" | \
+  jq --arg t "$TRACE" '.documents[] | select(.fields.trace.stringValue==$t)'
+```
 
-## 13. 変更履歴
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/audit-log/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- Firestore emulator稼働中
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |
