@@ -39,7 +39,7 @@ VALID_IDENTIFIER = "01JNPQRS000000000000000001"
 VALID_TRACE = "01JNPQRS000000000000000002"
 TARGET_DATE = datetime.date(2026, 3, 3)
 FEATURE_VERSION = "v20260303-001"
-STORAGE_PATH = "gs://bucket/features/v20260303-001.parquet"
+STORAGE_PATH = "features/v20260303-001/features.parquet"
 MARKET_STORAGE_PATH = "gs://bucket/market/2026-03-03.parquet"
 
 
@@ -299,6 +299,23 @@ class TestFeaturesGeneratedAfterStorage:
         assert call_order.index("artifact_persist") < call_order.index("publish_generated")
 
 
+class TestArtifactPersistFailurePreventsPublish:
+    """RULE-FE-005 (negative): If artifact storage fails, event must NOT be published."""
+
+    def test_artifact_persist_failure_prevents_publish(self, fixture: _ServiceFixture) -> None:
+        fixture.feature_artifact_repository.persist.side_effect = RuntimeError("Storage unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        with pytest.raises(RuntimeError, match="Storage unavailable"):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Event must NOT be published since artifact storage failed
+        fixture.event_publisher.publish_features_generated.assert_not_called()
+        fixture.event_publisher.publish_features_generation_failed.assert_not_called()
+
+
 class TestFeaturesGeneratedRequiredFields:
     """RULE-FE-007: Published features.generated event has targetDate, featureVersion, storagePath."""
 
@@ -358,6 +375,27 @@ class TestDispatchFailureHandling:
 
         # Generation should still be persisted
         fixture.feature_generation_repository.persist.assert_called_once()
+
+        # Idempotency key should NOT be persisted on dispatch failure
+        fixture.idempotency_key_repository.persist.assert_not_called()
+
+
+class TestDispatchFailureWritesFailureAudit:
+    """When dispatch fails, audit should record failure, not success."""
+
+    def test_dispatch_failure_writes_failure_audit(self, fixture: _ServiceFixture) -> None:
+        fixture.event_publisher.publish_features_generated.side_effect = RuntimeError("Pub/Sub unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should write failure audit, not success audit
+        fixture.feature_audit_writer.write_success.assert_not_called()
+        fixture.feature_audit_writer.write_failure.assert_called_once()
+        audit_call = fixture.feature_audit_writer.write_failure.call_args
+        assert audit_call[1]["reason_code"] == ReasonCode.DISPATCH_FAILED
 
 
 class TestAuditSuccessWritten:
@@ -431,10 +469,9 @@ class TestInsightSnapshotNone:
 
 
 class TestCompletedEventNotFoundInDomainEvents:
-    """When domain_events are cleared before dispatch, publish is skipped gracefully."""
+    """When domain_events are cleared before dispatch, dispatch fails with STATE_CONFLICT."""
 
-    def test_skips_publish_when_completed_event_missing(self, fixture: _ServiceFixture) -> None:
-        # Clear domain events after complete() but before dispatch
+    def test_dispatch_fails_when_completed_event_missing(self, fixture: _ServiceFixture) -> None:
         original_complete = FeatureGeneration.complete
 
         def complete_and_clear_events(
@@ -457,16 +494,23 @@ class TestCompletedEventNotFoundInDomainEvents:
 
         # publish_features_generated should NOT be called since event was not found
         fixture.event_publisher.publish_features_generated.assert_not_called()
-        # But dispatch, generation, and idempotency should still be persisted
+        # Dispatch should be persisted with FAILED / STATE_CONFLICT
         fixture.feature_dispatch_repository.persist.assert_called_once()
+        persisted_dispatch = fixture.feature_dispatch_repository.persist.call_args[0][0]
+        assert persisted_dispatch.dispatch_status == DispatchStatus.FAILED
+        assert persisted_dispatch.reason_code == ReasonCode.STATE_CONFLICT
+        # Idempotency key should NOT be persisted
+        fixture.idempotency_key_repository.persist.assert_not_called()
+        # Generation should still be persisted
         fixture.feature_generation_repository.persist.assert_called_once()
-        fixture.idempotency_key_repository.persist.assert_called_once()
+        # Failure audit should be written
+        fixture.feature_audit_writer.write_failure.assert_called_once()
 
 
 class TestFailedEventNotFoundInDomainEvents:
-    """When domain_events are cleared before dispatch, failed publish is skipped gracefully."""
+    """When domain_events are cleared before dispatch, failed dispatch uses STATE_CONFLICT."""
 
-    def test_skips_publish_when_failed_event_missing(self, fixture: _ServiceFixture) -> None:
+    def test_dispatch_fails_when_failed_event_missing(self, fixture: _ServiceFixture) -> None:
         original_fail = FeatureGeneration.fail
 
         def fail_and_clear_events(
@@ -487,7 +531,73 @@ class TestFailedEventNotFoundInDomainEvents:
 
         # publish_features_generation_failed should NOT be called since event was not found
         fixture.event_publisher.publish_features_generation_failed.assert_not_called()
-        # But dispatch, generation, and idempotency should still be persisted
+        # Dispatch should be FAILED / STATE_CONFLICT
         fixture.feature_dispatch_repository.persist.assert_called_once()
+        persisted_dispatch = fixture.feature_dispatch_repository.persist.call_args[0][0]
+        assert persisted_dispatch.dispatch_status == DispatchStatus.FAILED
+        assert persisted_dispatch.reason_code == ReasonCode.STATE_CONFLICT
+        # Idempotency key should NOT be persisted
+        fixture.idempotency_key_repository.persist.assert_not_called()
+        # Generation should still be persisted
         fixture.feature_generation_repository.persist.assert_called_once()
-        fixture.idempotency_key_repository.persist.assert_called_once()
+
+
+class TestPointInTimeJoinPolicyRejection:
+    """Step 6: PointInTimeJoinPolicy rejection fails the generation."""
+
+    def test_join_policy_rejection_fails_generation(self, fixture: _ServiceFixture) -> None:
+        from domain.service.feature_leakage_policy import LeakagePolicyResult
+        from domain.service.point_in_time_join_policy import JoinPolicyResult
+
+        # Mock leakage policy to pass, but mock join policy to reject
+        fixture.feature_leakage_policy = MagicMock(spec=FeatureLeakagePolicy)
+        fixture.feature_leakage_policy.evaluate.return_value = LeakagePolicyResult(
+            leakage_detected=False, reason_code=None
+        )
+        fixture.point_in_time_join_policy = MagicMock(spec=PointInTimeJoinPolicy)
+        fixture.point_in_time_join_policy.evaluate.return_value = JoinPolicyResult(
+            approved=False, reason="Insight snapshot was not filtered by target_date"
+        )
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # No artifact should be persisted
+        fixture.feature_artifact_repository.persist.assert_not_called()
+
+        # features.generation.failed event should be published
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationFailed)
+        assert published_event.reason_code == ReasonCode.DATA_QUALITY_LEAK_DETECTED
+
+        # Audit failure should be written
+        fixture.feature_audit_writer.write_failure.assert_called_once()
+
+
+class TestStoragePathUsesConfiguredPrefix:
+    """Storage path should use the configured prefix, not hardcoded infrastructure details."""
+
+    def test_storage_path_uses_configured_prefix(self, fixture: _ServiceFixture) -> None:
+        service = FeatureGenerationService(
+            feature_generation_repository=fixture.feature_generation_repository,
+            feature_dispatch_repository=fixture.feature_dispatch_repository,
+            feature_artifact_repository=fixture.feature_artifact_repository,
+            idempotency_key_repository=fixture.idempotency_key_repository,
+            insight_record_repository=fixture.insight_record_repository,
+            feature_generation_factory=fixture.feature_generation_factory,
+            feature_dispatch_factory=fixture.feature_dispatch_factory,
+            point_in_time_join_policy=fixture.point_in_time_join_policy,
+            feature_leakage_policy=fixture.feature_leakage_policy,
+            event_publisher=fixture.event_publisher,
+            feature_audit_writer=fixture.feature_audit_writer,
+            storage_path_prefix="gs://my-bucket/features",
+        )
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        persisted_artifact = fixture.feature_artifact_repository.persist.call_args[0][0]
+        assert persisted_artifact.storage_path.startswith("gs://my-bucket/features/")

@@ -1,7 +1,8 @@
 """Feature generation usecase service.
 
 Orchestrates the feature generation workflow following the processing flow
-defined in Issue #30. Depends only on domain-layer interfaces (hexagonal architecture).
+defined in Issue #30 (steps 1-13). Depends only on domain-layer interfaces
+(hexagonal architecture).
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import logging
 from domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
 from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
 from domain.factory.feature_generation_factory import FeatureGenerationFactory
+from domain.model.feature_dispatch import FeatureDispatch
 from domain.model.feature_generation import FeatureGeneration
 from domain.repository.feature_artifact_repository import FeatureArtifactRepository
 from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
@@ -21,6 +23,7 @@ from domain.repository.insight_record_repository import InsightRecordRepository
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
 from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
 from domain.value_object.enums import (
+    DispatchStatus,
     FeatureGenerationStatus,
     PublishedEventType,
     ReasonCode,
@@ -38,16 +41,20 @@ logger = logging.getLogger(__name__)
 class FeatureGenerationService:
     """Usecase service that orchestrates feature generation from market.collected events.
 
-    Processing flow (Issue #30):
-    1. Idempotency check (RULE-FE-004)
-    2. Create FeatureGeneration via factory (RULE-FE-001/002 evaluated)
-    3. If already failed, skip to dispatch
-    4. Fetch insight records and evaluate leakage (RULE-FE-003)
-    5. Build and persist feature artifact (RULE-FE-005)
-    6. Complete generation aggregate
-    7. Create dispatch, publish event (RULE-FE-007/008)
-    8. Persist dispatch, idempotency key, generation
-    9. Write audit log
+    Processing flow (Issue #30, steps 1-13):
+     1. IdempotencyKeyRepository.find(identifier) — duplicate check (RULE-FE-004)
+     2. FeatureGenerationFactory.from_market_collected_event — create aggregate (RULE-FE-001/002)
+     3. If status == FAILED, skip to step 8
+     4. InsightRecordRepository.find_by_target_date — fetch insight
+     5. FeatureLeakagePolicy.evaluate — future-info check (RULE-FE-003)
+     6. PointInTimeJoinPolicy.evaluate — temporal consistency check
+     7. Feature calculation + FeatureArtifactRepository.persist (RULE-FE-005)
+     8. FeatureGeneration.complete() or .fail() — finalise aggregate state
+     9. FeatureDispatchFactory.from_feature_generation — create dispatch
+    10. EventPublisher.publish — publish integration event (RULE-FE-007/008)
+    11. FeatureDispatch.publish + FeatureDispatchRepository.persist — record dispatch
+    12. IdempotencyKeyRepository.persist — record idempotency key (only on successful dispatch)
+    13. FeatureGenerationRepository.persist + audit log
     """
 
     def __init__(
@@ -63,6 +70,7 @@ class FeatureGenerationService:
         feature_leakage_policy: FeatureLeakagePolicy,
         event_publisher: EventPublisher,
         feature_audit_writer: FeatureAuditWriter,
+        storage_path_prefix: str = "features",
     ) -> None:
         self._feature_generation_repository = feature_generation_repository
         self._feature_dispatch_repository = feature_dispatch_repository
@@ -75,6 +83,7 @@ class FeatureGenerationService:
         self._feature_leakage_policy = feature_leakage_policy
         self._event_publisher = event_publisher
         self._feature_audit_writer = feature_audit_writer
+        self._storage_path_prefix = storage_path_prefix
 
     def execute(self, identifier: str, market: MarketSnapshot, trace: str) -> None:
         """Execute the feature generation workflow.
@@ -101,11 +110,11 @@ class FeatureGenerationService:
         if generation.status != FeatureGenerationStatus.FAILED:
             self._process_feature_generation(generation)
 
-        # Steps 9-14: Dispatch, persist, and audit
+        # Steps 9-13: Dispatch, persist, and audit
         self._dispatch_and_finalize(generation)
 
     def _process_feature_generation(self, generation: FeatureGeneration) -> None:
-        """Steps 4-8: Insight check, leakage detection, artifact creation, completion."""
+        """Steps 4-8: Insight check, leakage detection, join validation, artifact creation."""
         target_date = generation.market.target_date
         now = datetime.datetime.now(tz=datetime.UTC)
 
@@ -113,7 +122,6 @@ class FeatureGenerationService:
         insight_snapshot = self._insight_record_repository.find_by_target_date(target_date)
 
         if insight_snapshot is None:
-            # No insight data available - proceed with empty insight
             insight_snapshot = InsightSnapshot(
                 record_count=0,
                 latest_collected_at=None,
@@ -133,16 +141,27 @@ class FeatureGenerationService:
             )
             return
 
-        # Step 6: Build feature artifact
+        # Step 6: Evaluate point-in-time join consistency
+        join_result = self._point_in_time_join_policy.evaluate(target_date, insight_snapshot)
+        if not join_result.approved:
+            generation.fail(
+                failure_detail=FailureDetail(
+                    reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED,
+                    detail=f"Point-in-time join rejected: {join_result.reason}",
+                    retryable=False,
+                ),
+                processed_at=now,
+            )
+            return
+
+        # Step 7: Build and persist feature artifact (RULE-FE-005)
         feature_version = self._feature_generation_factory.generate_feature_version(target_date)
         feature_artifact = FeatureArtifact(
             feature_version=feature_version,
-            storage_path=f"gs://feature_store/{feature_version}/features.parquet",
+            storage_path=f"{self._storage_path_prefix}/{feature_version}/features.parquet",
             row_count=0,
             feature_count=0,
         )
-
-        # Step 7: Persist artifact (RULE-FE-005: must persist before event publish)
         self._feature_artifact_repository.persist(feature_artifact)
 
         # Step 8: Complete generation (RULE-FE-005: complete after storage)
@@ -153,17 +172,19 @@ class FeatureGenerationService:
         )
 
     def _dispatch_and_finalize(self, generation: FeatureGeneration) -> None:
-        """Steps 9-14: Create dispatch, publish event, persist everything, write audit."""
+        """Steps 9-13: Create dispatch, publish event, persist everything, write audit."""
         now = datetime.datetime.now(tz=datetime.UTC)
 
         # Step 9: Create dispatch aggregate from terminal generation
         dispatch = self._feature_dispatch_factory.from_feature_generation(generation)
 
-        # Step 10: Publish integration event
+        # Step 10-11: Publish integration event and update dispatch state
         try:
             if generation.status == FeatureGenerationStatus.GENERATED:
                 completed_event = self._find_completed_event(generation)
-                if completed_event is not None:
+                if completed_event is None:
+                    dispatch.fail(reason_code=ReasonCode.STATE_CONFLICT, processed_at=now)
+                else:
                     self._event_publisher.publish_features_generated(completed_event)
                     dispatch.publish(
                         published_event=PublishedEventType.FEATURES_GENERATED,
@@ -171,7 +192,9 @@ class FeatureGenerationService:
                     )
             elif generation.status == FeatureGenerationStatus.FAILED:
                 failed_event = self._find_failed_event(generation)
-                if failed_event is not None:
+                if failed_event is None:
+                    dispatch.fail(reason_code=ReasonCode.STATE_CONFLICT, processed_at=now)
+                else:
                     self._event_publisher.publish_features_generation_failed(failed_event)
                     dispatch.publish(
                         published_event=PublishedEventType.FEATURES_GENERATION_FAILED,
@@ -184,21 +207,31 @@ class FeatureGenerationService:
                 processed_at=now,
             )
 
-        # Step 11: Persist dispatch
         self._feature_dispatch_repository.persist(dispatch)
 
-        # Step 12: Persist idempotency key
-        self._idempotency_key_repository.persist(
-            identifier=generation.identifier,
-            processed_at=now,
-            trace=generation.trace,
-        )
+        # Step 12: Persist idempotency key only on successful dispatch
+        if dispatch.dispatch_status == DispatchStatus.PUBLISHED:
+            self._idempotency_key_repository.persist(
+                identifier=generation.identifier,
+                processed_at=now,
+                trace=generation.trace,
+            )
 
-        # Step 13: Persist generation
+        # Step 13: Persist generation and write audit log
         self._feature_generation_repository.persist(generation)
+        self._write_audit(generation, dispatch)
 
-        # Step 14: Write audit log
-        if generation.status == FeatureGenerationStatus.GENERATED:
+    def _write_audit(self, generation: FeatureGeneration, dispatch: FeatureDispatch) -> None:
+        """Write audit log based on generation status and dispatch outcome."""
+        if dispatch.dispatch_status == DispatchStatus.FAILED:
+            reason_code = dispatch.reason_code or ReasonCode.DISPATCH_FAILED
+            self._feature_audit_writer.write_failure(
+                identifier=generation.identifier,
+                trace=generation.trace,
+                reason_code=reason_code,
+                detail=f"Dispatch failed: {reason_code.value}",
+            )
+        elif generation.status == FeatureGenerationStatus.GENERATED:
             assert generation.feature_artifact is not None
             self._feature_audit_writer.write_success(
                 identifier=generation.identifier,
