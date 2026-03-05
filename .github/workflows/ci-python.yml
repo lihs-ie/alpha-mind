@@ -17,10 +17,10 @@ jobs:
       services_json: ${{ steps.set-matrix.outputs.services_json }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Detect file changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: filter
         with:
           filters: |
@@ -73,10 +73,10 @@ jobs:
     if: needs.detect-changes.outputs.python == 'true'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
           allow-prereleases: true
@@ -111,10 +111,10 @@ jobs:
         service: ${{ fromJson(needs.detect-changes.outputs.services_json) }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
           allow-prereleases: true
@@ -133,7 +133,7 @@ jobs:
           fi
 
       - name: Cache mypy cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.3
         with:
           path: backend/${{ matrix.service }}/.mypy_cache
           key: mypy-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}
@@ -141,7 +141,7 @@ jobs:
             mypy-${{ runner.os }}-${{ matrix.service }}-
 
       - name: Cache pytest cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.3
         with:
           path: backend/${{ matrix.service }}/.pytest_cache
           key: pytest-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}

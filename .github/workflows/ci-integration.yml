@@ -16,10 +16,10 @@ jobs:
       services_json: ${{ steps.set-matrix.outputs.services_json }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Detect file changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: filter
         with:
           filters: |
@@ -129,7 +129,7 @@ jobs:
       COMPOSE_PROJECT_NAME: it-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.service }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Start integration stack
         working-directory: docker
@@ -219,7 +219,7 @@ jobs:
 
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: integration-logs-${{ matrix.service }}
           path: /tmp/integration-logs/${{ matrix.service }}
