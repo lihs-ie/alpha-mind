@@ -1,0 +1,107 @@
+"""Pub/Sub subscriber endpoint blueprint.
+
+Cloud Pub/Sub push サブスクリプションからの HTTP POST を受け付け、
+features.generated イベントをデコードして SignalGenerationService に委譲する。
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+from flask import Blueprint, current_app, jsonify, request
+
+from signal_generator.domain.enums.reason_code import ReasonCode
+from signal_generator.presentation.cloud_event_decoder import (
+    CloudEventDecodeError,
+    decode_pubsub_push_message,
+)
+from signal_generator.usecase.generate_signal_command import GenerateSignalCommand
+from signal_generator.usecase.generate_signal_result import GenerateSignalResult
+
+if TYPE_CHECKING:
+    from signal_generator.usecase.signal_generation_service import SignalGenerationService
+
+logger = logging.getLogger(__name__)
+
+subscriber_blueprint = Blueprint("subscriber", __name__)
+
+
+@subscriber_blueprint.route("/", methods=["POST"])
+def handle_pubsub_push() -> tuple[object, int]:
+    """Pub/Sub push エンドポイント。
+
+    エラー戦略:
+    - バリデーション失敗 (不正な eventType, 必須フィールド欠損): 200 (ack, 再試行不要)
+    - retryable なユースケース失敗: 500 (nack, Pub/Sub が再配信)
+    - non-retryable なユースケース失敗: 200 (ack)
+    """
+    # Step 1: リクエストボディの取得
+    body = request.get_json(silent=True)
+    if body is None:
+        logger.warning("Request body is not valid JSON")
+        return jsonify({"status": "error", "error": "Invalid request body"}), 200
+
+    # Step 2: CloudEvents エンベロープのデコード
+    try:
+        cloud_event_payload = decode_pubsub_push_message(body)
+    except CloudEventDecodeError as error:
+        logger.warning("CloudEvent decode failed: %s", error)
+        return jsonify({"status": "error", "error": str(error)}), 200
+
+    # Step 3: GenerateSignalCommand の構築
+    service: SignalGenerationService = current_app.config["SIGNAL_GENERATION_SERVICE"]
+    default_universe_count: int = current_app.config["DEFAULT_UNIVERSE_COUNT"]
+
+    universe_count = cloud_event_payload.universe_count or default_universe_count
+
+    try:
+        command = GenerateSignalCommand(
+            identifier=cloud_event_payload.identifier,
+            target_date=cloud_event_payload.target_date,
+            feature_version=cloud_event_payload.feature_version,
+            storage_path=cloud_event_payload.storage_path,
+            universe_count=universe_count,
+            trace=cloud_event_payload.trace,
+        )
+    except ValueError as error:
+        logger.warning("Command validation failed: %s", error)
+        return jsonify({"status": "error", "error": str(error)}), 200
+
+    # Step 4: ユースケース実行
+    logger.info(
+        "Processing signal generation: identifier=%s, trace=%s",
+        command.identifier,
+        command.trace,
+    )
+
+    try:
+        result: GenerateSignalResult = service.execute(command)
+    except Exception:
+        logger.exception(
+            "Unhandled exception in signal generation: identifier=%s",
+            command.identifier,
+        )
+        return jsonify({"status": "error", "error": "Internal server error"}), 500
+
+    # Step 5: 結果に応じたレスポンス
+    if result.is_success:
+        return jsonify({"status": "ok"}), 200
+
+    # 失敗 - retryable かどうかで HTTP ステータスを分ける
+    is_retryable = result.reason_code is not None and result.reason_code not in ReasonCode.non_retryable()
+
+    if is_retryable:
+        logger.warning(
+            "Retryable failure: identifier=%s, reason=%s",
+            command.identifier,
+            result.reason_code,
+        )
+        return jsonify({"status": "error", "error": result.detail or str(result.reason_code)}), 500
+
+    logger.info(
+        "Non-retryable failure (ack): identifier=%s, reason=%s",
+        command.identifier,
+        result.reason_code,
+    )
+    return jsonify({"status": "error", "error": result.detail or str(result.reason_code)}), 200
