@@ -1,33 +1,26 @@
-"""Feature Engineering service - minimal skeleton for Docker build verification."""
+"""Feature Engineering service entry point.
+
+Creates the DI container, wires the FeatureGenerationService, and
+starts the Flask application to receive Pub/Sub push messages.
+"""
+
+from __future__ import annotations
 
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
-
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler with /healthz endpoint."""
-
-    def do_GET(self) -> None:
-        if self.path == "/healthz":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"ok")
-        else:
-            self.send_response(404)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"not found")
-
-    def log_message(self, format: str, *args: object) -> None:
-        print(f"[feature-engineering] {args[0]}")
+from presentation.app_factory import create_application
+from presentation.dependency_container import DependencyContainer
 
 
 def main() -> None:
+    """Start the feature-engineering service."""
     port = int(os.environ.get("PORT", "8080"))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    print(f"Feature Engineering starting on port {port}")
-    server.serve_forever()
+
+    container = DependencyContainer()
+    service = container.feature_generation_service()
+    application = create_application(service)
+
+    application.run(host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":

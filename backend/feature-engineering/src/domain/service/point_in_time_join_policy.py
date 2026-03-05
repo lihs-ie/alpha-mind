@@ -1,5 +1,7 @@
 """Domain service for point-in-time join consistency validation."""
 
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
 

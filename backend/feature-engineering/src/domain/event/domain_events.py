@@ -1,5 +1,7 @@
 """Domain events for the feature-engineering bounded context."""
 
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
 
