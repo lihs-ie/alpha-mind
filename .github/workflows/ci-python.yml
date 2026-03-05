@@ -23,6 +23,7 @@ jobs:
         with:
           filters: |
             python:
+              - ".github/workflows/ci-python.yml"
               - "backend/feature-engineering/**"
               - "backend/signal-generator/**"
               - "backend/hypothesis-lab/**"
