@@ -173,6 +173,9 @@ class FeatureGenerationService:
                     processed_at=datetime.datetime.now(tz=datetime.UTC),
                 )
             except Exception as error:
+                # Includes Google API errors (google.api_core.exceptions.*) which
+                # are not caught above but are typically transient. Marking as
+                # retryable=True so Pub/Sub redelivery can retry the message.
                 logger.exception(
                     "Unexpected error during feature generation processing; identifier=%s",
                     identifier,
@@ -181,7 +184,7 @@ class FeatureGenerationService:
                     failure_detail=FailureDetail(
                         reason_code=ReasonCode.FEATURE_GENERATION_FAILED,
                         detail=f"Unexpected processing error: {type(error).__name__}: {error}",
-                        retryable=False,
+                        retryable=True,
                     ),
                     processed_at=datetime.datetime.now(tz=datetime.UTC),
                 )
@@ -258,7 +261,7 @@ class FeatureGenerationService:
         # Step 10-11: Publish integration event and update dispatch state
         try:
             if generation.status == FeatureGenerationStatus.GENERATED:
-                completed_event = self._find_completed_event(generation)
+                completed_event = self._find_or_build_completed_event(generation, now)
                 if completed_event is None:
                     dispatch.fail(reason_code=ReasonCode.STATE_CONFLICT, processed_at=now)
                 else:
@@ -268,7 +271,7 @@ class FeatureGenerationService:
                         processed_at=now,
                     )
             elif generation.status == FeatureGenerationStatus.FAILED:
-                failed_event = self._find_failed_event(generation)
+                failed_event = self._find_or_build_failed_event(generation, now)
                 if failed_event is None:
                     dispatch.fail(reason_code=ReasonCode.STATE_CONFLICT, processed_at=now)
                 else:
@@ -300,7 +303,14 @@ class FeatureGenerationService:
         else:
             self._idempotency_key_repository.terminate(generation.identifier)
 
-        self._write_audit(generation, dispatch)
+        try:
+            self._write_audit(generation, dispatch)
+        except Exception:
+            # Audit failure must not delete an already-persisted idempotency key.
+            logger.exception(
+                "Failed to write audit log for identifier=%s; idempotency state preserved",
+                generation.identifier,
+            )
 
     def _write_audit(self, generation: FeatureGeneration, dispatch: FeatureDispatch) -> None:
         """Write audit log based on generation status and dispatch outcome."""
@@ -355,16 +365,49 @@ class FeatureGenerationService:
                     detail=failure_detail.detail,
                 )
 
-    def _find_completed_event(self, generation: FeatureGeneration) -> FeatureGenerationCompleted | None:
-        """Extract the FeatureGenerationCompleted event from domain events."""
+    def _find_or_build_completed_event(
+        self, generation: FeatureGeneration, now: datetime.datetime
+    ) -> FeatureGenerationCompleted | None:
+        """Extract or rebuild the FeatureGenerationCompleted event.
+
+        Domain events are not restored when aggregates are loaded from the
+        repository (dispatch-only retry path). In that case, rebuild the
+        event from the persisted generation state.
+        """
         for event in generation.domain_events:
             if isinstance(event, FeatureGenerationCompleted):
                 return event
-        return None
+        # Rebuild from persisted state (dispatch-only retry)
+        if generation.feature_artifact is None:
+            return None
+        return FeatureGenerationCompleted(
+            identifier=generation.identifier,
+            target_date=generation.market.target_date,
+            feature_version=generation.feature_artifact.feature_version,
+            storage_path=generation.feature_artifact.storage_path,
+            trace=generation.trace,
+            occurred_at=generation.processed_at or now,
+        )
 
-    def _find_failed_event(self, generation: FeatureGeneration) -> FeatureGenerationFailed | None:
-        """Extract the FeatureGenerationFailed event from domain events."""
+    def _find_or_build_failed_event(
+        self, generation: FeatureGeneration, now: datetime.datetime
+    ) -> FeatureGenerationFailed | None:
+        """Extract or rebuild the FeatureGenerationFailed event.
+
+        Domain events are not restored when aggregates are loaded from the
+        repository. In that case, rebuild the event from the persisted
+        generation state.
+        """
         for event in generation.domain_events:
             if isinstance(event, FeatureGenerationFailed):
                 return event
-        return None
+        # Rebuild from persisted state
+        if generation.failure_detail is None:
+            return None
+        return FeatureGenerationFailed(
+            identifier=generation.identifier,
+            reason_code=generation.failure_detail.reason_code,
+            detail=generation.failure_detail.detail,
+            trace=generation.trace,
+            occurred_at=generation.processed_at or now,
+        )

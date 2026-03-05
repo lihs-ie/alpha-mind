@@ -550,10 +550,10 @@ class TestInsightSnapshotNone:
         fixture.feature_audit_writer.write_success.assert_called_once()
 
 
-class TestCompletedEventNotFoundInDomainEvents:
-    """When domain_events are cleared before dispatch, dispatch fails with STATE_CONFLICT."""
+class TestCompletedEventRebuiltWhenDomainEventsCleared:
+    """When domain_events are cleared, the event is rebuilt from generation state."""
 
-    def test_dispatch_fails_when_completed_event_missing(self, fixture: _ServiceFixture) -> None:
+    def test_event_rebuilt_from_state_when_domain_events_cleared(self, fixture: _ServiceFixture) -> None:
         original_complete = FeatureGeneration.complete
 
         def complete_and_clear_events(
@@ -572,28 +572,21 @@ class TestCompletedEventNotFoundInDomainEvents:
 
             service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
-        # publish_features_generated should NOT be called since event was not found
-        fixture.event_publisher.publish_features_generated.assert_not_called()
-        # Dispatch should be persisted with FAILED / STATE_CONFLICT
+        # Event is rebuilt from generation state → publish succeeds
+        fixture.event_publisher.publish_features_generated.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generated.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationCompleted)
+        assert published_event.feature_version == FEATURE_VERSION
+        # Dispatch should be PUBLISHED
         fixture.feature_dispatch_repository.persist.assert_called_once()
         persisted_dispatch = fixture.feature_dispatch_repository.persist.call_args[0][0]
-        assert persisted_dispatch.dispatch_status == DispatchStatus.FAILED
-        assert persisted_dispatch.reason_code == ReasonCode.STATE_CONFLICT
-        # Idempotency key should NOT be persisted
-        fixture.idempotency_key_repository.persist.assert_not_called()
-        # Generation should still be persisted
-        fixture.feature_generation_repository.persist.assert_called_once()
-        # Failure audit should be written with STATE_CONFLICT
-        fixture.feature_audit_writer.write_success.assert_not_called()
-        fixture.feature_audit_writer.write_failure.assert_called_once()
-        audit_call = fixture.feature_audit_writer.write_failure.call_args
-        assert audit_call[1]["reason_code"] == ReasonCode.STATE_CONFLICT
+        assert persisted_dispatch.dispatch_status == DispatchStatus.PUBLISHED
 
 
-class TestFailedEventNotFoundInDomainEvents:
-    """When domain_events are cleared before dispatch, failed dispatch uses STATE_CONFLICT."""
+class TestFailedEventRebuiltWhenDomainEventsCleared:
+    """When domain_events are cleared before dispatch, the failed event is rebuilt from state."""
 
-    def test_dispatch_fails_when_failed_event_missing(self, fixture: _ServiceFixture) -> None:
+    def test_failed_event_rebuilt_from_state(self, fixture: _ServiceFixture) -> None:
         original_fail = FeatureGeneration.fail
 
         def fail_and_clear_events(
@@ -610,17 +603,15 @@ class TestFailedEventNotFoundInDomainEvents:
 
             service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
-        # publish_features_generation_failed should NOT be called since event was not found
-        fixture.event_publisher.publish_features_generation_failed.assert_not_called()
-        # Dispatch should be FAILED / STATE_CONFLICT
+        # Event is rebuilt from failure_detail → publish succeeds
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationFailed)
+        assert published_event.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        # Dispatch should be PUBLISHED (not FAILED/STATE_CONFLICT)
         fixture.feature_dispatch_repository.persist.assert_called_once()
         persisted_dispatch = fixture.feature_dispatch_repository.persist.call_args[0][0]
-        assert persisted_dispatch.dispatch_status == DispatchStatus.FAILED
-        assert persisted_dispatch.reason_code == ReasonCode.STATE_CONFLICT
-        # Idempotency key should NOT be persisted
-        fixture.idempotency_key_repository.persist.assert_not_called()
-        # Generation should still be persisted
-        fixture.feature_generation_repository.persist.assert_called_once()
+        assert persisted_dispatch.dispatch_status == DispatchStatus.PUBLISHED
 
 
 class TestPointInTimeJoinPolicyRejection:
@@ -865,7 +856,11 @@ class TestRecoverableVsUnrecoverableProcessingError:
         assert persisted_generation.failure_detail is not None
         assert persisted_generation.failure_detail.retryable is True
 
-    def test_unexpected_error_is_not_retryable(self, fixture: _ServiceFixture) -> None:
+    def test_unexpected_error_is_retryable(self, fixture: _ServiceFixture) -> None:
+        """Unexpected errors (including Google API exceptions) are treated as retryable
+        since the usecase layer cannot distinguish transient infrastructure failures
+        from programming errors without importing infrastructure-specific exceptions.
+        """
         fixture.insight_record_repository.find_by_target_date.side_effect = ValueError("Unexpected bug")
 
         service = fixture.build()
@@ -873,13 +868,13 @@ class TestRecoverableVsUnrecoverableProcessingError:
 
         service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
-        # Should be published as failed with retryable=False
+        # Should be published as failed with retryable=True
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
 
-        # Generation should have non-retryable failure detail
+        # Generation should have retryable failure detail
         persisted_generation = fixture.feature_generation_repository.persist.call_args[0][0]
         assert persisted_generation.failure_detail is not None
-        assert persisted_generation.failure_detail.retryable is False
+        assert persisted_generation.failure_detail.retryable is True
 
 
 class TestDispatchPublishCatchesAllExceptions:
@@ -1084,7 +1079,8 @@ class TestDispatchOnlyRetryReusesExistingGeneration:
         existing_dispatch.dispatch_status = DispatchStatus.FAILED
         fixture.feature_dispatch_repository.find.return_value = existing_dispatch
 
-        # Simulate a previously persisted GENERATED generation
+        # Simulate a previously persisted GENERATED generation (no domain events —
+        # domain events are not restored by the repository deserializer).
         artifact = _make_artifact()
         existing_generation = FeatureGeneration(
             identifier=VALID_IDENTIFIER,
@@ -1094,17 +1090,6 @@ class TestDispatchOnlyRetryReusesExistingGeneration:
             feature_artifact=artifact,
             insight=_make_insight(),
             processed_at=datetime.datetime(2026, 3, 3, 16, 0, 0, tzinfo=datetime.UTC),
-        )
-        # Record a completed event so dispatch can find it
-        existing_generation.record_domain_event(
-            FeatureGenerationCompleted(
-                identifier=VALID_IDENTIFIER,
-                target_date=TARGET_DATE,
-                feature_version=FEATURE_VERSION,
-                storage_path=STORAGE_PATH,
-                trace=VALID_TRACE,
-                occurred_at=datetime.datetime(2026, 3, 3, 16, 0, 0, tzinfo=datetime.UTC),
-            )
         )
         fixture.feature_generation_repository.find.return_value = existing_generation
 
@@ -1139,3 +1124,55 @@ class TestDispatchOnlyRetryReusesExistingGeneration:
         # Should process normally
         fixture.feature_artifact_repository.persist.assert_called_once()
         fixture.event_publisher.publish_features_generated.assert_called_once()
+
+
+class TestAuditWriteFailurePreservesIdempotencyKey:
+    """#22: audit write failure must not delete an already-persisted idempotency key."""
+
+    def test_audit_failure_does_not_terminate_persisted_key(self, fixture: _ServiceFixture) -> None:
+        """If _write_audit raises after successful dispatch, idempotency key remains persisted."""
+        fixture.feature_audit_writer.write_success.side_effect = RuntimeError("Logging service unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Idempotency key should be persisted (dispatch succeeded)
+        fixture.idempotency_key_repository.persist.assert_called_once()
+        # terminate must NOT be called — the key was already finalized
+        fixture.idempotency_key_repository.terminate.assert_not_called()
+
+
+class TestDispatchOnlyRetryRebuildsEventFromState:
+    """#20: Persisted aggregates have no domain events; event must be rebuilt from state."""
+
+    def test_rebuilt_completed_event_matches_persisted_state(self, fixture: _ServiceFixture) -> None:
+        """Event rebuilt from generation state has correct field values."""
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.FAILED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        artifact = _make_artifact()
+        existing_generation = FeatureGeneration(
+            identifier=VALID_IDENTIFIER,
+            status=FeatureGenerationStatus.GENERATED,
+            market=_make_healthy_market(),
+            trace=VALID_TRACE,
+            feature_artifact=artifact,
+            insight=_make_insight(),
+            processed_at=datetime.datetime(2026, 3, 3, 16, 0, 0, tzinfo=datetime.UTC),
+        )
+        # No domain events — simulates repository deserialization
+        fixture.feature_generation_repository.find.return_value = existing_generation
+
+        service = fixture.build()
+        service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        fixture.event_publisher.publish_features_generated.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generated.call_args[0][0]
+        assert published_event.identifier == VALID_IDENTIFIER
+        assert published_event.target_date == TARGET_DATE
+        assert published_event.feature_version == FEATURE_VERSION
+        assert published_event.storage_path == STORAGE_PATH
+        assert published_event.trace == VALID_TRACE
