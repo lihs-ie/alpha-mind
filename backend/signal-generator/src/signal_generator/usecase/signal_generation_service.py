@@ -131,10 +131,14 @@ class SignalGenerationService:
                 command.identifier,
                 reason_code,
             )
-            return self._handle_model_resolution_failure(command, now, reason_code)
+            return self._handle_pre_inference_failure(command, now, reason_code)
 
         # Step 3: approved モデル解決 (RULE-SG-002)
-        model_snapshot = self._model_registry_repository.find_by_status(ModelStatus.APPROVED)
+        try:
+            model_snapshot = self._model_registry_repository.find_by_status(ModelStatus.APPROVED)
+        except Exception:
+            logger.exception("モデルレジストリ読み取り失敗: identifier=%s", command.identifier)
+            return self._handle_pre_inference_failure(command, now, ReasonCode.DEPENDENCY_UNAVAILABLE)
         if not self._approved_model_policy.is_satisfied_by(model_snapshot):
             model_reason_code = self._approved_model_policy.reason_code(model_snapshot)
             assert model_reason_code is not None
@@ -143,7 +147,7 @@ class SignalGenerationService:
                 command.identifier,
                 model_reason_code,
             )
-            return self._handle_model_resolution_failure(command, now, model_reason_code)
+            return self._handle_pre_inference_failure(command, now, model_reason_code)
 
         assert model_snapshot is not None
 
@@ -289,20 +293,22 @@ class SignalGenerationService:
             self._signal_dispatch_repository.persist(dispatch)
         except Exception:
             logger.exception("イベント発行失敗: identifier=%s", command.identifier)
-            return GenerateSignalResult.failure(
+            return self._finalize_failure(
+                command=command,
+                retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="イベント発行に失敗しました",
             )
 
         return GenerateSignalResult.success()
 
-    def _handle_model_resolution_failure(
+    def _handle_pre_inference_failure(
         self,
         command: GenerateSignalCommand,
         now: datetime.datetime,
         reason_code: ReasonCode,
     ) -> GenerateSignalResult:
-        """モデル解決失敗のハンドリング。"""
+        """推論前フェーズ(入力検証・モデル解決)の失敗ハンドリング。"""
         retryable = reason_code not in ReasonCode.non_retryable()
         self._persist_failed_generation(command, now, reason_code)
         try:

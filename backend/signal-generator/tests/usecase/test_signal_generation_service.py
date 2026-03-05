@@ -610,6 +610,10 @@ class TestFailurePath:
         signal_generation_repository.persist.assert_called_once()
         persisted = signal_generation_repository.persist.call_args[0][0]
         assert persisted.status == GenerationStatus.GENERATED
+        # retryable な失敗のため、冪等性キーは terminate され再実行が許可される
+        idempotency_repository.terminate.assert_called_once_with(
+            f"signal-generator:{_IDENTIFIER}",
+        )
 
     def test_timeout_error_maps_to_dependency_timeout(self) -> None:
         """TimeoutError は DEPENDENCY_TIMEOUT にマッピングされる。"""
@@ -670,6 +674,37 @@ class TestFailurePath:
         # 結果の detail に生の例外メッセージが含まれていないことを検証
         assert "secret-bucket" not in (result.detail or "")
         assert "connection failed" not in (result.detail or "")
+
+    def test_model_registry_read_error_returns_dependency_unavailable(self) -> None:
+        """model_registry の読み取りエラーは DEPENDENCY_UNAVAILABLE で失敗する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.side_effect = ConnectionError("Firestore unavailable")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        # SignalGeneration は failed 状態で永続化されている
+        signal_generation_repository.persist.assert_called_once()
+        # retryable な失敗なので terminate が呼ばれる
+        idempotency_repository.terminate.assert_called_once_with(
+            f"signal-generator:{_IDENTIFIER}",
+        )
 
     def test_failed_event_publish_failure_does_not_crash_on_model_resolution(self) -> None:
         """モデル解決失敗時に失敗イベント発行が例外を投げても異常終了しない。"""
