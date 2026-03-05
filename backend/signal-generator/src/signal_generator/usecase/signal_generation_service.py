@@ -187,30 +187,6 @@ class SignalGenerationService:
 
             # Step 6: 推論実行
             prediction_dataframe = model.predict(feature_dataframe)
-            prediction_count = len(prediction_dataframe)
-
-            # Step 7: 件数整合検証 (RULE-SG-004) - ドメインポリシーに委譲
-            if not self._inference_consistency_policy.is_count_consistent(
-                SignalArtifact(
-                    signal_version="",
-                    storage_path="",
-                    generated_count=prediction_count,
-                    universe_count=command.universe_count,
-                )
-            ):
-                # SignalArtifact の不変条件で ValueError になるため、ここには到達しない。
-                # 件数不一致は SignalArtifact 構築時に ValueError として捕捉される。
-                pass  # pragma: no cover
-
-        except ValueError:
-            # RULE-SG-004: 件数不一致 (SignalArtifact 不変条件違反)
-            return self._handle_inference_failure(
-                generation=generation,
-                command=command,
-                now=now,
-                reason_code=ReasonCode.SIGNAL_GENERATION_FAILED,
-                detail="推論件数がユニバース件数と一致しない",
-            )
         except TimeoutError:
             logger.exception("依存先タイムアウト: identifier=%s", command.identifier)
             return self._handle_inference_failure(
@@ -220,15 +196,29 @@ class SignalGenerationService:
                 reason_code=ReasonCode.DEPENDENCY_TIMEOUT,
                 detail="依存先タイムアウト",
             )
-        except Exception:
+        except Exception as error:
             logger.exception("推論処理失敗: identifier=%s", command.identifier)
-            reason_code = self._classify_exception_reason_code()
+            reason_code = self._classify_exception_reason_code(error)
             return self._handle_inference_failure(
                 generation=generation,
                 command=command,
                 now=now,
                 reason_code=reason_code,
                 detail="推論処理中にエラーが発生しました",
+            )
+
+        # Step 7: 件数整合検証 (RULE-SG-004) - ドメインポリシーに委譲
+        prediction_count = len(prediction_dataframe)
+        if not self._inference_consistency_policy.is_count_consistent(
+            generated_count=prediction_count,
+            universe_count=command.universe_count,
+        ):
+            return self._handle_inference_failure(
+                generation=generation,
+                command=command,
+                now=now,
+                reason_code=ReasonCode.SIGNAL_GENERATION_FAILED,
+                detail="推論件数がユニバース件数と一致しない",
             )
 
         # SignalArtifact 構築
@@ -291,7 +281,14 @@ class SignalGenerationService:
     ) -> GenerateSignalResult:
         """モデル解決失敗のハンドリング。"""
         self._persist_failed_generation(command, now, reason_code)
-        self._publish_failed_event_and_dispatch(command, now, reason_code)
+        try:
+            self._publish_failed_event_and_dispatch(command, now, reason_code)
+        except Exception:
+            logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
+            return GenerateSignalResult.failure(
+                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+                detail="失敗イベント発行に失敗しました",
+            )
         return GenerateSignalResult.failure(reason_code=reason_code)
 
     def _handle_inference_failure(
@@ -314,7 +311,14 @@ class SignalGenerationService:
         )
         generation.fail(failure_detail, now)
         self._signal_generation_repository.persist(generation)
-        self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
+        try:
+            self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
+        except Exception:
+            logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
+            return GenerateSignalResult.failure(
+                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+                detail="失敗イベント発行に失敗しました",
+            )
         return GenerateSignalResult.failure(reason_code=reason_code, detail=detail)
 
     def _persist_failed_generation(
@@ -387,9 +391,10 @@ class SignalGenerationService:
             requires_compliance_review=False,
         )
 
-    def _classify_exception_reason_code(self) -> ReasonCode:
-        """例外の種別からReasonCodeを分類する。
-
-        将来的に例外種別に応じた詳細分類を追加可能。
-        """
-        return ReasonCode.DEPENDENCY_UNAVAILABLE
+    def _classify_exception_reason_code(self, error: Exception) -> ReasonCode:
+        """例外の種別からReasonCodeを分類する。"""
+        if isinstance(error, (ConnectionError, OSError)):
+            return ReasonCode.DEPENDENCY_UNAVAILABLE
+        if isinstance(error, ValueError):
+            return ReasonCode.REQUEST_VALIDATION_FAILED
+        return ReasonCode.INTERNAL_ERROR

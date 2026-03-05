@@ -1,7 +1,6 @@
 """InferenceConsistencyPolicy domain service."""
 
 from signal_generator.domain.value_objects.model_diagnostics_snapshot import ModelDiagnosticsSnapshot
-from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
 
 
 class InferenceConsistencyPolicy:
@@ -12,13 +11,9 @@ class InferenceConsistencyPolicy:
     IO処理を含まない純粋なドメインロジックのみを担当する。
     """
 
-    def is_count_consistent(self, signal_artifact: SignalArtifact) -> bool:
-        """RULE-SG-004: 推論件数とユニバース件数が一致しているか検証する。
-
-        SignalArtifact のコンストラクタで既に一致検証を行うため、
-        インスタンスが存在すれば常に True を返す。
-        """
-        return signal_artifact.generated_count == signal_artifact.universe_count
+    def is_count_consistent(self, generated_count: int, universe_count: int) -> bool:
+        """RULE-SG-004: 推論件数とユニバース件数が一致しているか検証する。"""
+        return generated_count == universe_count
 
     def is_compliance_review_satisfied(self, model_diagnostics: ModelDiagnosticsSnapshot) -> bool:
         """RULE-SG-007: degradationFlag=block のとき requiresComplianceReview=true であることを検証する。
