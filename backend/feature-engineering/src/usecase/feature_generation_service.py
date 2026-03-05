@@ -112,7 +112,14 @@ class FeatureGenerationService:
                 "Unhandled error after reservation; releasing reservation for identifier=%s",
                 identifier,
             )
-            self._idempotency_key_repository.terminate(identifier)
+            try:
+                self._idempotency_key_repository.terminate(identifier)
+            except Exception:
+                logger.exception(
+                    "Failed to terminate reservation for identifier=%s",
+                    identifier,
+                )
+            raise
 
     def _process_after_reservation(self, identifier: str, market: MarketSnapshot, trace: str) -> None:
         """Steps 1b-13: All processing that occurs after the idempotency reservation."""
@@ -122,6 +129,17 @@ class FeatureGenerationService:
         # as a secondary guard. FAILED dispatches are allowed to re-process.
         existing_dispatch = self._feature_dispatch_repository.find(identifier)
         if existing_dispatch is not None and existing_dispatch.dispatch_status == DispatchStatus.PUBLISHED:
+            # Verify generation record exists — if missing (dispatch persisted but
+            # generation persist crashed), raise so Pub/Sub redelivery can retry.
+            existing_generation = self._feature_generation_repository.find(identifier)
+            if existing_generation is None:
+                logger.error(
+                    "Published dispatch exists but generation record missing for identifier=%s",
+                    identifier,
+                )
+                # Raise to trigger execute()'s except block which will terminate
+                # the reservation and re-raise for Pub/Sub redelivery.
+                raise RuntimeError(f"Inconsistent state: dispatch=PUBLISHED but generation missing for {identifier}")
             logger.warning(
                 "Published dispatch already exists for identifier=%s; skipping re-processing",
                 identifier,

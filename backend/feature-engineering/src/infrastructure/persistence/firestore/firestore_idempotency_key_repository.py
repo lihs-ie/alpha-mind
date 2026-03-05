@@ -70,8 +70,10 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
                 txn.set(document_reference, data)
                 return True
             expires_at = existing_data.get("expiresAt")
-            if isinstance(expires_at, datetime.datetime) and expires_at <= now:
-                # Overwrite the expired document atomically.
+            # Reclaim if expired OR if expiresAt is missing/corrupt (defensive
+            # against data inconsistency that would otherwise permanently block
+            # the identifier).
+            if not isinstance(expires_at, datetime.datetime) or expires_at <= now:
                 txn.set(document_reference, data)
                 return True
             return False
@@ -98,7 +100,12 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
         now = datetime.datetime.now(datetime.UTC)
         expires_at = data.get("expiresAt")
-        if isinstance(expires_at, datetime.datetime) and expires_at <= now:
+        if not isinstance(expires_at, datetime.datetime):
+            raise InfrastructureDataFormatError(
+                source=COLLECTION_NAME,
+                detail="Failed to deserialize document: expiresAt must be datetime",
+            )
+        if expires_at <= now:
             return None
 
         try:

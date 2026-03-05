@@ -1023,7 +1023,8 @@ class TestReservationReleasedOnPreProcessingError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(ConnectionError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Reservation must be released so retries are not blocked
         fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
@@ -1037,7 +1038,8 @@ class TestReservationReleasedOnPreProcessingError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RuntimeError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
         fixture.idempotency_key_repository.persist.assert_not_called()
@@ -1053,7 +1055,8 @@ class TestReservationReleasedOnFinalizationPersistError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(ConnectionError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Reservation must be released despite persist failure
         fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
@@ -1065,7 +1068,8 @@ class TestReservationReleasedOnFinalizationPersistError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(ConnectionError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
 
@@ -1176,3 +1180,36 @@ class TestDispatchOnlyRetryRebuildsEventFromState:
         assert published_event.feature_version == FEATURE_VERSION
         assert published_event.storage_path == STORAGE_PATH
         assert published_event.trace == VALID_TRACE
+
+
+class TestExecuteReRaisesAfterTerminate:
+    """execute() must re-raise unhandled exceptions so Pub/Sub redelivers the message."""
+
+    def test_execute_reraises_after_terminate(self, fixture: _ServiceFixture) -> None:
+        fixture.feature_dispatch_repository.find.side_effect = RuntimeError("Unexpected")
+
+        service = fixture.build()
+
+        with pytest.raises(RuntimeError, match="Unexpected"):
+            service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+
+
+class TestPublishedDispatchWithMissingGenerationRaises:
+    """Published dispatch with missing generation record raises to trigger redelivery."""
+
+    def test_raises_runtime_error_for_inconsistent_state(self, fixture: _ServiceFixture) -> None:
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.PUBLISHED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+        fixture.feature_generation_repository.find.return_value = None
+
+        service = fixture.build()
+
+        with pytest.raises(RuntimeError, match="Inconsistent state"):
+            service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        # Reservation should be released so retry can attempt recovery
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+        fixture.idempotency_key_repository.persist.assert_not_called()

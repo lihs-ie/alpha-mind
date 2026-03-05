@@ -229,3 +229,25 @@ class TestFirestoreIdempotencyKeyRepositoryDeserializeErrors:
         repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
         with pytest.raises(InfrastructureDataFormatError):
             repository.find(VALID_ULID)
+
+    def test_find_raises_for_invalid_expires_at_type(self) -> None:
+        """expiresAt that is not datetime should raise InfrastructureDataFormatError."""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "service": SERVICE_NAME,
+            "processedAt": datetime.datetime.now(datetime.UTC),
+            "trace": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+            "expiresAt": "not-a-datetime",
+        }
+
+        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find(VALID_ULID)
