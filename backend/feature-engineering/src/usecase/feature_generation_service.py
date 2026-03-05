@@ -43,6 +43,7 @@ class FeatureGenerationService:
 
     Processing flow (Issue #30, steps 1-13):
      1. IdempotencyKeyRepository.find(identifier) — duplicate check (RULE-FE-004)
+     1b. FeatureDispatchRepository.find(identifier) — partial-failure guard
      2. FeatureGenerationFactory.from_market_collected_event — create aggregate (RULE-FE-001/002)
      3. If status == FAILED, skip preprocessing (steps 4-8) and proceed to dispatch (steps 9-13)
      4. InsightRecordRepository.find_by_target_date — fetch insight
@@ -55,6 +56,12 @@ class FeatureGenerationService:
     11. FeatureDispatch.publish + FeatureDispatchRepository.persist — record dispatch
     12. FeatureGenerationRepository.persist — persist generation state
     13. IdempotencyKeyRepository.persist + audit log (idempotency key only on successful dispatch)
+
+    Concurrency note: Step 1 is a non-atomic check-then-act sequence.
+    IdempotencyKeyRepository.reserve() provides an atomic alternative for
+    infrastructure implementations that support it (e.g., Firestore create).
+    Step 1b adds a secondary guard against re-publishing after partial failures
+    where the event was published but the idempotency key was not yet written.
     """
 
     def __init__(
@@ -96,6 +103,19 @@ class FeatureGenerationService:
         # Step 1: Idempotency check (RULE-FE-004)
         existing_processed_at = self._idempotency_key_repository.find(identifier)
         if existing_processed_at is not None:
+            self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
+            return
+
+        # Step 1b: Guard against re-processing after partial failure.
+        # If a previous attempt published an event but crashed before persisting
+        # the idempotency key, the dispatch record serves as a secondary guard
+        # to prevent duplicate event publication on retry.
+        existing_dispatch = self._feature_dispatch_repository.find(identifier)
+        if existing_dispatch is not None:
+            logger.warning(
+                "Dispatch already exists for identifier=%s; skipping re-processing",
+                identifier,
+            )
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
@@ -215,7 +235,7 @@ class FeatureGenerationService:
                         published_event=PublishedEventType.FEATURES_GENERATION_FAILED,
                         processed_at=now,
                     )
-        except OSError, RuntimeError, ConnectionError, TimeoutError:
+        except Exception:
             logger.exception("Failed to publish integration event for identifier=%s", generation.identifier)
             dispatch.fail(
                 reason_code=ReasonCode.DISPATCH_FAILED,

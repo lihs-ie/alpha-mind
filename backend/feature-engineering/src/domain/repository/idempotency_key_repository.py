@@ -15,6 +15,18 @@ class IdempotencyKeyRepository(ABC):
         ...
 
     @abstractmethod
+    def reserve(self, identifier: str, trace: str) -> bool:
+        """Atomically reserve an identifier for processing.
+
+        Returns True if newly reserved (caller should proceed with processing).
+        Returns False if already reserved or fully processed (duplicate).
+
+        Implementations must use atomic operations (e.g., Firestore ``create``)
+        to prevent concurrent duplicate processing under RULE-FE-004.
+        """
+        ...
+
+    @abstractmethod
     def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> None: ...
 
     @abstractmethod

@@ -4,6 +4,7 @@ import datetime
 from unittest.mock import MagicMock
 
 import pytest
+from google.api_core.exceptions import AlreadyExists
 
 from infrastructure.error import InfrastructureDataFormatError
 from infrastructure.persistence.firestore.firestore_idempotency_key_repository import (
@@ -15,6 +16,40 @@ SERVICE_NAME = "feature-engineering"
 
 
 EXPECTED_DOCUMENT_ID = f"{SERVICE_NAME}:{VALID_ULID}"
+
+
+class TestFirestoreIdempotencyKeyRepositoryReserve:
+    def test_reserve_returns_true_when_newly_created(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+
+        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
+        result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
+
+        assert result is True
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
+        mock_document.create.assert_called_once()
+        data = mock_document.create.call_args[0][0]
+        assert data["identifier"] == VALID_ULID
+        assert data["service"] == SERVICE_NAME
+        assert data["trace"] == "01ARZ3NDEKTSV4RRFFQ69G5FAW"
+        assert data["status"] == "reserved"
+
+    def test_reserve_returns_false_when_already_exists(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.create.side_effect = AlreadyExists("Document already exists")
+
+        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
+        result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
+
+        assert result is False
 
 
 class TestFirestoreIdempotencyKeyRepositoryFind:

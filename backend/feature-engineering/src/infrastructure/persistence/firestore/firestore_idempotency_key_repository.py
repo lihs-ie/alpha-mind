@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 from typing import Any, cast
 
+from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
@@ -25,6 +26,24 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
     def _document_identifier(self, identifier: str) -> str:
         """Build a service-scoped document ID to prevent cross-service collisions."""
         return f"{self._service_name}:{identifier}"
+
+    def reserve(self, identifier: str, trace: str) -> bool:
+        document_identifier = self._document_identifier(identifier)
+        now = datetime.datetime.now(tz=datetime.UTC)
+        expires_at = now + datetime.timedelta(days=TTL_DAYS)
+        data: dict[str, Any] = {
+            "identifier": identifier,
+            "service": self._service_name,
+            "reservedAt": now,
+            "trace": trace,
+            "expiresAt": expires_at,
+            "status": "reserved",
+        }
+        try:
+            self._client.collection(COLLECTION_NAME).document(document_identifier).create(data)
+            return True
+        except AlreadyExists:
+            return False
 
     def find(self, identifier: str) -> datetime.datetime | None:
         document_identifier = self._document_identifier(identifier)

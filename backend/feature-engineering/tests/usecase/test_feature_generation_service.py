@@ -113,6 +113,8 @@ class _ServiceFixture:
 
         # Default: no duplicate
         self.idempotency_key_repository.find.return_value = None
+        # Default: no existing dispatch (step 1b guard)
+        self.feature_dispatch_repository.find.return_value = None
         # Default: insight available
         self.insight_record_repository.find_by_target_date.return_value = _make_insight()
 
@@ -726,6 +728,68 @@ class TestAuditWithMissingFeatureArtifact:
         fixture.feature_audit_writer.write_failure.assert_called_once()
         audit_call = fixture.feature_audit_writer.write_failure.call_args
         assert audit_call[1]["reason_code"] == ReasonCode.STATE_CONFLICT
+
+
+class TestDispatchExistsGuard:
+    """Step 1b: Existing dispatch record prevents re-processing after partial failure."""
+
+    def test_existing_dispatch_skips_processing(self, fixture: _ServiceFixture) -> None:
+        """If a dispatch already exists for this identifier, skip re-processing."""
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # No processing should occur
+        fixture.feature_artifact_repository.persist.assert_not_called()
+        fixture.event_publisher.publish_features_generated.assert_not_called()
+        fixture.event_publisher.publish_features_generation_failed.assert_not_called()
+        fixture.feature_generation_repository.persist.assert_not_called()
+
+        # Duplicate audit should be written
+        fixture.feature_audit_writer.write_duplicate.assert_called_once_with(
+            identifier=VALID_IDENTIFIER, trace=VALID_TRACE
+        )
+
+    def test_no_existing_dispatch_proceeds_normally(self, fixture: _ServiceFixture) -> None:
+        """When no dispatch exists, processing proceeds normally."""
+        fixture.feature_dispatch_repository.find.return_value = None
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Normal processing should occur
+        fixture.feature_artifact_repository.persist.assert_called_once()
+        fixture.event_publisher.publish_features_generated.assert_called_once()
+
+
+class TestDispatchPublishCatchesAllExceptions:
+    """All publisher exceptions are caught to ensure dispatch/generation state is persisted."""
+
+    def test_unexpected_exception_type_caught(self, fixture: _ServiceFixture) -> None:
+        """Even unexpected exception types (e.g., ValueError) are caught during publish."""
+        fixture.event_publisher.publish_features_generated.side_effect = ValueError("Unexpected serialization error")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Dispatch should be persisted with FAILED status
+        fixture.feature_dispatch_repository.persist.assert_called_once()
+        persisted_dispatch = fixture.feature_dispatch_repository.persist.call_args[0][0]
+        assert persisted_dispatch.dispatch_status == DispatchStatus.FAILED
+
+        # Generation should still be persisted
+        fixture.feature_generation_repository.persist.assert_called_once()
+
+        # Idempotency key should NOT be persisted
+        fixture.idempotency_key_repository.persist.assert_not_called()
 
 
 class TestAuditWithMissingFailureDetail:
