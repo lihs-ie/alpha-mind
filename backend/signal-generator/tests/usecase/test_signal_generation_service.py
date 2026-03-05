@@ -8,6 +8,7 @@ import pandas
 from signal_generator.domain.aggregates.signal_dispatch import SignalDispatch
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.dispatch_status import DispatchStatus
+from signal_generator.domain.enums.event_type import EventType
 from signal_generator.domain.enums.generation_status import GenerationStatus
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.enums.reason_code import ReasonCode
@@ -1423,3 +1424,127 @@ class TestSignalWriterFailure:
 
         assert result.is_success is False
         assert result.reason_code == ReasonCode.DEPENDENCY_TIMEOUT
+
+
+class TestDispatchIdempotency:
+    def test_already_published_signal_generated_skips_publish(self) -> None:
+        """INV-SG-004: signal.generated が既に publish 済みの場合はスキップして成功を返す。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        existing_dispatch = MagicMock(spec=SignalDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.PUBLISHED
+        existing_dispatch.published_event = EventType.SIGNAL_GENERATED
+        signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
+        signal_dispatch_repository.find.return_value = existing_dispatch
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            signal_generation_repository=signal_generation_repository,
+            signal_dispatch_repository=signal_dispatch_repository,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is True
+        event_publisher.publish_signal_generated.assert_not_called()
+
+    def test_failed_dispatch_does_not_block_success_retry(self) -> None:
+        """失敗イベントの dispatch が存在しても、成功リトライ時は signal.generated を発行する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        existing_dispatch = MagicMock(spec=SignalDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.PUBLISHED
+        existing_dispatch.published_event = EventType.SIGNAL_GENERATION_FAILED
+        signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
+        signal_dispatch_repository.find.return_value = existing_dispatch
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generated.return_value = "msg-001"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            signal_generation_repository=signal_generation_repository,
+            signal_dispatch_repository=signal_dispatch_repository,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is True
+        event_publisher.publish_signal_generated.assert_called_once()
+
+    def test_dispatch_find_failure_does_not_crash(self) -> None:
+        """dispatch 検索が失敗しても処理は続行する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
+        signal_dispatch_repository.find.side_effect = ConnectionError("db unavailable")
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generated.return_value = "msg-001"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            signal_generation_repository=signal_generation_repository,
+            signal_dispatch_repository=signal_dispatch_repository,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is True
+        event_publisher.publish_signal_generated.assert_called_once()

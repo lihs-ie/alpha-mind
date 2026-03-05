@@ -284,9 +284,17 @@ class SignalGenerationService:
         self._signal_generation_repository.persist(generation)
 
         # Phase 2: complete() 後 - fail() へ戻さない
-        # INV-SG-004: 既に publish 済みの dispatch がある場合はスキップ
-        existing_dispatch = self._signal_dispatch_repository.find(command.identifier)
-        if existing_dispatch is not None and existing_dispatch.dispatch_status == DispatchStatus.PUBLISHED:
+        # INV-SG-004: 既に signal.generated が publish 済みの場合はスキップ
+        try:
+            existing_dispatch = self._signal_dispatch_repository.find(command.identifier)
+        except Exception:
+            logger.exception("dispatch 検索失敗: identifier=%s", command.identifier)
+            existing_dispatch = None
+        if (
+            existing_dispatch is not None
+            and existing_dispatch.dispatch_status == DispatchStatus.PUBLISHED
+            and existing_dispatch.published_event == EventType.SIGNAL_GENERATED
+        ):
             logger.info("既に publish 済み: identifier=%s", command.identifier)
             return GenerateSignalResult.success()
 
