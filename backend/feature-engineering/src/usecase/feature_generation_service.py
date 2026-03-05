@@ -102,6 +102,20 @@ class FeatureGenerationService:
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
+        # All processing after reserve() is wrapped in try/finally to guarantee
+        # the reservation is always finalized — either persisted or terminated —
+        # even when an unexpected error occurs at any step.
+        try:
+            self._process_after_reservation(identifier, market, trace)
+        except Exception:
+            logger.exception(
+                "Unhandled error after reservation; releasing reservation for identifier=%s",
+                identifier,
+            )
+            self._idempotency_key_repository.terminate(identifier)
+
+    def _process_after_reservation(self, identifier: str, market: MarketSnapshot, trace: str) -> None:
+        """Steps 1b-13: All processing that occurs after the idempotency reservation."""
         # Step 1b: Guard against re-publishing after partial failure.
         # If a previous attempt published an event but crashed before persisting
         # the idempotency key, the dispatch record with PUBLISHED status serves
@@ -111,6 +125,12 @@ class FeatureGenerationService:
             logger.warning(
                 "Published dispatch already exists for identifier=%s; skipping re-processing",
                 identifier,
+            )
+            # Finalize the reservation so it is not left dangling.
+            self._idempotency_key_repository.persist(
+                identifier=identifier,
+                processed_at=datetime.datetime.now(tz=datetime.UTC),
+                trace=trace,
             )
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return

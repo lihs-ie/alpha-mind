@@ -323,7 +323,7 @@ class TestIdempotencyDuplicateEvent:
 
 
 class TestPublishedDispatchGuardPersistsIdempotencyKey:
-    """When PUBLISHED dispatch is detected, idempotency key should be confirmed."""
+    """When PUBLISHED dispatch is detected, idempotency key should be finalized."""
 
     def test_published_dispatch_persists_idempotency_key(self, fixture: _ServiceFixture) -> None:
         existing_dispatch = MagicMock(spec=FeatureDispatch)
@@ -332,6 +332,12 @@ class TestPublishedDispatchGuardPersistsIdempotencyKey:
 
         service = fixture.build()
         service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        # Idempotency key must be persisted to prevent reservation leak
+        fixture.idempotency_key_repository.persist.assert_called_once()
+        persist_call = fixture.idempotency_key_repository.persist.call_args
+        assert persist_call[1]["identifier"] == VALID_IDENTIFIER
+        assert persist_call[1]["trace"] == VALID_TRACE
 
         # Duplicate audit should be written
         fixture.feature_audit_writer.write_duplicate.assert_called_once()
@@ -929,3 +935,140 @@ class TestAuditWithMissingFailureDetail:
                 found_state_conflict = True
                 break
         assert found_state_conflict, "Expected STATE_CONFLICT audit for missing failure_detail"
+
+
+class TestFeatureVersionImmutability:
+    """TST-FE-006 / RULE-FE-006: featureVersion is generated once and never re-generated."""
+
+    def test_feature_version_generated_once_per_execution(self, fixture: _ServiceFixture) -> None:
+        """generate_feature_version is called exactly once during successful processing."""
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        fixture.feature_version_generator.generate.assert_called_once_with(TARGET_DATE)
+
+        # The persisted artifact must carry the version from the generator
+        persisted_artifact = fixture.feature_artifact_repository.persist.call_args[0][0]
+        assert persisted_artifact.feature_version == FEATURE_VERSION
+
+    def test_feature_version_not_regenerated_on_failed_dispatch_retry(self, fixture: _ServiceFixture) -> None:
+        """INV-FE-005: When retrying after a FAILED dispatch, featureVersion must not change.
+
+        The generator is called once per execute() invocation; its deterministic
+        output for the same target_date ensures immutability across retries.
+        """
+        # Simulate FAILED dispatch existing (allows retry)
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.FAILED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # generate is still called exactly once per execute invocation
+        fixture.feature_version_generator.generate.assert_called_once_with(TARGET_DATE)
+
+        # The version must match the generator's output
+        persisted_artifact = fixture.feature_artifact_repository.persist.call_args[0][0]
+        assert persisted_artifact.feature_version == FEATURE_VERSION
+
+
+class TestIdentifierNamingConvention:
+    """TST-FE-009 / RULE-FE-009: Domain model uses 'identifier' not 'id' or 'Id'."""
+
+    def test_domain_events_use_identifier_field(self, fixture: _ServiceFixture) -> None:
+        """FeatureGenerationCompleted and FeatureGenerationFailed use 'identifier'."""
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        completed_event = fixture.event_publisher.publish_features_generated.call_args[0][0]
+        assert hasattr(completed_event, "identifier")
+        assert not hasattr(completed_event, "id")
+        assert completed_event.identifier == VALID_IDENTIFIER
+
+    def test_failed_event_uses_identifier_field(self, fixture: _ServiceFixture) -> None:
+        """FeatureGenerationFailed uses 'identifier' not 'id'."""
+        service = fixture.build()
+        market = _make_unhealthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        failed_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert hasattr(failed_event, "identifier")
+        assert not hasattr(failed_event, "id")
+        assert failed_event.identifier == VALID_IDENTIFIER
+
+    def test_generation_aggregate_uses_identifier_field(self, fixture: _ServiceFixture) -> None:
+        """FeatureGeneration aggregate uses 'identifier' not 'id'."""
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        persisted_generation = fixture.feature_generation_repository.persist.call_args[0][0]
+        assert hasattr(persisted_generation, "identifier")
+        assert not hasattr(persisted_generation, "id")
+        assert persisted_generation.identifier == VALID_IDENTIFIER
+
+
+class TestReservationReleasedOnPreProcessingError:
+    """#16: reserve() success followed by exception before _dispatch_and_finalize must release reservation."""
+
+    def test_dispatch_find_raises_releases_reservation(self, fixture: _ServiceFixture) -> None:
+        """If feature_dispatch_repository.find() throws after reserve(), reservation is released."""
+        fixture.feature_dispatch_repository.find.side_effect = ConnectionError("Firestore unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Reservation must be released so retries are not blocked
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+        fixture.idempotency_key_repository.persist.assert_not_called()
+
+    def test_factory_raises_releases_reservation(self, fixture: _ServiceFixture) -> None:
+        """If feature_generation_factory.from_market_collected_event() throws, reservation is released."""
+        fixture.feature_generation_factory = MagicMock(spec=FeatureGenerationFactory)
+        fixture.feature_generation_factory.from_market_collected_event.side_effect = RuntimeError("Factory boom")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+        fixture.idempotency_key_repository.persist.assert_not_called()
+
+
+class TestReservationReleasedOnFinalizationPersistError:
+    """#14: If persist in _dispatch_and_finalize raises, reservation must still be finalized."""
+
+    def test_generation_persist_raises_releases_reservation(self, fixture: _ServiceFixture) -> None:
+        """If feature_generation_repository.persist() throws, reservation is released."""
+        fixture.feature_generation_repository.persist.side_effect = ConnectionError("Firestore unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Reservation must be released despite persist failure
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+
+    def test_dispatch_persist_raises_releases_reservation(self, fixture: _ServiceFixture) -> None:
+        """If feature_dispatch_repository.persist() throws, reservation is released."""
+        fixture.feature_dispatch_repository.persist.side_effect = ConnectionError("Firestore unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)

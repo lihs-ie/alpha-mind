@@ -39,11 +39,32 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             "expiresAt": expires_at,
             "status": "reserved",
         }
+        document_reference = self._client.collection(COLLECTION_NAME).document(document_identifier)
         try:
-            self._client.collection(COLLECTION_NAME).document(document_identifier).create(data)
+            document_reference.create(data)
             return True
         except AlreadyExists:
+            # Check if the existing document is expired or a stale reservation.
+            # If so, delete it and retry the reservation.
+            if self._is_reclaimable(document_reference, now):
+                document_reference.delete()
+                try:
+                    document_reference.create(data)
+                    return True
+                except AlreadyExists:
+                    return False
             return False
+
+    def _is_reclaimable(self, document_reference: Any, now: datetime.datetime) -> bool:
+        """Check if an existing document is expired and can be reclaimed."""
+        snapshot = cast(DocumentSnapshot, document_reference.get())
+        if not snapshot.exists:
+            return True
+        data = snapshot.to_dict()
+        if data is None:
+            return True
+        expires_at = data.get("expiresAt")
+        return isinstance(expires_at, datetime.datetime) and expires_at <= now
 
     def find(self, identifier: str) -> datetime.datetime | None:
         document_identifier = self._document_identifier(identifier)
