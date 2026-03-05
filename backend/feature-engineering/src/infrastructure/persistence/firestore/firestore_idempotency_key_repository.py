@@ -79,7 +79,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             return False
 
         try:
-            return _reclaim_in_transaction(transaction)
+            return cast(bool, _reclaim_in_transaction(transaction))
         except AlreadyExists:
             # Another consumer won the reclaim race — treat as duplicate.
             return False
