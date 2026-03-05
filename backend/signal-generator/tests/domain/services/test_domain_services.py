@@ -54,9 +54,10 @@ class TestApprovedModelPolicy:
         )
         assert policy.reason_code(candidate_model) == ReasonCode.MODEL_NOT_APPROVED
 
-    def test_reason_code_model_not_found_when_none(self) -> None:
+    def test_reason_code_model_not_approved_when_none(self) -> None:
+        """RULE-SG-002: approved モデルが存在しない場合も MODEL_NOT_APPROVED を返す。"""
         policy = ApprovedModelPolicy()
-        assert policy.reason_code(None) == ReasonCode.MODEL_NOT_FOUND
+        assert policy.reason_code(None) == ReasonCode.MODEL_NOT_APPROVED
 
     def test_no_reason_code_when_satisfied(self) -> None:
         policy = ApprovedModelPolicy()

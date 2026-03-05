@@ -321,7 +321,7 @@ class TestModelResolution:
     """RULE-SG-002: approved モデル解決のテスト。"""
 
     def test_no_approved_model_causes_failure(self) -> None:
-        """approved モデルが存在しない場合、MODEL_NOT_FOUND で失敗する。"""
+        """RULE-SG-002: approved モデルが存在しない場合、MODEL_NOT_APPROVED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
         idempotency_repository.persist.return_value = True
 
@@ -340,7 +340,7 @@ class TestModelResolution:
         result = service.execute(_make_command())
 
         assert result.is_success is False
-        assert result.reason_code == ReasonCode.MODEL_NOT_FOUND
+        assert result.reason_code == ReasonCode.MODEL_NOT_APPROVED
 
     def test_candidate_model_causes_failure(self) -> None:
         """candidate モデルしかない場合、MODEL_NOT_APPROVED で失敗する。"""
@@ -735,6 +735,37 @@ class TestFailurePath:
             f"signal-generator:{_IDENTIFIER}",
         )
 
+    def test_model_registry_timeout_returns_dependency_timeout(self) -> None:
+        """RULE-SG-002: model_registry の TimeoutError は DEPENDENCY_TIMEOUT で失敗する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.side_effect = TimeoutError("Firestore timeout")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_TIMEOUT
+        # SignalGeneration は failed 状態で永続化されている
+        signal_generation_repository.persist.assert_called_once()
+        # retryable な失敗なので terminate が呼ばれる
+        idempotency_repository.terminate.assert_called_once_with(
+            f"signal-generator:{_IDENTIFIER}",
+        )
+
     def test_failed_event_publish_failure_does_not_crash_on_model_resolution(self) -> None:
         """モデル解決失敗時に失敗イベント発行が例外を投げても異常終了しない。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
@@ -890,7 +921,7 @@ class TestFailurePath:
         result = service.execute(_make_command())
 
         assert result.is_success is False
-        # MODEL_NOT_FOUND または DEPENDENCY_UNAVAILABLE (元のエラーの reason_code が保持されること)
+        # MODEL_NOT_APPROVED または DEPENDENCY_UNAVAILABLE (元のエラーの reason_code が保持されること)
         assert result.reason_code is not None
 
     def test_failed_event_detail_does_not_contain_sensitive_info(self) -> None:

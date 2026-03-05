@@ -136,6 +136,9 @@ class SignalGenerationService:
         # Step 3: approved モデル解決 (RULE-SG-002)
         try:
             model_snapshot = self._model_registry_repository.find_by_status(ModelStatus.APPROVED)
+        except TimeoutError:
+            logger.exception("モデルレジストリタイムアウト: identifier=%s", command.identifier)
+            return self._handle_pre_inference_failure(command, now, ReasonCode.DEPENDENCY_TIMEOUT)
         except Exception:
             logger.exception("モデルレジストリ読み取り失敗: identifier=%s", command.identifier)
             return self._handle_pre_inference_failure(command, now, ReasonCode.DEPENDENCY_UNAVAILABLE)
@@ -442,10 +445,11 @@ class SignalGenerationService:
         return f"gs://signal_store/{command.target_date.isoformat()}/{signal_version}.parquet"
 
     def _build_model_diagnostics(self) -> ModelDiagnosticsSnapshot:
-        """ModelDiagnosticsSnapshot を構築する (RULE-SG-006)。
+        """ModelDiagnosticsSnapshot を構築する (RULE-SG-006, RULE-SG-007)。
 
-        現時点では degradation_flag=normal, requiresComplianceReview=false で固定。
-        将来的にモデル診断結果から動的に構築する。
+        RULE-SG-007: 現時点では NORMAL 固定。将来的にモデル診断結果から動的に構築する。
+        degradationFlag=block の場合は requiresComplianceReview=true が必須であり、
+        ModelDiagnosticsSnapshot.__post_init__ と InferenceConsistencyPolicy で保護されている。
         """
         return ModelDiagnosticsSnapshot(
             degradation_flag=DegradationFlag.NORMAL,
