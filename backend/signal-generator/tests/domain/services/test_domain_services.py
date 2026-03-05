@@ -9,7 +9,6 @@ from signal_generator.domain.services.approved_model_policy import ApprovedModel
 from signal_generator.domain.services.inference_consistency_policy import InferenceConsistencyPolicy
 from signal_generator.domain.value_objects.model_diagnostics_snapshot import ModelDiagnosticsSnapshot
 from signal_generator.domain.value_objects.model_snapshot import ModelSnapshot
-from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
 
 
 class TestApprovedModelPolicy:
@@ -55,9 +54,10 @@ class TestApprovedModelPolicy:
         )
         assert policy.reason_code(candidate_model) == ReasonCode.MODEL_NOT_APPROVED
 
-    def test_reason_code_model_not_found_when_none(self) -> None:
+    def test_reason_code_model_not_approved_when_none(self) -> None:
+        """RULE-SG-002: approved モデルが存在しない場合も MODEL_NOT_APPROVED を返す。"""
         policy = ApprovedModelPolicy()
-        assert policy.reason_code(None) == ReasonCode.MODEL_NOT_FOUND
+        assert policy.reason_code(None) == ReasonCode.MODEL_NOT_APPROVED
 
     def test_no_reason_code_when_satisfied(self) -> None:
         policy = ApprovedModelPolicy()
@@ -73,13 +73,12 @@ class TestInferenceConsistencyPolicy:
     def test_consistent_counts_is_satisfied(self) -> None:
         # RULE-SG-004: 推論件数とユニバース件数の一致が必須
         policy = InferenceConsistencyPolicy()
-        artifact = SignalArtifact(
-            signal_version="signal-v1.0.0",
-            storage_path="gs://signal_store/2026-01-01/signals.parquet",
-            generated_count=100,
-            universe_count=100,
-        )
-        assert policy.is_count_consistent(artifact) is True
+        assert policy.is_count_consistent(generated_count=100, universe_count=100) is True
+
+    def test_inconsistent_counts_is_not_satisfied(self) -> None:
+        # RULE-SG-004: 推論件数とユニバース件数の不一致
+        policy = InferenceConsistencyPolicy()
+        assert policy.is_count_consistent(generated_count=50, universe_count=100) is False
 
     def test_block_diagnostics_compliance_review_is_satisfied(self) -> None:
         # RULE-SG-007: block フラグ時のコンプライアンスレビュー検証

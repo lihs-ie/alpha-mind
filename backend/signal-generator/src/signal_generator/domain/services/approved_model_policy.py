@@ -19,11 +19,10 @@ class ApprovedModelPolicy:
     def reason_code(self, model_snapshot: ModelSnapshot | None) -> ReasonCode | None:
         """ポリシー違反の理由コードを返す。満足している場合は None を返す。
 
-        error-codes.json の定義に基づき、モデル未存在 (MODEL_NOT_FOUND: 404) と
-        モデル非承認 (MODEL_NOT_APPROVED: 409) を区別する。
+        RULE-SG-002: approved モデルが存在しない場合、またはモデルが非承認の場合は
+        MODEL_NOT_APPROVED を返す。設計書の状態遷移表に基づき、モデル未存在と
+        モデル非承認を同一の reasonCode で扱う。
         """
         if self.is_satisfied_by(model_snapshot):
             return None
-        if model_snapshot is None:
-            return ReasonCode.MODEL_NOT_FOUND
         return ReasonCode.MODEL_NOT_APPROVED
