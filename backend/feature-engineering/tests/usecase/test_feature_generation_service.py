@@ -24,6 +24,7 @@ from domain.service.feature_version_generator import FeatureVersionGenerator
 from domain.service.point_in_time_join_policy import JoinPolicyResult, PointInTimeJoinPolicy
 from domain.value_object.enums import (
     DispatchStatus,
+    FeatureGenerationStatus,
     ReasonCode,
     SourceStatusValue,
 )
@@ -1072,3 +1073,69 @@ class TestReservationReleasedOnFinalizationPersistError:
         service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+
+
+class TestDispatchOnlyRetryReusesExistingGeneration:
+    """#19: When retrying after dispatch-only failure, reuse persisted GENERATED generation."""
+
+    def test_failed_dispatch_with_generated_generation_reuses_state(self, fixture: _ServiceFixture) -> None:
+        """If FAILED dispatch + GENERATED generation exist, skip re-processing and dispatch only."""
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.FAILED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        # Simulate a previously persisted GENERATED generation
+        artifact = _make_artifact()
+        existing_generation = FeatureGeneration(
+            identifier=VALID_IDENTIFIER,
+            status=FeatureGenerationStatus.GENERATED,
+            market=_make_healthy_market(),
+            trace=VALID_TRACE,
+            feature_artifact=artifact,
+            insight=_make_insight(),
+            processed_at=datetime.datetime(2026, 3, 3, 16, 0, 0, tzinfo=datetime.UTC),
+        )
+        # Record a completed event so dispatch can find it
+        existing_generation.record_domain_event(
+            FeatureGenerationCompleted(
+                identifier=VALID_IDENTIFIER,
+                target_date=TARGET_DATE,
+                feature_version=FEATURE_VERSION,
+                storage_path=STORAGE_PATH,
+                trace=VALID_TRACE,
+                occurred_at=datetime.datetime(2026, 3, 3, 16, 0, 0, tzinfo=datetime.UTC),
+            )
+        )
+        fixture.feature_generation_repository.find.return_value = existing_generation
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should NOT re-process features (no artifact persist, no factory feature_version call)
+        fixture.feature_artifact_repository.persist.assert_not_called()
+
+        # Should publish features.generated using the existing generation
+        fixture.event_publisher.publish_features_generated.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generated.call_args[0][0]
+        assert published_event.feature_version == FEATURE_VERSION
+
+        # Idempotency key should be persisted on success
+        fixture.idempotency_key_repository.persist.assert_called_once()
+
+    def test_failed_dispatch_without_existing_generation_processes_normally(self, fixture: _ServiceFixture) -> None:
+        """If FAILED dispatch exists but no persisted generation, process from scratch."""
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.FAILED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+        fixture.feature_generation_repository.find.return_value = None
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should process normally
+        fixture.feature_artifact_repository.persist.assert_called_once()
+        fixture.event_publisher.publish_features_generated.assert_called_once()

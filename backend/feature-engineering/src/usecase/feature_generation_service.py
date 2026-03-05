@@ -135,6 +135,19 @@ class FeatureGenerationService:
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
+        # Step 1c: Dispatch-only retry — if a FAILED dispatch exists and the
+        # generation was already completed (GENERATED), reuse the persisted
+        # generation state to avoid re-generating featureVersion (RULE-FE-006).
+        if existing_dispatch is not None and existing_dispatch.dispatch_status == DispatchStatus.FAILED:
+            existing_generation = self._feature_generation_repository.find(identifier)
+            if existing_generation is not None and existing_generation.status == FeatureGenerationStatus.GENERATED:
+                logger.info(
+                    "Dispatch-only retry: reusing GENERATED generation for identifier=%s",
+                    identifier,
+                )
+                self._dispatch_and_finalize(existing_generation)
+                return
+
         # Step 2: Create FeatureGeneration via factory (RULE-FE-001/002 evaluated inside)
         generation = self._feature_generation_factory.from_market_collected_event(
             identifier=identifier,

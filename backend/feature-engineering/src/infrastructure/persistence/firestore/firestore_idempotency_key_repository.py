@@ -80,7 +80,8 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
         try:
             return _reclaim_in_transaction(transaction)
-        except Exception:
+        except AlreadyExists:
+            # Another consumer won the reclaim race — treat as duplicate.
             return False
 
     def find(self, identifier: str) -> datetime.datetime | None:
