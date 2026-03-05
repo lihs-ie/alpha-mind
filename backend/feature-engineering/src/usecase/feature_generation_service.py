@@ -44,7 +44,7 @@ class FeatureGenerationService:
     Processing flow (Issue #30, steps 1-13):
      1. IdempotencyKeyRepository.find(identifier) — duplicate check (RULE-FE-004)
      2. FeatureGenerationFactory.from_market_collected_event — create aggregate (RULE-FE-001/002)
-     3. If status == FAILED, skip to step 8
+     3. If status == FAILED, skip preprocessing (steps 4-8) and proceed to dispatch (steps 9-13)
      4. InsightRecordRepository.find_by_target_date — fetch insight
      5. FeatureLeakagePolicy.evaluate — future-info check (RULE-FE-003)
      6. PointInTimeJoinPolicy.evaluate — temporal consistency check
@@ -53,8 +53,8 @@ class FeatureGenerationService:
      9. FeatureDispatchFactory.from_feature_generation — create dispatch
     10. EventPublisher.publish — publish integration event (RULE-FE-007/008)
     11. FeatureDispatch.publish + FeatureDispatchRepository.persist — record dispatch
-    12. IdempotencyKeyRepository.persist — record idempotency key (only on successful dispatch)
-    13. FeatureGenerationRepository.persist + audit log
+    12. FeatureGenerationRepository.persist — persist generation state
+    13. IdempotencyKeyRepository.persist + audit log (idempotency key only on successful dispatch)
     """
 
     def __init__(
@@ -83,7 +83,7 @@ class FeatureGenerationService:
         self._feature_leakage_policy = feature_leakage_policy
         self._event_publisher = event_publisher
         self._feature_audit_writer = feature_audit_writer
-        self._storage_path_prefix = storage_path_prefix
+        self._storage_path_prefix = storage_path_prefix.rstrip("/")
 
     def execute(self, identifier: str, market: MarketSnapshot, trace: str) -> None:
         """Execute the feature generation workflow.
@@ -106,9 +106,23 @@ class FeatureGenerationService:
             trace=trace,
         )
 
-        # Step 3: If factory already failed it (validation/source health), skip to dispatch
+        # Step 3: If factory already failed it, skip preprocessing and proceed to dispatch
         if generation.status != FeatureGenerationStatus.FAILED:
-            self._process_feature_generation(generation)
+            try:
+                self._process_feature_generation(generation)
+            except Exception:
+                logger.exception(
+                    "Unexpected error during feature generation processing; identifier=%s",
+                    identifier,
+                )
+                generation.fail(
+                    failure_detail=FailureDetail(
+                        reason_code=ReasonCode.FEATURE_GENERATION_FAILED,
+                        detail="Unexpected error during feature generation processing",
+                        retryable=True,
+                    ),
+                    processed_at=datetime.datetime.now(tz=datetime.UTC),
+                )
 
         # Steps 9-13: Dispatch, persist, and audit
         self._dispatch_and_finalize(generation)
@@ -131,9 +145,10 @@ class FeatureGenerationService:
         # Step 5: Evaluate feature leakage (RULE-FE-003)
         leakage_result = self._feature_leakage_policy.evaluate(target_date, insight_snapshot)
         if leakage_result.leakage_detected:
+            reason_code = leakage_result.reason_code or ReasonCode.DATA_QUALITY_LEAK_DETECTED
             generation.fail(
                 failure_detail=FailureDetail(
-                    reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED,
+                    reason_code=reason_code,
                     detail="RULE-FE-003: feature leakage detected in insight data",
                     retryable=False,
                 ),
@@ -200,7 +215,7 @@ class FeatureGenerationService:
                         published_event=PublishedEventType.FEATURES_GENERATION_FAILED,
                         processed_at=now,
                     )
-        except Exception:
+        except (OSError, RuntimeError, ConnectionError, TimeoutError):
             logger.exception("Failed to publish integration event for identifier=%s", generation.identifier)
             dispatch.fail(
                 reason_code=ReasonCode.DISPATCH_FAILED,
@@ -209,7 +224,10 @@ class FeatureGenerationService:
 
         self._feature_dispatch_repository.persist(dispatch)
 
-        # Step 12: Persist idempotency key only on successful dispatch
+        # Step 12: Persist generation state
+        self._feature_generation_repository.persist(generation)
+
+        # Step 13: Persist idempotency key (only on successful dispatch) and write audit log
         if dispatch.dispatch_status == DispatchStatus.PUBLISHED:
             self._idempotency_key_repository.persist(
                 identifier=generation.identifier,
@@ -217,8 +235,6 @@ class FeatureGenerationService:
                 trace=generation.trace,
             )
 
-        # Step 13: Persist generation and write audit log
-        self._feature_generation_repository.persist(generation)
         self._write_audit(generation, dispatch)
 
     def _write_audit(self, generation: FeatureGeneration, dispatch: FeatureDispatch) -> None:
@@ -232,21 +248,47 @@ class FeatureGenerationService:
                 detail=f"Dispatch failed: {reason_code.value}",
             )
         elif generation.status == FeatureGenerationStatus.GENERATED:
-            assert generation.feature_artifact is not None
-            self._feature_audit_writer.write_success(
-                identifier=generation.identifier,
-                trace=generation.trace,
-                target_date=generation.market.target_date,
-                feature_version=generation.feature_artifact.feature_version,
-            )
+            feature_artifact = generation.feature_artifact
+            if feature_artifact is None:
+                logger.error(
+                    "Missing feature_artifact for generated feature; identifier=%s, trace=%s",
+                    generation.identifier,
+                    generation.trace,
+                )
+                self._feature_audit_writer.write_failure(
+                    identifier=generation.identifier,
+                    trace=generation.trace,
+                    reason_code=ReasonCode.STATE_CONFLICT,
+                    detail="Feature artifact missing for GENERATED feature generation.",
+                )
+            else:
+                self._feature_audit_writer.write_success(
+                    identifier=generation.identifier,
+                    trace=generation.trace,
+                    target_date=generation.market.target_date,
+                    feature_version=feature_artifact.feature_version,
+                )
         elif generation.status == FeatureGenerationStatus.FAILED:
-            assert generation.failure_detail is not None
-            self._feature_audit_writer.write_failure(
-                identifier=generation.identifier,
-                trace=generation.trace,
-                reason_code=generation.failure_detail.reason_code,
-                detail=generation.failure_detail.detail,
-            )
+            failure_detail = generation.failure_detail
+            if failure_detail is None:
+                logger.error(
+                    "Missing failure_detail for failed feature generation; identifier=%s, trace=%s",
+                    generation.identifier,
+                    generation.trace,
+                )
+                self._feature_audit_writer.write_failure(
+                    identifier=generation.identifier,
+                    trace=generation.trace,
+                    reason_code=ReasonCode.STATE_CONFLICT,
+                    detail="Failure detail missing for FAILED feature generation.",
+                )
+            else:
+                self._feature_audit_writer.write_failure(
+                    identifier=generation.identifier,
+                    trace=generation.trace,
+                    reason_code=failure_detail.reason_code,
+                    detail=failure_detail.detail,
+                )
 
     def _find_completed_event(self, generation: FeatureGeneration) -> FeatureGenerationCompleted | None:
         """Extract the FeatureGenerationCompleted event from domain events."""

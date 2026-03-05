@@ -4,6 +4,7 @@ Covers RULE-FE-001 through RULE-FE-008 via TDD.
 """
 
 import datetime
+import unittest.mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,9 +19,9 @@ from domain.repository.feature_dispatch_repository import FeatureDispatchReposit
 from domain.repository.feature_generation_repository import FeatureGenerationRepository
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
 from domain.repository.insight_record_repository import InsightRecordRepository
-from domain.service.feature_leakage_policy import FeatureLeakagePolicy
+from domain.service.feature_leakage_policy import FeatureLeakagePolicy, LeakagePolicyResult
 from domain.service.feature_version_generator import FeatureVersionGenerator
-from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+from domain.service.point_in_time_join_policy import JoinPolicyResult, PointInTimeJoinPolicy
 from domain.value_object.enums import (
     DispatchStatus,
     ReasonCode,
@@ -101,8 +102,8 @@ class _ServiceFixture:
         self.feature_generation_factory = FeatureGenerationFactory(self.feature_version_generator)
         self.feature_dispatch_factory = FeatureDispatchFactory()
 
-        self.point_in_time_join_policy = PointInTimeJoinPolicy()
-        self.feature_leakage_policy = FeatureLeakagePolicy()
+        self.point_in_time_join_policy: PointInTimeJoinPolicy | MagicMock = PointInTimeJoinPolicy()
+        self.feature_leakage_policy: FeatureLeakagePolicy | MagicMock = FeatureLeakagePolicy()
 
         self.event_publisher: MagicMock = MagicMock(spec=EventPublisher)
         self.event_publisher.publish_features_generated.return_value = "msg-001"
@@ -167,6 +168,30 @@ class TestSuccessfulFeatureGeneration:
 
         # Audit success should be written
         fixture.feature_audit_writer.write_success.assert_called_once()
+
+    def test_generation_persisted_before_idempotency_key(self, fixture: _ServiceFixture) -> None:
+        """Generation must be persisted before idempotency key to avoid partial failure state."""
+        call_order: list[str] = []
+
+        def track_generation_persist(generation: FeatureGeneration) -> None:
+            call_order.append("generation_persist")
+
+        def track_idempotency_persist(
+            identifier: str, processed_at: datetime.datetime, trace: str
+        ) -> None:
+            call_order.append("idempotency_persist")
+
+        fixture.feature_generation_repository.persist.side_effect = track_generation_persist
+        fixture.idempotency_key_repository.persist.side_effect = track_idempotency_persist
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        assert "generation_persist" in call_order
+        assert "idempotency_persist" in call_order
+        assert call_order.index("generation_persist") < call_order.index("idempotency_persist")
 
 
 class TestValidationFailedMissingFields:
@@ -246,6 +271,22 @@ class TestLeakageDetected:
         # Audit failure should be written
         fixture.feature_audit_writer.write_failure.assert_called_once()
 
+    def test_leakage_uses_policy_reason_code(self, fixture: _ServiceFixture) -> None:
+        """leakage_result.reason_code should be used rather than a hardcoded value."""
+        fixture.feature_leakage_policy = MagicMock(spec=FeatureLeakagePolicy)
+        fixture.feature_leakage_policy.evaluate.return_value = LeakagePolicyResult(
+            leakage_detected=True, reason_code=ReasonCode.DATA_QUALITY_LEAK_DETECTED
+        )
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert published_event.reason_code == ReasonCode.DATA_QUALITY_LEAK_DETECTED
+
 
 class TestIdempotencyDuplicateEvent:
     """RULE-FE-004: Duplicate identifier causes early return with no side effects."""
@@ -299,21 +340,32 @@ class TestFeaturesGeneratedAfterStorage:
         assert call_order.index("artifact_persist") < call_order.index("publish_generated")
 
 
-class TestArtifactPersistFailurePreventsPublish:
-    """RULE-FE-005 (negative): If artifact storage fails, event must NOT be published."""
+class TestArtifactPersistFailureTransitionsToFailed:
+    """RULE-FE-005 (negative): If artifact storage fails, generation transitions to FAILED."""
 
-    def test_artifact_persist_failure_prevents_publish(self, fixture: _ServiceFixture) -> None:
+    def test_artifact_persist_failure_transitions_to_failed(self, fixture: _ServiceFixture) -> None:
         fixture.feature_artifact_repository.persist.side_effect = RuntimeError("Storage unavailable")
 
         service = fixture.build()
         market = _make_healthy_market()
 
-        with pytest.raises(RuntimeError, match="Storage unavailable"):
-            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        # Should not raise - exception is caught and generation transitions to FAILED
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
-        # Event must NOT be published since artifact storage failed
+        # Event must NOT be published as features.generated
         fixture.event_publisher.publish_features_generated.assert_not_called()
-        fixture.event_publisher.publish_features_generation_failed.assert_not_called()
+
+        # features.generation.failed should be published
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationFailed)
+        assert published_event.reason_code == ReasonCode.FEATURE_GENERATION_FAILED
+
+        # Generation should be persisted in FAILED state
+        fixture.feature_generation_repository.persist.assert_called_once()
+
+        # Failure audit should be written
+        fixture.feature_audit_writer.write_failure.assert_called_once()
 
 
 class TestFeaturesGeneratedRequiredFields:
@@ -484,8 +536,6 @@ class TestCompletedEventNotFoundInDomainEvents:
             self.clear_domain_events()
             return result
 
-        import unittest.mock
-
         with unittest.mock.patch.object(FeatureGeneration, "complete", complete_and_clear_events):
             service = fixture.build()
             market = _make_healthy_market()
@@ -503,8 +553,11 @@ class TestCompletedEventNotFoundInDomainEvents:
         fixture.idempotency_key_repository.persist.assert_not_called()
         # Generation should still be persisted
         fixture.feature_generation_repository.persist.assert_called_once()
-        # Failure audit should be written
+        # Failure audit should be written with STATE_CONFLICT
+        fixture.feature_audit_writer.write_success.assert_not_called()
         fixture.feature_audit_writer.write_failure.assert_called_once()
+        audit_call = fixture.feature_audit_writer.write_failure.call_args
+        assert audit_call[1]["reason_code"] == ReasonCode.STATE_CONFLICT
 
 
 class TestFailedEventNotFoundInDomainEvents:
@@ -520,8 +573,6 @@ class TestFailedEventNotFoundInDomainEvents:
         ) -> None:
             original_fail(self, failure_detail, processed_at)
             self.clear_domain_events()
-
-        import unittest.mock
 
         with unittest.mock.patch.object(FeatureGeneration, "fail", fail_and_clear_events):
             service = fixture.build()
@@ -546,9 +597,6 @@ class TestPointInTimeJoinPolicyRejection:
     """Step 6: PointInTimeJoinPolicy rejection fails the generation."""
 
     def test_join_policy_rejection_fails_generation(self, fixture: _ServiceFixture) -> None:
-        from domain.service.feature_leakage_policy import LeakagePolicyResult
-        from domain.service.point_in_time_join_policy import JoinPolicyResult
-
         # Mock leakage policy to pass, but mock join policy to reject
         fixture.feature_leakage_policy = MagicMock(spec=FeatureLeakagePolicy)
         fixture.feature_leakage_policy.evaluate.return_value = LeakagePolicyResult(
@@ -601,3 +649,116 @@ class TestStoragePathUsesConfiguredPrefix:
 
         persisted_artifact = fixture.feature_artifact_repository.persist.call_args[0][0]
         assert persisted_artifact.storage_path.startswith("gs://my-bucket/features/")
+
+    def test_storage_path_prefix_trailing_slash_normalized(self, fixture: _ServiceFixture) -> None:
+        """Trailing slash in prefix should not produce double slashes."""
+        service = FeatureGenerationService(
+            feature_generation_repository=fixture.feature_generation_repository,
+            feature_dispatch_repository=fixture.feature_dispatch_repository,
+            feature_artifact_repository=fixture.feature_artifact_repository,
+            idempotency_key_repository=fixture.idempotency_key_repository,
+            insight_record_repository=fixture.insight_record_repository,
+            feature_generation_factory=fixture.feature_generation_factory,
+            feature_dispatch_factory=fixture.feature_dispatch_factory,
+            point_in_time_join_policy=fixture.point_in_time_join_policy,
+            feature_leakage_policy=fixture.feature_leakage_policy,
+            event_publisher=fixture.event_publisher,
+            feature_audit_writer=fixture.feature_audit_writer,
+            storage_path_prefix="gs://my-bucket/features/",
+        )
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        persisted_artifact = fixture.feature_artifact_repository.persist.call_args[0][0]
+        assert "//" not in persisted_artifact.storage_path.replace("gs://", "", 1)
+
+
+class TestProcessingExceptionTransitionsToFailed:
+    """Unexpected exceptions during steps 4-8 should transition generation to FAILED."""
+
+    def test_insight_fetch_exception_transitions_to_failed(self, fixture: _ServiceFixture) -> None:
+        fixture.insight_record_repository.find_by_target_date.side_effect = ConnectionError(
+            "Firestore unavailable"
+        )
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        # Should not raise - exception is caught, generation transitions to FAILED
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # features.generation.failed should be published
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationFailed)
+        assert published_event.reason_code == ReasonCode.FEATURE_GENERATION_FAILED
+
+        # Generation and dispatch should be persisted
+        fixture.feature_generation_repository.persist.assert_called_once()
+        fixture.feature_dispatch_repository.persist.assert_called_once()
+
+        # Failure audit should be written
+        fixture.feature_audit_writer.write_failure.assert_called_once()
+
+
+class TestAuditWithMissingFeatureArtifact:
+    """When feature_artifact is None for GENERATED status, audit writes failure with STATE_CONFLICT."""
+
+    def test_missing_feature_artifact_writes_failure_audit(self, fixture: _ServiceFixture) -> None:
+        original_complete = FeatureGeneration.complete
+
+        def complete_and_clear_artifact(
+            self: FeatureGeneration,
+            feature_artifact: FeatureArtifact,
+            insight: InsightSnapshot,
+            processed_at: datetime.datetime,
+        ) -> ReasonCode | None:
+            result = original_complete(self, feature_artifact, insight, processed_at)
+            # Forcibly clear artifact to simulate inconsistent state
+            self._feature_artifact = None
+            return result
+
+        with unittest.mock.patch.object(FeatureGeneration, "complete", complete_and_clear_artifact):
+            service = fixture.build()
+            market = _make_healthy_market()
+
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should write failure audit with STATE_CONFLICT, not success
+        fixture.feature_audit_writer.write_success.assert_not_called()
+        fixture.feature_audit_writer.write_failure.assert_called_once()
+        audit_call = fixture.feature_audit_writer.write_failure.call_args
+        assert audit_call[1]["reason_code"] == ReasonCode.STATE_CONFLICT
+
+
+class TestAuditWithMissingFailureDetail:
+    """When failure_detail is None for FAILED status, audit writes failure with STATE_CONFLICT."""
+
+    def test_missing_failure_detail_writes_failure_audit(self, fixture: _ServiceFixture) -> None:
+        original_fail = FeatureGeneration.fail
+
+        def fail_and_clear_detail(
+            self: FeatureGeneration,
+            failure_detail: FailureDetail,
+            processed_at: datetime.datetime,
+        ) -> None:
+            original_fail(self, failure_detail, processed_at)
+            # Forcibly clear failure_detail to simulate inconsistent state
+            self._failure_detail = None
+
+        with unittest.mock.patch.object(FeatureGeneration, "fail", fail_and_clear_detail):
+            service = fixture.build()
+            market = _make_unhealthy_market()
+
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should write failure audit with STATE_CONFLICT
+        fixture.feature_audit_writer.write_failure.assert_called()
+        # Find the audit call that has STATE_CONFLICT (dispatch audit might also be called)
+        found_state_conflict = False
+        for call in fixture.feature_audit_writer.write_failure.call_args_list:
+            if call[1].get("reason_code") == ReasonCode.STATE_CONFLICT:
+                found_state_conflict = True
+                break
+        assert found_state_conflict, "Expected STATE_CONFLICT audit for missing failure_detail"
