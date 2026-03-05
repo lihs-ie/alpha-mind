@@ -241,26 +241,3 @@ jobs:
         if: always()
         working-directory: docker
         run: make integration-down SERVICE=${{ matrix.service }}
-
-  ci-integration-result:
-    name: CI Integration Result
-    runs-on: ubuntu-latest
-    needs: [detect-changes, integration-test]
-    if: always()
-    steps:
-      - name: Check result
-        run: |
-          detect="${{ needs.detect-changes.result }}"
-          matrix_result="${{ needs.integration-test.result }}"
-
-          if [[ "$detect" == "failure" || "$detect" == "cancelled" ]]; then
-            echo "CI Integration failed on detect-changes"
-            exit 1
-          fi
-
-          if [[ "$matrix_result" == "failure" || "$matrix_result" == "cancelled" ]]; then
-            echo "CI Integration matrix failed"
-            exit 1
-          fi
-
-          echo "CI Integration passed (or skipped)"
