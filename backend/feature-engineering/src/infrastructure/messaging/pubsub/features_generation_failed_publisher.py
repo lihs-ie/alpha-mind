@@ -28,12 +28,14 @@ class FeaturesGenerationFailedPublisher:
         future = self._client.publish(
             self._topic_path,
             data=data,
-            datacontenttype="application/json",
-            ce_specversion="1.0",
-            ce_id=envelope["identifier"],
-            ce_type=envelope["eventType"],
-            ce_source=SERVICE_SOURCE,
-            ce_time=envelope["occurredAt"],
+            **{
+                "datacontenttype": "application/json",
+                "ce-specversion": "1.0",
+                "ce-id": envelope["identifier"],
+                "ce-type": envelope["eventType"],
+                "ce-source": SERVICE_SOURCE,
+                "ce-time": envelope["occurredAt"],
+            },
         )
         # Block until the message is delivered
         future.result()

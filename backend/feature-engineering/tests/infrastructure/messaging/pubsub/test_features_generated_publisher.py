@@ -74,11 +74,11 @@ class TestFeaturesGeneratedPublisher:
 
         call_kwargs = mock_publisher_client.publish.call_args[1]
         assert call_kwargs["datacontenttype"] == "application/json"
-        assert call_kwargs["ce_specversion"] == "1.0"
-        assert call_kwargs["ce_id"] == VALID_ULID
-        assert call_kwargs["ce_type"] == "features.generated"
-        assert call_kwargs["ce_source"] == "urn:alpha-mind:service:feature-engineering"
-        assert call_kwargs["ce_time"] == "2026-01-15T09:00:00Z"
+        assert call_kwargs["ce-specversion"] == "1.0"
+        assert call_kwargs["ce-id"] == VALID_ULID
+        assert call_kwargs["ce-type"] == "features.generated"
+        assert call_kwargs["ce-source"] == "urn:alpha-mind:service:feature-engineering"
+        assert call_kwargs["ce-time"] == "2026-01-15T09:00:00Z"
 
     def test_publish_raises_when_delivery_fails(self) -> None:
         import pytest
