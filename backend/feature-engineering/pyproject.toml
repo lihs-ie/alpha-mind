@@ -6,7 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "flask>=3.1,<4",
     "numpy>=2.4,<3",
-    "pandas>=3.0,<4",
+    "pandas>=2.2,<3",
     "scikit-learn>=1.8,<2",
     "lightgbm>=4.6,<5",
     "python-ulid>=3.1,<4",
