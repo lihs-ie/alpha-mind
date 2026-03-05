@@ -121,7 +121,6 @@ jobs:
     if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         service: ${{ fromJson(needs.detect-changes.outputs.services_json) }}
 
