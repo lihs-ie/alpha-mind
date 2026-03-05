@@ -136,9 +136,9 @@ class TestIdempotencyCheck:
     """RULE-SG-003: 冪等性チェックのテスト。"""
 
     def test_duplicate_event_returns_success_without_side_effects(self) -> None:
-        """既に処理済みの identifier を受信した場合、副作用なしで成功を返す。"""
+        """原子的 persist が False を返した場合、副作用なしで重複成功を返す。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = True
+        idempotency_repository.persist.return_value = False
 
         signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
 
@@ -151,13 +151,17 @@ class TestIdempotencyCheck:
 
         assert result.is_success is True
         assert result.is_duplicate is True
-        idempotency_repository.find.assert_called_once_with(f"signal-generator:{_IDENTIFIER}")
+        idempotency_repository.persist.assert_called_once_with(
+            f"signal-generator:{_IDENTIFIER}",
+            _FIXED_NOW,
+            _TRACE,
+        )
         signal_generation_repository.persist.assert_not_called()
 
     def test_new_event_proceeds_to_processing(self) -> None:
-        """未処理の identifier は通常処理に進む。"""
+        """persist が True を返した場合、通常処理に進む。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
         model_registry.find_by_status.return_value = _make_approved_model_snapshot()
@@ -196,7 +200,7 @@ class TestInputValidation:
     def test_invalid_feature_version_causes_failure(self) -> None:
         """feature_version が空文字の場合、REQUEST_VALIDATION_FAILED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         service = _build_service(idempotency_key_repository=idempotency_repository)
 
@@ -217,7 +221,7 @@ class TestInputValidation:
     def test_invalid_storage_path_causes_failure(self) -> None:
         """storage_path が gs:// で始まらない場合、REQUEST_VALIDATION_FAILED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         service = _build_service(idempotency_key_repository=idempotency_repository)
 
@@ -238,7 +242,7 @@ class TestInputValidation:
     def test_future_target_date_causes_failure(self) -> None:
         """target_date が未来日の場合、REQUEST_VALIDATION_FAILED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         service = _build_service(idempotency_key_repository=idempotency_repository)
 
@@ -266,7 +270,7 @@ class TestModelResolution:
     def test_no_approved_model_causes_failure(self) -> None:
         """approved モデルが存在しない場合、MODEL_NOT_FOUND で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
         model_registry.find_by_status.return_value = None
@@ -288,7 +292,7 @@ class TestModelResolution:
     def test_candidate_model_causes_failure(self) -> None:
         """candidate モデルしかない場合、MODEL_NOT_APPROVED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
+        idempotency_repository.persist.return_value = True
 
         candidate_model = ModelSnapshot(
             model_version="model-v0.1.0",
@@ -322,7 +326,6 @@ class TestHappyPath:
     def test_successful_signal_generation_flow(self) -> None:
         """正常系のフル処理フローをテストする。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -389,15 +392,11 @@ class TestHappyPath:
         assert isinstance(published_event, SignalGenerationCompletedEvent)
         assert published_event.model_diagnostics is not None
 
-        # 冪等性キーが記録されたか
-        idempotency_repository.persist.assert_called_once()
-
     def test_signal_writer_called_before_event_publish(self) -> None:
         """RULE-SG-005: signal_store への保存後にのみイベント発行が行われることを検証する。"""
         call_order: list[str] = []
 
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -410,10 +409,10 @@ class TestHappyPath:
         model_loader.load.return_value = _MockModelPredictor()
 
         signal_writer = MagicMock(spec=SignalWriter)
-        signal_writer.write.side_effect = lambda *args, **kwargs: call_order.append("signal_write")
+        signal_writer.write.side_effect = lambda *positional_arguments, **keyword_arguments: call_order.append("signal_write")
 
         event_publisher = MagicMock(spec=SignalEventPublisher)
-        event_publisher.publish_signal_generated.side_effect = lambda *args, **kwargs: (
+        event_publisher.publish_signal_generated.side_effect = lambda *positional_arguments, **keyword_arguments: (
             call_order.append("event_publish"),
             "msg-001",
         )[-1]
@@ -441,7 +440,6 @@ class TestFailurePath:
     def test_feature_reader_failure_publishes_failed_event(self) -> None:
         """特徴量読み込み失敗時、signal.generation.failed イベントが発行される。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -482,7 +480,6 @@ class TestFailurePath:
     def test_model_loader_failure_publishes_failed_event(self) -> None:
         """モデルロード失敗時、signal.generation.failed イベントが発行される。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -516,7 +513,6 @@ class TestFailurePath:
     def test_prediction_count_mismatch_causes_failure(self) -> None:
         """推論件数がユニバース件数と一致しない場合、SIGNAL_GENERATION_FAILED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -548,6 +544,105 @@ class TestFailurePath:
         assert result.is_success is False
         assert result.reason_code == ReasonCode.SIGNAL_GENERATION_FAILED
 
+    def test_event_publish_failure_after_complete_does_not_crash(self) -> None:
+        """complete() 後にイベント発行が失敗しても、異常終了せず失敗結果を返す。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generated.side_effect = RuntimeError("Pub/Sub unavailable")
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        # SignalGeneration は generated 状態で永続化されている
+        signal_generation_repository.persist.assert_called_once()
+        persisted = signal_generation_repository.persist.call_args[0][0]
+        assert persisted.status == GenerationStatus.GENERATED
+
+    def test_timeout_error_maps_to_dependency_timeout(self) -> None:
+        """TimeoutError は DEPENDENCY_TIMEOUT にマッピングされる。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.side_effect = TimeoutError("read timeout")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail-timeout"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_TIMEOUT
+
+    def test_error_detail_is_sanitized(self) -> None:
+        """例外の生メッセージが外部結果に露出しないことを検証する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.side_effect = RuntimeError("gs://secret-bucket/internal/path.parquet connection failed")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail-sanitize"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        # 結果の detail に生の例外メッセージが含まれていないことを検証
+        assert "secret-bucket" not in (result.detail or "")
+        assert "connection failed" not in (result.detail or "")
+
 
 # --- Model Version Verification Tests ---
 
@@ -558,7 +653,6 @@ class TestModelVersionVerification:
     def test_approved_model_version_is_used_for_inference(self) -> None:
         """approved モデルの model_version が ModelLoader に渡されることを検証する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         approved_model = ModelSnapshot(
@@ -600,7 +694,6 @@ class TestModelVersionVerification:
     def test_model_version_included_in_completed_event(self) -> None:
         """完了イベントに approved モデルの model_version が含まれることを検証する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         approved_model = ModelSnapshot(
@@ -642,12 +735,11 @@ class TestModelVersionVerification:
 
 
 class TestIdempotencyKeyRecording:
-    """冪等性キーの記録テスト。"""
+    """冪等性キーの記録テスト (原子的 acquire 方式)。"""
 
-    def test_idempotency_key_recorded_on_success(self) -> None:
-        """正常完了時、冪等性キーが service prefix 付きで記録される。"""
+    def test_idempotency_key_acquired_atomically_on_success(self) -> None:
+        """正常完了時、冪等性キーは処理開始時に原子的に acquire される。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -675,16 +767,16 @@ class TestIdempotencyKeyRecording:
 
         service.execute(_make_command())
 
+        # persist は処理開始時に1回だけ呼ばれる (原子的 acquire)
         idempotency_repository.persist.assert_called_once_with(
             f"signal-generator:{_IDENTIFIER}",
             _FIXED_NOW,
             _TRACE,
         )
 
-    def test_idempotency_key_recorded_on_failure(self) -> None:
-        """処理失敗時も、冪等性キーが記録される(再処理防止)。"""
+    def test_idempotency_key_acquired_on_failure(self) -> None:
+        """処理失敗時も、冪等性キーは処理開始時に acquire されている。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
-        idempotency_repository.find.return_value = False
         idempotency_repository.persist.return_value = True
 
         model_registry = MagicMock(spec=ModelRegistryRepository)
@@ -702,6 +794,7 @@ class TestIdempotencyKeyRecording:
         result = service.execute(_make_command())
 
         assert result.is_success is False
+        # persist は処理開始時に1回だけ呼ばれる
         idempotency_repository.persist.assert_called_once_with(
             f"signal-generator:{_IDENTIFIER}",
             _FIXED_NOW,

@@ -17,3 +17,11 @@ class GenerateSignalCommand:
     storage_path: str
     universe_count: int
     trace: str
+
+    def __post_init__(self) -> None:
+        if not self.identifier:
+            raise ValueError("identifier is required")
+        if not self.trace:
+            raise ValueError("trace is required")
+        if self.universe_count <= 0:
+            raise ValueError("universe_count must be positive")

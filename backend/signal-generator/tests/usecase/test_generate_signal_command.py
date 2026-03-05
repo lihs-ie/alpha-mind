@@ -41,7 +41,7 @@ class TestGenerateSignalCommandCreation:
             command.identifier = "changed"  # type: ignore[misc]
 
     def test_equality_by_value(self) -> None:
-        args = {
+        command_fields = {
             "identifier": "01JNABCDEF1234567890123456",
             "target_date": datetime.date(2026, 3, 5),
             "feature_version": "v1.0.0",
@@ -49,7 +49,55 @@ class TestGenerateSignalCommandCreation:
             "universe_count": 100,
             "trace": "trace-001",
         }
-        command_a = GenerateSignalCommand(**args)
-        command_b = GenerateSignalCommand(**args)
+        command_a = GenerateSignalCommand(**command_fields)
+        command_b = GenerateSignalCommand(**command_fields)
 
         assert command_a == command_b
+
+
+class TestGenerateSignalCommandValidation:
+    """GenerateSignalCommand のバリデーションテスト。"""
+
+    def test_empty_identifier_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="identifier is required"):
+            GenerateSignalCommand(
+                identifier="",
+                target_date=datetime.date(2026, 3, 5),
+                feature_version="v1.0.0",
+                storage_path="gs://feature_store/2026-03-05/features.parquet",
+                universe_count=100,
+                trace="trace-001",
+            )
+
+    def test_empty_trace_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="trace is required"):
+            GenerateSignalCommand(
+                identifier="01JNABCDEF1234567890123456",
+                target_date=datetime.date(2026, 3, 5),
+                feature_version="v1.0.0",
+                storage_path="gs://feature_store/2026-03-05/features.parquet",
+                universe_count=100,
+                trace="",
+            )
+
+    def test_zero_universe_count_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="universe_count must be positive"):
+            GenerateSignalCommand(
+                identifier="01JNABCDEF1234567890123456",
+                target_date=datetime.date(2026, 3, 5),
+                feature_version="v1.0.0",
+                storage_path="gs://feature_store/2026-03-05/features.parquet",
+                universe_count=0,
+                trace="trace-001",
+            )
+
+    def test_negative_universe_count_raises_error(self) -> None:
+        with pytest.raises(ValueError, match="universe_count must be positive"):
+            GenerateSignalCommand(
+                identifier="01JNABCDEF1234567890123456",
+                target_date=datetime.date(2026, 3, 5),
+                feature_version="v1.0.0",
+                storage_path="gs://feature_store/2026-03-05/features.parquet",
+                universe_count=-1,
+                trace="trace-001",
+            )
