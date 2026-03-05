@@ -5,8 +5,10 @@ from __future__ import annotations
 import datetime
 from typing import Any, cast
 
-from google.cloud.firestore_v1 import Client
+from google.api_core.exceptions import AlreadyExists
+from google.cloud.firestore_v1 import Client, transactional
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
+from google.cloud.firestore_v1.transaction import Transaction
 
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
 from infrastructure.error import InfrastructureDataFormatError
@@ -26,6 +28,62 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         """Build a service-scoped document ID to prevent cross-service collisions."""
         return f"{self._service_name}:{identifier}"
 
+    def reserve(self, identifier: str, trace: str) -> bool:
+        document_identifier = self._document_identifier(identifier)
+        now = datetime.datetime.now(tz=datetime.UTC)
+        expires_at = now + datetime.timedelta(days=TTL_DAYS)
+        data: dict[str, Any] = {
+            "identifier": identifier,
+            "service": self._service_name,
+            "reservedAt": now,
+            "trace": trace,
+            "expiresAt": expires_at,
+            "status": "reserved",
+        }
+        document_reference = self._client.collection(COLLECTION_NAME).document(document_identifier)
+        try:
+            document_reference.create(data)
+            return True
+        except AlreadyExists:
+            # Attempt atomic reclaim of expired/stale documents using a
+            # transaction so that concurrent consumers cannot both succeed.
+            return self._try_atomic_reclaim(document_reference, data, now)
+
+    def _try_atomic_reclaim(self, document_reference: Any, data: dict[str, Any], now: datetime.datetime) -> bool:
+        """Atomically reclaim an expired document inside a Firestore transaction.
+
+        The transaction reads the existing document, checks expiration, then
+        deletes and re-creates within the same transaction. If another consumer
+        modifies the document concurrently, the transaction is retried (or
+        aborted), guaranteeing at most one consumer succeeds.
+        """
+        transaction = self._client.transaction()
+
+        @transactional
+        def _reclaim_in_transaction(txn: Transaction) -> bool:
+            snapshot = document_reference.get(transaction=txn)
+            if not snapshot.exists:
+                txn.set(document_reference, data)
+                return True
+            existing_data = snapshot.to_dict()
+            if existing_data is None:
+                txn.set(document_reference, data)
+                return True
+            expires_at = existing_data.get("expiresAt")
+            # Reclaim if expired OR if expiresAt is missing/corrupt (defensive
+            # against data inconsistency that would otherwise permanently block
+            # the identifier).
+            if not isinstance(expires_at, datetime.datetime) or expires_at <= now:
+                txn.set(document_reference, data)
+                return True
+            return False
+
+        try:
+            return cast(bool, _reclaim_in_transaction(transaction))
+        except AlreadyExists:
+            # Another consumer won the reclaim race — treat as duplicate.
+            return False
+
     def find(self, identifier: str) -> datetime.datetime | None:
         document_identifier = self._document_identifier(identifier)
         snapshot = cast(DocumentSnapshot, self._client.collection(COLLECTION_NAME).document(document_identifier).get())
@@ -34,13 +92,26 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         data = snapshot.to_dict()
         if data is None:
             return None
+
+        # Documents in "reserved" status have no processedAt yet;
+        # they represent in-flight processing, not completed events.
+        if data.get("status") == "reserved":
+            return None
+
+        now = datetime.datetime.now(datetime.UTC)
+        expires_at = data.get("expiresAt")
+        if not isinstance(expires_at, datetime.datetime):
+            raise InfrastructureDataFormatError(
+                source=COLLECTION_NAME,
+                detail="Failed to deserialize document: expiresAt must be datetime",
+            )
+        if expires_at <= now:
+            return None
+
         try:
             processed_at = data["processedAt"]
             if not isinstance(processed_at, datetime.datetime):
                 raise TypeError("processedAt must be datetime")
-            expires_at = data.get("expiresAt")
-            if isinstance(expires_at, datetime.datetime) and expires_at <= datetime.datetime.now(datetime.UTC):
-                return None
             return processed_at
         except (KeyError, TypeError) as error:
             raise InfrastructureDataFormatError(
