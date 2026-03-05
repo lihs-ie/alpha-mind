@@ -147,7 +147,7 @@ class TestIdempotencyKeyRepositoryIsAbstract:
             def find(self, identifier: str) -> bool:
                 return identifier in self._stored
 
-            def persist(self, identifier: str, processed_at: datetime.datetime) -> None:
+            def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> None:
                 self._stored.add(identifier)
 
             def terminate(self, identifier: str) -> None:
@@ -155,5 +155,9 @@ class TestIdempotencyKeyRepositoryIsAbstract:
 
         repo = ConcreteIdempotencyKeyRepository()
         assert repo.find("01JNABCDEF1234567890123456") is False
-        repo.persist("01JNABCDEF1234567890123456", datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
+        repo.persist(
+            "01JNABCDEF1234567890123456",
+            datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+            trace="01JNABCDEF1234567890123456",
+        )
         assert repo.find("01JNABCDEF1234567890123456") is True

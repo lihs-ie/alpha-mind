@@ -12,7 +12,7 @@ from signal_generator.domain.events.signal_generation_failed_event import (
     SignalGenerationFailedEvent,
 )
 
-_SCHEMA_VERSION = "1.0"
+_SCHEMA_VERSION = "1.0.0"
 _EVENT_TYPE_SIGNAL_GENERATED = "signal.generated"
 _EVENT_TYPE_SIGNAL_GENERATION_FAILED = "signal.generation.failed"
 _TOPIC_SIGNAL_GENERATED = "event-signal-generated-v1"
@@ -66,12 +66,7 @@ def _build_signal_generated_envelope(
             "modelVersion": event.model_version,
             "featureVersion": event.feature_version,
             "storagePath": event.storage_path,
-            "modelDiagnostics": {
-                "degradationFlag": event.model_diagnostics.degradation_flag.value,
-                "requiresComplianceReview": event.model_diagnostics.requires_compliance_review,
-                "costAdjustedReturn": event.model_diagnostics.cost_adjusted_return,
-                "slippageAdjustedSharpe": event.model_diagnostics.slippage_adjusted_sharpe,
-            },
+            "modelDiagnostics": _build_model_diagnostics(event),
         },
     }
 
@@ -86,8 +81,26 @@ def _build_signal_generation_failed_envelope(
         "occurredAt": event.occurred_at.isoformat(),
         "trace": event.trace,
         "schemaVersion": _SCHEMA_VERSION,
-        "payload": {
-            "reasonCode": event.reason_code.value,
-            "detail": event.detail,
-        },
+        "payload": _build_failed_payload(event),
     }
+
+
+def _build_model_diagnostics(event: SignalGenerationCompletedEvent) -> dict[str, Any]:
+    """ModelDiagnostics を構築する。None のフィールドはキー自体を省略する。"""
+    diagnostics: dict[str, Any] = {
+        "degradationFlag": event.model_diagnostics.degradation_flag.value,
+        "requiresComplianceReview": event.model_diagnostics.requires_compliance_review,
+    }
+    if event.model_diagnostics.cost_adjusted_return is not None:
+        diagnostics["costAdjustedReturn"] = event.model_diagnostics.cost_adjusted_return
+    if event.model_diagnostics.slippage_adjusted_sharpe is not None:
+        diagnostics["slippageAdjustedSharpe"] = event.model_diagnostics.slippage_adjusted_sharpe
+    return diagnostics
+
+
+def _build_failed_payload(event: SignalGenerationFailedEvent) -> dict[str, Any]:
+    """FailedPayload を構築する。None のフィールドはキー自体を省略する。"""
+    payload: dict[str, Any] = {"reasonCode": event.reason_code.value}
+    if event.detail is not None:
+        payload["detail"] = event.detail
+    return payload

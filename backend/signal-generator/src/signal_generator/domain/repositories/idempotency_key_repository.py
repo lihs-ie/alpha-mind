@@ -15,7 +15,7 @@ class IdempotencyKeyRepository(abc.ABC):
         """identifier が処理済みかどうかを返す。処理済みなら True。"""
 
     @abc.abstractmethod
-    def persist(self, identifier: str, processed_at: datetime.datetime) -> None:
+    def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> None:
         """identifier を処理済みとして登録する。"""
 
     @abc.abstractmethod

@@ -65,7 +65,7 @@ class TestPubSubSignalEventPublisher:
         assert message_data["identifier"] == "01JTEST000000000000000000"
         assert message_data["eventType"] == "signal.generated"
         assert message_data["trace"] == "01JTRACE00000000000000000"
-        assert message_data["schemaVersion"] == "1.0"
+        assert message_data["schemaVersion"] == "1.0.0"
         assert "payload" in message_data
 
         payload = message_data["payload"]
@@ -107,7 +107,7 @@ class TestPubSubSignalEventPublisher:
         assert message_data["identifier"] == "01JTEST000000000000000000"
         assert message_data["eventType"] == "signal.generation.failed"
         assert message_data["trace"] == "01JTRACE00000000000000000"
-        assert message_data["schemaVersion"] == "1.0"
+        assert message_data["schemaVersion"] == "1.0.0"
 
         payload = message_data["payload"]
         assert payload["reasonCode"] == "MODEL_NOT_APPROVED"
@@ -171,4 +171,4 @@ class TestPubSubSignalEventPublisher:
         payload = message_data["payload"]
 
         assert payload["reasonCode"] == "DEPENDENCY_TIMEOUT"
-        assert payload["detail"] is None
+        assert "detail" not in payload

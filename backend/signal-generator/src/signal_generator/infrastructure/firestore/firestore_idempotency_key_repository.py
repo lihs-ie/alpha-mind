@@ -33,14 +33,14 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         self,
         identifier: str,
         processed_at: datetime.datetime,
-        trace: str | None = None,
+        trace: str,
     ) -> None:
         expires_at = processed_at + datetime.timedelta(days=_TTL_DAYS)
         document_data = {
             "identifier": identifier,
             "service": _SERVICE_NAME,
             "processedAt": processed_at,
-            "trace": trace if trace is not None else identifier,
+            "trace": trace,
             "expiresAt": expires_at,
         }
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
