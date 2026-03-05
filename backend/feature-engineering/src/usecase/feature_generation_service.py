@@ -224,10 +224,7 @@ class FeatureGenerationService:
 
         # After dispatch, if the failure is retryable, re-raise so the
         # presentation layer returns 500 and Pub/Sub retries the message.
-        if (
-            generation.failure_detail is not None
-            and generation.failure_detail.retryable
-        ):
+        if generation.failure_detail is not None and generation.failure_detail.retryable:
             raise RetryableFeatureGenerationError(
                 generation.failure_detail.detail or generation.failure_detail.reason_code.value
             )
@@ -336,10 +333,7 @@ class FeatureGenerationService:
         # and write audit log.
         # On dispatch failure or retryable generation failure, release the
         # reservation to allow Pub/Sub redelivery.
-        retryable_failure = (
-            generation.failure_detail is not None
-            and generation.failure_detail.retryable
-        )
+        retryable_failure = generation.failure_detail is not None and generation.failure_detail.retryable
         if dispatch.dispatch_status == DispatchStatus.PUBLISHED and not retryable_failure:
             self._idempotency_key_repository.persist(
                 identifier=generation.identifier,

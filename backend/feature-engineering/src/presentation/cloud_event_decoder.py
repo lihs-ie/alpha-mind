@@ -65,9 +65,7 @@ def decode_pubsub_push_message(
 
     event_type = _require_string(envelope, "eventType")
     if event_type != _EXPECTED_EVENT_TYPE:
-        raise CloudEventDecodeError(
-            f"Invalid eventType: expected '{_EXPECTED_EVENT_TYPE}', got '{event_type}'"
-        )
+        raise CloudEventDecodeError(f"Invalid eventType: expected '{_EXPECTED_EVENT_TYPE}', got '{event_type}'")
 
     occurred_at = _require_string(envelope, "occurredAt")
     _validate_iso8601_utc(occurred_at)
@@ -117,9 +115,7 @@ def _decode_market_snapshot(payload: dict[str, Any]) -> MarketSnapshot:
     try:
         target_date = datetime.date.fromisoformat(target_date_string)
     except ValueError as error:
-        raise CloudEventDecodeError(
-            f"Invalid 'targetDate' format: {target_date_string}"
-        ) from error
+        raise CloudEventDecodeError(f"Invalid 'targetDate' format: {target_date_string}") from error
 
     storage_path = _require_string(payload, "storagePath")
 
@@ -133,9 +129,7 @@ def _decode_market_snapshot(payload: dict[str, Any]) -> MarketSnapshot:
             us=SourceStatusValue(source_status_data.get("us", "")),
         )
     except ValueError as error:
-        raise CloudEventDecodeError(
-            f"Invalid 'sourceStatus' value: {error}"
-        ) from error
+        raise CloudEventDecodeError(f"Invalid 'sourceStatus' value: {error}") from error
 
     return MarketSnapshot(
         target_date=target_date,

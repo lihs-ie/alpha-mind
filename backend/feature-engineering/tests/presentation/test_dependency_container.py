@@ -56,7 +56,10 @@ class TestDependencyContainer:
     def test_missing_features_generation_failed_topic_raises_error(self) -> None:
         env = self._make_env_vars()
         del env["FEATURES_GENERATION_FAILED_TOPIC"]
-        with patch.dict(os.environ, env, clear=True), pytest.raises(EnvironmentError, match="FEATURES_GENERATION_FAILED_TOPIC"):
+        with (
+            patch.dict(os.environ, env, clear=True),
+            pytest.raises(EnvironmentError, match="FEATURES_GENERATION_FAILED_TOPIC"),
+        ):
             DependencyContainer()
 
     def test_missing_feature_store_bucket_raises_error(self) -> None:
@@ -64,6 +67,7 @@ class TestDependencyContainer:
         del env["FEATURE_STORE_BUCKET"]
         with patch.dict(os.environ, env, clear=True), pytest.raises(EnvironmentError, match="FEATURE_STORE_BUCKET"):
             DependencyContainer()
+
 
 class TestUlidFeatureVersionGenerator:
     """Tests for _UlidFeatureVersionGenerator."""
