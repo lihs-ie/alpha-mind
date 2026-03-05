@@ -32,6 +32,8 @@ def _validate_envelope_inputs(identifier: str, trace: str, occurred_at: datetime
         raise ValueError(f"trace must be a valid ULID (got: {trace})")
     if occurred_at.tzinfo is None:
         raise ValueError("occurredAt must be timezone-aware")
+    if occurred_at.utcoffset() != datetime.timedelta(0):
+        raise ValueError(f"occurredAt must be UTC (got offset: {occurred_at.utcoffset()})")
 
 
 class PubSubSignalEventPublisher(SignalEventPublisher):

@@ -7,13 +7,26 @@ import logging
 import time
 from collections.abc import Callable
 
-from google.api_core.exceptions import GoogleAPICallError, ServiceUnavailable
+from google.api_core.exceptions import (
+    DeadlineExceeded,
+    GoogleAPICallError,
+    InternalServerError,
+    ServiceUnavailable,
+    TooManyRequests,
+)
 
 logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 _BASE_DELAY_SECONDS = 1.0
-_RETRYABLE_EXCEPTIONS = (ServiceUnavailable, ConnectionError, TimeoutError)
+_RETRYABLE_EXCEPTIONS = (
+    ServiceUnavailable,
+    InternalServerError,
+    DeadlineExceeded,
+    TooManyRequests,
+    ConnectionError,
+    TimeoutError,
+)
 
 
 def with_retry[T](

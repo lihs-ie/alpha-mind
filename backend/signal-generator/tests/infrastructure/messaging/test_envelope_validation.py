@@ -69,6 +69,13 @@ class TestEnvelopeValidation:
         with pytest.raises(ValueError, match="timezone-aware"):
             publisher.publish_signal_generated(_make_event(occurred_at=naive_dt))
 
+    def test_non_utc_timezone_raises_value_error(self) -> None:
+        publisher = _make_publisher()
+        jst = datetime.timezone(datetime.timedelta(hours=9))
+        non_utc_dt = datetime.datetime(2026, 3, 5, 19, 30, 0, tzinfo=jst)
+        with pytest.raises(ValueError, match="must be UTC"):
+            publisher.publish_signal_generated(_make_event(occurred_at=non_utc_dt))
+
     def test_valid_ulid_and_utc_succeeds(self) -> None:
         publisher = _make_publisher()
         publisher.publish_signal_generated(_make_event())

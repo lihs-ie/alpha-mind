@@ -3,7 +3,13 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from google.api_core.exceptions import NotFound, ServiceUnavailable
+from google.api_core.exceptions import (
+    DeadlineExceeded,
+    InternalServerError,
+    NotFound,
+    ServiceUnavailable,
+    TooManyRequests,
+)
 
 from signal_generator.infrastructure.retry import with_retry
 
@@ -41,6 +47,24 @@ class TestWithRetry:
         with patch("signal_generator.infrastructure.retry.time.sleep"), pytest.raises(ServiceUnavailable):
             with_retry(mock_operation, max_retries=3, base_delay=0.01)
         assert mock_operation.call_count == 4
+
+    def test_retries_on_internal_server_error(self) -> None:
+        mock_operation = MagicMock(side_effect=[InternalServerError("internal"), "ok"])
+        with patch("signal_generator.infrastructure.retry.time.sleep"):
+            result = with_retry(mock_operation, base_delay=0.01)
+        assert result == "ok"
+
+    def test_retries_on_deadline_exceeded(self) -> None:
+        mock_operation = MagicMock(side_effect=[DeadlineExceeded("deadline"), "ok"])
+        with patch("signal_generator.infrastructure.retry.time.sleep"):
+            result = with_retry(mock_operation, base_delay=0.01)
+        assert result == "ok"
+
+    def test_retries_on_too_many_requests(self) -> None:
+        mock_operation = MagicMock(side_effect=[TooManyRequests("rate limit"), "ok"])
+        with patch("signal_generator.infrastructure.retry.time.sleep"):
+            result = with_retry(mock_operation, base_delay=0.01)
+        assert result == "ok"
 
     def test_does_not_retry_on_permanent_error(self) -> None:
         mock_operation = MagicMock(side_effect=NotFound("not found"))
