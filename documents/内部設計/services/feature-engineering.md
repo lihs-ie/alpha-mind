@@ -25,7 +25,7 @@ JSON対応: `内部設計/json/feature-engineering.json`
 ## 4. 依存関係
 
 - Cloud Storage: `raw_market_data`, `feature_store`
-- Firestore: `idempotency_keys`, `insight_records`
+- Firestore: `idempotency_keys`, `insight_records`, `feature_generations`, `feature_dispatches`
 - Messaging: Pub/Sub
 
 ## 5. 処理フロー
