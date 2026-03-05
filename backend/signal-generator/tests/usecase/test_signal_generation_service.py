@@ -108,11 +108,14 @@ def _build_service(
 ) -> SignalGenerationService:
     """テスト用にモック依存を注入した SignalGenerationService を構築する。"""
     effective_clock_value = clock or _FIXED_NOW
+    if signal_dispatch_repository is None:
+        signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
+        signal_dispatch_repository.find.return_value = None
     return SignalGenerationService(
         idempotency_key_repository=idempotency_key_repository or MagicMock(spec=IdempotencyKeyRepository),
         model_registry_repository=model_registry_repository or MagicMock(spec=ModelRegistryRepository),
         signal_generation_repository=signal_generation_repository or MagicMock(spec=SignalGenerationRepository),
-        signal_dispatch_repository=signal_dispatch_repository or MagicMock(spec=SignalDispatchRepository),
+        signal_dispatch_repository=signal_dispatch_repository,
         feature_reader=feature_reader or MagicMock(spec=FeatureReader),
         model_loader=model_loader or MagicMock(spec=ModelLoader),
         signal_writer=signal_writer or MagicMock(spec=SignalWriter),
@@ -400,6 +403,7 @@ class TestHappyPath:
 
         signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
         signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
+        signal_dispatch_repository.find.return_value = None
 
         feature_reader = MagicMock(spec=FeatureReader)
         feature_reader.read.return_value = _make_feature_dataframe()

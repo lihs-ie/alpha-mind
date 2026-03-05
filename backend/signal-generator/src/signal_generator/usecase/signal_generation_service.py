@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
+from signal_generator.domain.enums.dispatch_status import DispatchStatus
 from signal_generator.domain.enums.event_type import EventType
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.enums.reason_code import ReasonCode
@@ -283,6 +284,12 @@ class SignalGenerationService:
         self._signal_generation_repository.persist(generation)
 
         # Phase 2: complete() 後 - fail() へ戻さない
+        # INV-SG-004: 既に publish 済みの dispatch がある場合はスキップ
+        existing_dispatch = self._signal_dispatch_repository.find(command.identifier)
+        if existing_dispatch is not None and existing_dispatch.dispatch_status == DispatchStatus.PUBLISHED:
+            logger.info("既に publish 済み: identifier=%s", command.identifier)
+            return GenerateSignalResult.success()
+
         try:
             # Step 10: イベント発行
             completed_event = SignalGenerationCompletedEvent(
@@ -295,14 +302,7 @@ class SignalGenerationService:
                 trace=command.trace,
                 occurred_at=completed_at,
             )
-
-            dispatch = self._signal_dispatch_factory.from_signal_generation(
-                identifier=command.identifier,
-                trace=command.trace,
-            )
             self._signal_event_publisher.publish_signal_generated(completed_event)
-            dispatch.publish(EventType.SIGNAL_GENERATED, completed_at)
-            self._signal_dispatch_repository.persist(dispatch)
         except ValueError:
             logger.exception("イベント発行バリデーション失敗: identifier=%s", command.identifier)
             return self._finalize_failure(
@@ -318,6 +318,23 @@ class SignalGenerationService:
                 retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="イベント発行に失敗しました",
+            )
+
+        # publish 成功後の dispatch 永続化 — publish 済みなので retryable=False
+        try:
+            dispatch = self._signal_dispatch_factory.from_signal_generation(
+                identifier=command.identifier,
+                trace=command.trace,
+            )
+            dispatch.publish(EventType.SIGNAL_GENERATED, completed_at)
+            self._signal_dispatch_repository.persist(dispatch)
+        except Exception:
+            logger.exception("dispatch 永続化失敗: identifier=%s", command.identifier)
+            return self._finalize_failure(
+                command=command,
+                retryable=False,
+                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+                detail="dispatch 永続化に失敗しました",
             )
 
         return GenerateSignalResult.success()
@@ -420,7 +437,14 @@ class SignalGenerationService:
         reason_code: ReasonCode,
         detail: str | None = None,
     ) -> None:
-        """失敗イベントの発行と SignalDispatch 集約の永続化を行う。"""
+        """失敗イベントの発行と SignalDispatch 集約の永続化を行う。
+
+        INV-SG-004: 既に publish/failed 済みの dispatch がある場合は発行をスキップする。
+        """
+        existing_dispatch = self._signal_dispatch_repository.find(command.identifier)
+        if existing_dispatch is not None and existing_dispatch.dispatch_status != DispatchStatus.PENDING:
+            return
+
         failed_event = SignalGenerationFailedEvent(
             identifier=command.identifier,
             reason_code=reason_code,
@@ -459,7 +483,7 @@ class SignalGenerationService:
 
     def _build_signal_storage_path(self, command: GenerateSignalCommand, signal_version: str) -> str:
         """推論結果の保存パスを構築する。"""
-        return f"gs://signal_store/{command.target_date.isoformat()}/{signal_version}.parquet"
+        return f"gs://signal-store/{command.target_date.isoformat()}/{signal_version}.parquet"
 
     def _build_model_diagnostics(self) -> ModelDiagnosticsSnapshot:
         """ModelDiagnosticsSnapshot を構築する (RULE-SG-006, RULE-SG-007)。
