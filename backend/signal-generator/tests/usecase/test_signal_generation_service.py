@@ -82,9 +82,7 @@ def _make_feature_dataframe(row_count: int = 100) -> pandas.DataFrame:
 
 
 def _make_prediction_dataframe(row_count: int = 100) -> pandas.DataFrame:
-    return pandas.DataFrame(
-        {"ticker": [f"TICK-{i}" for i in range(row_count)], "score": [0.5] * row_count}
-    )
+    return pandas.DataFrame({"ticker": [f"TICK-{i}" for i in range(row_count)], "score": [0.5] * row_count})
 
 
 class _MockModelPredictor:
@@ -121,9 +119,7 @@ def _build_service(
         signal_event_publisher=signal_event_publisher or MagicMock(spec=SignalEventPublisher),
         signal_generation_factory=SignalGenerationFactory(),
         signal_dispatch_factory=SignalDispatchFactory(),
-        feature_payload_integrity_specification=FeaturePayloadIntegritySpecification(
-            clock=lambda: _FIXED_TODAY
-        ),
+        feature_payload_integrity_specification=FeaturePayloadIntegritySpecification(clock=lambda: _FIXED_TODAY),
         approved_model_policy=ApprovedModelPolicy(),
         inference_consistency_policy=InferenceConsistencyPolicy(),
         clock=lambda: effective_clock_value,

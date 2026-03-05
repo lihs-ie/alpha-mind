@@ -136,14 +136,14 @@ class SignalGenerationService:
         # Step 3: approved モデル解決 (RULE-SG-002)
         model_snapshot = self._model_registry_repository.find_by_status(ModelStatus.APPROVED)
         if not self._approved_model_policy.is_satisfied_by(model_snapshot):
-            reason_code = self._approved_model_policy.reason_code(model_snapshot)
-            assert reason_code is not None
+            model_reason_code = self._approved_model_policy.reason_code(model_snapshot)
+            assert model_reason_code is not None
             logger.warning(
                 "モデル解決失敗: identifier=%s, reason=%s",
                 command.identifier,
-                reason_code,
+                model_reason_code,
             )
-            return self._handle_model_resolution_failure(command, now, reason_code)
+            return self._handle_model_resolution_failure(command, now, model_reason_code)
 
         assert model_snapshot is not None
 
@@ -310,12 +310,15 @@ class SignalGenerationService:
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
             return self._finalize_failure(
-                command, retryable=True,
+                command,
+                retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="失敗イベント発行に失敗しました",
             )
         return self._finalize_failure(
-            command, retryable=retryable, reason_code=reason_code,
+            command,
+            retryable=retryable,
+            reason_code=reason_code,
         )
 
     def _handle_inference_failure(
@@ -344,12 +347,16 @@ class SignalGenerationService:
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
             return self._finalize_failure(
-                command, retryable=True,
+                command,
+                retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="失敗イベント発行に失敗しました",
             )
         return self._finalize_failure(
-            command, retryable=retryable, reason_code=reason_code, detail=detail,
+            command,
+            retryable=retryable,
+            reason_code=reason_code,
+            detail=detail,
         )
 
     def _persist_failed_generation(
@@ -418,9 +425,7 @@ class SignalGenerationService:
         """signal_version を採番する。"""
         return f"signal-{command.target_date.isoformat()}-{command.feature_version}"
 
-    def _build_signal_storage_path(
-        self, command: GenerateSignalCommand, signal_version: str
-    ) -> str:
+    def _build_signal_storage_path(self, command: GenerateSignalCommand, signal_version: str) -> str:
         """推論結果の保存パスを構築する。"""
         return f"gs://signal_store/{command.target_date.isoformat()}/{signal_version}.parquet"
 
