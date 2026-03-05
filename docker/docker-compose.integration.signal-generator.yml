@@ -1,0 +1,24 @@
+# docker/docker-compose.integration.signal-generator.yml
+# signal-generator 統合テスト用の差分定義。
+# base と合成して使用する:
+#   docker compose -f docker-compose.integration.base.yml -f docker-compose.integration.signal-generator.yml up -d
+
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlflow.db
+        --default-artifact-root /mlruns
+    ports:
+      - "5000:5000"
+    networks:
+      - integration-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s

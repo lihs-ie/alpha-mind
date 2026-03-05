@@ -10,19 +10,22 @@ set -euo pipefail
 #   Docker が起動していること。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+SERVICE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+DOCKER_DIR="${REPO_ROOT}/docker"
 
-cd "$PROJECT_DIR"
+COMPOSE_BASE="${DOCKER_DIR}/docker-compose.integration.base.yml"
+COMPOSE_OVERLAY="${DOCKER_DIR}/docker-compose.integration.signal-generator.yml"
 
-echo "=== Firestore / Pub/Sub / fake-gcs / MLflow エミュレーターを起動 ==="
-docker compose -f docker-compose.integration.yml up -d --wait
+cd "$DOCKER_DIR"
 
-echo "=== エミュレーターの起動完了を待機 ==="
-sleep 5
+echo "=== エミュレーターを起動 (base + signal-generator) ==="
+docker compose -f "$COMPOSE_BASE" -f "$COMPOSE_OVERLAY" up -d --wait
 
 echo "=== 統合テスト実行 ==="
 set +e
-FIRESTORE_EMULATOR_HOST=localhost:8181 \
+cd "$SERVICE_DIR"
+FIRESTORE_EMULATOR_HOST=localhost:8080 \
 PUBSUB_EMULATOR_HOST=localhost:8085 \
 STORAGE_EMULATOR_HOST=http://localhost:4443 \
 MLFLOW_TRACKING_URI=http://localhost:5000 \
@@ -33,6 +36,7 @@ TEST_EXIT_CODE=$?
 set -e
 
 echo "=== エミュレーターを停止 ==="
-docker compose -f docker-compose.integration.yml down
+cd "$DOCKER_DIR"
+docker compose -f "$COMPOSE_BASE" -f "$COMPOSE_OVERLAY" down
 
 exit $TEST_EXIT_CODE

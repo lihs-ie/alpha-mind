@@ -74,7 +74,7 @@ from signal_generator.usecase.signal_generation_service import SignalGenerationS
 # ---------------------------------------------------------------------------
 
 PROJECT_ID = os.environ.get("GCP_PROJECT", "alpha-mind-local")
-FIRESTORE_EMULATOR_HOST = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8181")
+FIRESTORE_EMULATOR_HOST = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
 PUBSUB_EMULATOR_HOST = os.environ.get("PUBSUB_EMULATOR_HOST", "localhost:8085")
 FAKE_GCS_HOST = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:4443")
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")

@@ -1,0 +1,92 @@
+# docker/docker-compose.integration.base.yml
+# 統合テスト用の共通エミュレーター定義。
+# サービス別オーバーレイと合成して使用する:
+#   docker compose -f docker-compose.integration.base.yml -f docker-compose.integration.signal-generator.yml up -d
+
+name: alpha-mind-integration
+
+networks:
+  integration-network:
+    driver: bridge
+
+services:
+  firestore:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.firestore-emulator
+    ports:
+      - "8080:8080"
+    networks:
+      - integration-network
+    environment:
+      CLOUDSDK_CORE_PROJECT: alpha-mind-local
+      GCP_PROJECT_ID: alpha-mind-local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  pubsub:
+    image: google/cloud-sdk:558.0.0
+    command: >
+      gcloud beta emulators pubsub start
+      --host-port=0.0.0.0:8085
+      --project=alpha-mind-local
+    ports:
+      - "8085:8085"
+    networks:
+      - integration-network
+    environment:
+      CLOUDSDK_CORE_PROJECT: alpha-mind-local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/v1/projects/alpha-mind-local/topics"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  gcs:
+    image: fsouza/fake-gcs-server:1.54.0
+    command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
+    ports:
+      - "4443:4443"
+    networks:
+      - integration-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4443/storage/v1/b"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  init:
+    image: google/cloud-sdk:558.0.0
+    depends_on:
+      firestore:
+        condition: service_healthy
+      pubsub:
+        condition: service_healthy
+      gcs:
+        condition: service_healthy
+    networks:
+      - integration-network
+    environment:
+      GCP_PROJECT_ID: alpha-mind-local
+      FIRESTORE_EMULATOR_HOST: firestore:8080
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      STORAGE_EMULATOR_HOST: gcs:4443
+      FIRESTORE_DATABASE: "(default)"
+    volumes:
+      - ./scripts:/scripts:ro
+    entrypoint: >
+      bash -c "
+        apt-get update > /dev/null 2>&1 &&
+        apt-get install -y --no-install-recommends jq curl > /dev/null 2>&1 &&
+        bash /scripts/init-pubsub.sh &&
+        bash /scripts/init-firestore.sh &&
+        bash /scripts/init-gcs.sh &&
+        echo '==> All initialization complete.'
+      "
+    restart: "no"
