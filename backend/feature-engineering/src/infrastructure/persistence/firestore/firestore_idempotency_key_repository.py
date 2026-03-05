@@ -6,8 +6,9 @@ import datetime
 from typing import Any, cast
 
 from google.api_core.exceptions import AlreadyExists
-from google.cloud.firestore_v1 import Client
+from google.cloud.firestore_v1 import Client, transactional
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
+from google.cloud.firestore_v1.transaction import Transaction
 
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
 from infrastructure.error import InfrastructureDataFormatError
@@ -44,27 +45,43 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             document_reference.create(data)
             return True
         except AlreadyExists:
-            # Check if the existing document is expired or a stale reservation.
-            # If so, delete it and retry the reservation.
-            if self._is_reclaimable(document_reference, now):
-                document_reference.delete()
-                try:
-                    document_reference.create(data)
-                    return True
-                except AlreadyExists:
-                    return False
+            # Attempt atomic reclaim of expired/stale documents using a
+            # transaction so that concurrent consumers cannot both succeed.
+            return self._try_atomic_reclaim(document_reference, data, now)
+
+    def _try_atomic_reclaim(
+        self, document_reference: Any, data: dict[str, Any], now: datetime.datetime
+    ) -> bool:
+        """Atomically reclaim an expired document inside a Firestore transaction.
+
+        The transaction reads the existing document, checks expiration, then
+        deletes and re-creates within the same transaction. If another consumer
+        modifies the document concurrently, the transaction is retried (or
+        aborted), guaranteeing at most one consumer succeeds.
+        """
+        transaction = self._client.transaction()
+
+        @transactional
+        def _reclaim_in_transaction(txn: Transaction) -> bool:
+            snapshot = document_reference.get(transaction=txn)
+            if not snapshot.exists:
+                txn.set(document_reference, data)
+                return True
+            existing_data = snapshot.to_dict()
+            if existing_data is None:
+                txn.set(document_reference, data)
+                return True
+            expires_at = existing_data.get("expiresAt")
+            if isinstance(expires_at, datetime.datetime) and expires_at <= now:
+                # Overwrite the expired document atomically.
+                txn.set(document_reference, data)
+                return True
             return False
 
-    def _is_reclaimable(self, document_reference: Any, now: datetime.datetime) -> bool:
-        """Check if an existing document is expired and can be reclaimed."""
-        snapshot = cast(DocumentSnapshot, document_reference.get())
-        if not snapshot.exists:
-            return True
-        data = snapshot.to_dict()
-        if data is None:
-            return True
-        expires_at = data.get("expiresAt")
-        return isinstance(expires_at, datetime.datetime) and expires_at <= now
+        try:
+            return _reclaim_in_transaction(transaction)
+        except Exception:
+            return False
 
     def find(self, identifier: str) -> datetime.datetime | None:
         document_identifier = self._document_identifier(identifier)

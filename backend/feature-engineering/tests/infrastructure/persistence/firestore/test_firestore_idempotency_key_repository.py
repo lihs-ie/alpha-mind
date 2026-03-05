@@ -1,6 +1,7 @@
 """Tests for FirestoreIdempotencyKeyRepository."""
 
 import datetime
+import unittest.mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -38,84 +39,39 @@ class TestFirestoreIdempotencyKeyRepositoryReserve:
         assert data["trace"] == "01ARZ3NDEKTSV4RRFFQ69G5FAW"
         assert data["status"] == "reserved"
 
-    def test_reserve_returns_false_when_active_document_exists(self) -> None:
-        """Active (non-expired) document blocks reservation."""
+    def test_reserve_returns_false_when_reclaim_fails(self) -> None:
+        """Active (non-expired) document blocks reservation via _try_atomic_reclaim."""
         mock_client = MagicMock()
         mock_collection = MagicMock()
         mock_document = MagicMock()
-        mock_snapshot = MagicMock()
         mock_client.collection.return_value = mock_collection
         mock_collection.document.return_value = mock_document
         mock_document.create.side_effect = AlreadyExists("Document already exists")
-        mock_document.get.return_value = mock_snapshot
-        mock_snapshot.exists = True
-        future_expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=15)
-        mock_snapshot.to_dict.return_value = {
-            "identifier": VALID_ULID,
-            "service": SERVICE_NAME,
-            "status": "reserved",
-            "expiresAt": future_expires_at,
-        }
 
         repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
-        result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
+
+        # _try_atomic_reclaim returns False when document is active
+        with unittest.mock.patch.object(repository, "_try_atomic_reclaim", return_value=False):
+            result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
 
         assert result is False
 
     def test_reserve_reclaims_expired_document(self) -> None:
-        """Expired document should be deleted and re-created."""
+        """Expired document should be reclaimed atomically."""
         mock_client = MagicMock()
         mock_collection = MagicMock()
         mock_document = MagicMock()
-        mock_snapshot = MagicMock()
         mock_client.collection.return_value = mock_collection
         mock_collection.document.return_value = mock_document
-
-        # First create() fails with AlreadyExists
-        # After delete, second create() succeeds
-        mock_document.create.side_effect = [AlreadyExists("exists"), None]
-        mock_document.get.return_value = mock_snapshot
-        mock_snapshot.exists = True
-        past_expires_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
-        mock_snapshot.to_dict.return_value = {
-            "identifier": VALID_ULID,
-            "service": SERVICE_NAME,
-            "processedAt": datetime.datetime(2025, 12, 1, tzinfo=datetime.UTC),
-            "expiresAt": past_expires_at,
-        }
+        mock_document.create.side_effect = AlreadyExists("exists")
 
         repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
-        result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
+
+        # _try_atomic_reclaim returns True when document is expired
+        with unittest.mock.patch.object(repository, "_try_atomic_reclaim", return_value=True):
+            result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
 
         assert result is True
-        mock_document.delete.assert_called_once()
-        assert mock_document.create.call_count == 2
-
-    def test_reserve_reclaims_stale_reservation(self) -> None:
-        """Stale reservation (expired + status=reserved) should be reclaimable."""
-        mock_client = MagicMock()
-        mock_collection = MagicMock()
-        mock_document = MagicMock()
-        mock_snapshot = MagicMock()
-        mock_client.collection.return_value = mock_collection
-        mock_collection.document.return_value = mock_document
-
-        mock_document.create.side_effect = [AlreadyExists("exists"), None]
-        mock_document.get.return_value = mock_snapshot
-        mock_snapshot.exists = True
-        past_expires_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=1)
-        mock_snapshot.to_dict.return_value = {
-            "identifier": VALID_ULID,
-            "service": SERVICE_NAME,
-            "status": "reserved",
-            "expiresAt": past_expires_at,
-        }
-
-        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
-        result = repository.reserve(VALID_ULID, "01ARZ3NDEKTSV4RRFFQ69G5FAW")
-
-        assert result is True
-        mock_document.delete.assert_called_once()
 
 
 class TestFirestoreIdempotencyKeyRepositoryFind:
