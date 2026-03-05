@@ -1,0 +1,182 @@
+name: CI Integration
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      integration: ${{ steps.filter.outputs.integration }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            integration:
+              - ".github/workflows/ci-integration.yml"
+              - "docker/Makefile"
+              - "docker/docker-compose.yml"
+              - "docker/docker-compose.integration*.yml"
+              - "docker/README.integration.md"
+              - "docker/scripts/**"
+              - "backend/**"
+
+  integration-test:
+    name: Integration (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.integration == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        service:
+          - bff
+          - data-collector
+          - feature-engineering
+          - signal-generator
+          - portfolio-planner
+          - risk-guard
+          - execution
+          - audit-log
+          - insight-collector
+          - agent-orchestrator
+          - hypothesis-lab
+
+    env:
+      SERVICE: ${{ matrix.service }}
+      COMPOSE_PROJECT_NAME: it-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.service }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Start integration stack
+        working-directory: docker
+        run: make integration-up SERVICE=${{ matrix.service }}
+
+      - name: Wait for services to be ready
+        working-directory: docker
+        run: |
+          set -euo pipefail
+
+          compose() {
+            docker compose --env-file .env.local \
+              -f docker-compose.integration.base.yml \
+              -f docker-compose.integration.${SERVICE}.yml "$@"
+          }
+
+          mapfile -t services < <(compose ps --services)
+
+          for svc in "${services[@]}"; do
+            cid="$(compose ps -q "$svc")"
+            if [[ -z "$cid" ]]; then
+              echo "container id not found: $svc"
+              exit 1
+            fi
+
+            for i in {1..60}; do
+              state="$(docker inspect -f '{{.State.Status}}' "$cid")"
+              health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")"
+              exit_code="$(docker inspect -f '{{.State.ExitCode}}' "$cid")"
+
+              if [[ "$svc" == "init" ]]; then
+                if [[ "$state" == "exited" && "$exit_code" == "0" ]]; then
+                  break
+                fi
+              elif [[ "$health" != "none" ]]; then
+                if [[ "$health" == "healthy" ]]; then
+                  break
+                fi
+              elif [[ "$state" == "running" ]]; then
+                break
+              fi
+
+              if [[ "$i" == "60" ]]; then
+                echo "service not ready: $svc state=$state health=$health exit_code=$exit_code"
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Health endpoint smoke test
+        working-directory: docker
+        run: |
+          set -euo pipefail
+
+          compose() {
+            docker compose --env-file .env.local \
+              -f docker-compose.integration.base.yml \
+              -f docker-compose.integration.${SERVICE}.yml "$@"
+          }
+
+          compose exec -T "$SERVICE" sh -lc '
+            if command -v curl >/dev/null 2>&1; then
+              curl -fsS http://localhost:8080/healthz >/tmp/health.out
+            else
+              wget -qO- http://localhost:8080/healthz >/tmp/health.out
+            fi
+            test -s /tmp/health.out
+            cat /tmp/health.out
+          '
+
+      - name: Collect compose logs
+        if: always()
+        working-directory: docker
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/integration-logs/${SERVICE}
+
+          compose() {
+            docker compose --env-file .env.local \
+              -f docker-compose.integration.base.yml \
+              -f docker-compose.integration.${SERVICE}.yml "$@"
+          }
+
+          compose ps -a > /tmp/integration-logs/${SERVICE}/ps.txt || true
+          compose logs --no-color > /tmp/integration-logs/${SERVICE}/compose.log || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs-${{ matrix.service }}
+          path: /tmp/integration-logs/${{ matrix.service }}
+
+      - name: Tear down integration stack
+        if: always()
+        working-directory: docker
+        run: make integration-down SERVICE=${{ matrix.service }}
+
+  ci-integration-result:
+    name: CI Integration Result
+    runs-on: ubuntu-latest
+    needs: [detect-changes, integration-test]
+    if: always()
+    steps:
+      - name: Check result
+        run: |
+          detect="${{ needs.detect-changes.result }}"
+          matrix_result="${{ needs.integration-test.result }}"
+
+          if [[ "$detect" == "failure" || "$detect" == "cancelled" ]]; then
+            echo "CI Integration failed on detect-changes"
+            exit 1
+          fi
+
+          if [[ "$matrix_result" == "failure" || "$matrix_result" == "cancelled" ]]; then
+            echo "CI Integration matrix failed"
+            exit 1
+          fi
+
+          echo "CI Integration passed (or skipped)"

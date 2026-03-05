@@ -19,6 +19,12 @@ make integration-logs SERVICE=bff
 make integration-down SERVICE=bff
 ```
 
+## CIでの衝突回避
+
+- `COMPOSE_PROJECT_NAME` をジョブごとに一意化する。
+- CIマトリクスは `max-parallel: 1` で実行し、共有ポート競合を回避する。
+- 終了処理は `always()` で `integration-down` を必ず実行する。
+
 ## 対応サービス
 
 - `bff`
