@@ -16,9 +16,17 @@ def _ensure_google_cloud_mocks() -> None:
 
     Uses plain MagicMock (no spec) so that arbitrary attribute access
     like ``from google.cloud.firestore_v1 import Client`` succeeds.
+
+    Skipped when real google-cloud packages are installed (e.g. integration tests).
     """
+    try:
+        import google.cloud.firestore_v1  # noqa: F401
+
+        return
+    except ImportError:
+        pass
+
     if "google" in sys.modules and not isinstance(sys.modules["google"], MagicMock):
-        # Real Google Cloud SDK is installed; nothing to do.
         return
 
     # Use plain MagicMock so that any attribute access works

@@ -28,6 +28,9 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: Integration tests requiring Docker emulators (Firestore, Pub/Sub, GCS)",
+]
 
 [tool.mypy]
 python_version = "3.14"
