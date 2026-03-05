@@ -1,7 +1,7 @@
-# signal-generator テスト設計書
+# signal-generator API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.1  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: signal-generator
 
 ## 1. 文書情報
@@ -9,93 +9,133 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/signal-generator.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 承認済みモデルによるシグナル生成と品質ゲート適用を検証する。
-- 対象は `features.generated` 受信から推論、結果保存、`signal.generated/failed` 発行まで。
+- `features.generated` 受信から `signal.generated` / `signal.generation.failed` 発行までを実装可能な粒度で検証する。
+- モデル品質ゲート、冪等性、監査属性を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- モデル承認状態チェックを最優先で検証する。
-- `modelVersion`, `featureVersion`, `trace` の監査属性を必須確認する。
-- 成績劣化時の差し戻しルールを回帰対象に固定する。
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| SG-API-01 | Event購読 | `event-features-generated-v1` | P0 |
+| SG-API-02 | Event発行 | `event-signal-generated-v1` | P0 |
+| SG-API-03 | Event発行 | `event-signal-generation-failed-v1` | P0 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| SG-RSK-01 | 未承認モデル使用 | 5 | 2 | 承認状態検証 |
-| SG-RSK-02 | 監査属性欠落 | 4 | 3 | 出力スキーマ検証 |
-| SG-RSK-03 | 劣化モデル継続運用 | 4 | 2 | しきい値境界テスト |
+```bash
+export BASE_URL="http://localhost:3004"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、品質ゲート、異常系、回帰 |
-| 技法 | 同値分割、境界値分析、デシジョンテーブル |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-## 6. エントリ/イグジット基準
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-- エントリ: モデルレジストリ接続、承認モデル、特徴量入力が準備済み。
-- イグジット: 実行率100%、重大欠陥0件、1サイクル10分以内。
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-## 7. テスト環境・データ・ツール
+## 5. 詳細テストケース
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `ruff check`, `pytest`, Cloud Logging, Cloud Monitoring |
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| SG-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| SG-IT-002 | 正常推論 | P0 | `signal.generated` 受信 |
+| SG-IT-003 | 入力欠損 | P0 | `signal.generation.failed` 受信 |
+| SG-IT-004 | 冪等性 | P0 | 重複出力なし |
+| SG-IT-005 | 監査属性 | P0 | modelVersion/featureVersion/trace 保持 |
 
-## 8. 要件トレーサビリティ
+### SG-IT-001
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-SG-01 | SG-COND-01 日次生成成功 | SG-TC-001 |
-| UC-SG-02 | SG-COND-02 未承認停止 | SG-TC-002 |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 9. 主要テストケース
+### SG-IT-002
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| SG-TC-001 | 承認モデルあり | `signal.generated`発行、結果保存 |
-| SG-TC-002 | 承認モデルなし | `signal.generation.failed`発行 |
-| SG-TC-003 | 出力監査属性 | `modelVersion`,`featureVersion`,`trace` が保存 |
-| SG-TC-004 | 劣化しきい値超過モデル | 候補運用へ差し戻し |
+```bash
+create_pull_sub sub-it-signal-generated event-signal-generated-v1
 
-## 10. 欠陥管理
+publish_event event-features-generated-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAC",
+  "eventType":"features.generated",
+  "occurredAt":"2026-03-05T00:20:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAC",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","featureVersion":"feature-v1","storagePath":"gs://alpha-mind-local/features/feature-v1.parquet"}
+}'
 
-- Critical: 未承認モデル稼働。
-- High: 失敗時誤成功、監査属性欠落。
+pull_one sub-it-signal-generated
+```
 
-## 11. 品質メトリクス
+### SG-IT-003
 
-| 指標 | 目標 |
-|---|---|
-| サイクル完了時間 | 10分以内 |
-| 未承認モデル実行件数 | 0件 |
-| 監査属性充足率 | 100% |
+```bash
+create_pull_sub sub-it-signal-failed event-signal-generation-failed-v1
 
-## 12. 体制・役割・スケジュール
+publish_event event-features-generated-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAD",
+  "eventType":"features.generated",
+  "occurredAt":"2026-03-05T00:21:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAD",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","storagePath":"gs://alpha-mind-local/features/feature-v1.parquet"}
+}'
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+pull_one sub-it-signal-failed
+```
 
-## 13. 変更履歴
+### SG-IT-004
+
+- 同一 `identifier` を再送し、出力重複が起きないことを確認する。
+
+### SG-IT-005
+
+- `signal.generated.payload` に `modelVersion` と `featureVersion` があることを確認する。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/signal-generator/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- 推論依存（モデル参照先）が疎通可能
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |

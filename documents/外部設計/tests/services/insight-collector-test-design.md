@@ -1,7 +1,7 @@
-# insight-collector テスト設計書
+# insight-collector API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.2  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: insight-collector
 
 ## 1. 文書情報
@@ -9,108 +9,138 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/insight-collector.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 定性データ収集処理の正確性とコンプライアンス遮断を検証する。
-- 対象は `insight.collect.requested` 受信から収集・保存・結果イベント発行まで。
+- `insight.collect.requested` 受信から `insight.collected` / `insight.collect.failed` 発行までを実装可能な粒度で検証する。
+- ソース許可制御、部分失敗、規約違反時の拒否、trace伝播を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- 許可リスト/利用規約違反遮断を最優先で検証する。
-- 収集成功時の根拠情報（`sourceUrl`, `collectedAt`, `evidenceSnippet`）保持を必須確認する。
-- 失敗時は理由コード付き `insight.collect.failed` を確認する。
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| IC-API-01 | Event購読 | `event-insight-collect-requested-v1` | P0 |
+| IC-API-02 | Event発行 | `event-insight-collected-v1` | P0 |
+| IC-API-03 | Event発行 | `event-insight-collect-failed-v1` | P0 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| IC-RSK-01 | 規約違反ソース収集 | 5 | 2 | ポリシー遮断テスト |
-| IC-RSK-02 | 根拠情報欠落 | 4 | 3 | 出力必須項目検証 |
-| IC-RSK-03 | 失敗理由コード不整合 | 3 | 3 | 異常系イベント検証 |
-| IC-RSK-04 | sourceConfigキー不足（x/youtube/paper/github） | 4 | 2 | ポリシー設定バリデーション |
-| IC-RSK-05 | sourceStatus欠落で部分失敗を見逃す | 4 | 2 | 成功イベント契約テスト |
-| IC-RSK-06 | `signalClass` 未設定で下流判定不能 | 4 | 2 | 出力必須項目検証 |
-| IC-RSK-07 | `soWhatScore` 範囲外値の混入 | 4 | 2 | 境界値テスト |
+```bash
+export BASE_URL="http://localhost:3009"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、セキュリティ/コンプライアンス、異常系 |
-| 技法 | 同値分割、デシジョンテーブル |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-## 6. エントリ/イグジット基準
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-- エントリ: source_policies、API資格情報、Storage/Firestoreが準備済み。
-- エントリ: `sourcePolicies[].sourceConfig.x.accountHandles` / `sourcePolicies[].sourceConfig.youtube.channelIdentifiers` / `sourcePolicies[].sourceConfig.paper.providers` / `sourcePolicies[].sourceConfig.github.repositories` が設定済み。
-- イグジット: 実行率100%、重大欠陥0件、1サイクル20分以内。
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-## 7. テスト環境・データ・ツール
+## 5. 詳細テストケース
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `cabal build` / `cabal test`, Cloud Logging, Cloud Monitoring |
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| IC-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| IC-IT-002 | 正常収集 | P0 | `insight.collected` 受信 |
+| IC-IT-003 | 不許可/不正入力 | P0 | `insight.collect.failed` 受信 |
+| IC-IT-004 | 部分失敗 | P0 | `partialFailure=true` |
+| IC-IT-005 | trace伝播 | P0 | 同一trace |
 
-## 8. 要件トレーサビリティ
+### IC-IT-001
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-IC-01 | IC-COND-01 定時収集成功 | IC-TC-001 |
-| UC-IC-02 | IC-COND-02 不許可ソース遮断 | IC-TC-002 |
-| UC-IC-03 | IC-COND-03 規約違反遮断 | IC-TC-003 |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 9. 主要テストケース
+### IC-IT-002
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| IC-TC-001 | 許可済みソース収集 | インサイト保存、`insight.collected`発行 |
-| IC-TC-002 | 許可外ソース指定 | `insight.collect.failed`発行（理由コード付き） |
-| IC-TC-003 | 規約条件未充足 | `COMPLIANCE_SOURCE_UNAPPROVED`で失敗 |
-| IC-TC-004 | 収集成功データ | 根拠3項目が全件保持される |
-| IC-TC-005 | `sourceConfig` 必須キー欠落 | `REQUEST_VALIDATION_FAILED` で失敗 |
-| IC-TC-006 | `sourceTypes` 指定実行 | 指定ソースのみ収集対象になる |
-| IC-TC-007 | `insight.collected.payload.sourceStatus` | ソース別 `status/collectedCount` が保持される |
-| IC-TC-008 | `insight.collect.failed.payload.stage` | `sourceType/stage` が復旧判断可能な値で出力される |
-| IC-TC-009 | `soWhatScore=0.70` | `signalClass=structural_anomaly` に分類される |
-| IC-TC-010 | `soWhatScore=0.6999` | `signalClass=event_noise` に分類される |
-| IC-TC-011 | `soWhatScore<0` または `>1` | `DATA_SCHEMA_INVALID` で失敗 |
-| IC-TC-012 | `signalClass` 欠損 | `insight.collect.failed` 発行、成功保存されない |
+```bash
+create_pull_sub sub-it-insight-collected event-insight-collected-v1
 
-## 10. 欠陥管理
+publish_event event-insight-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAJ",
+  "eventType":"insight.collect.requested",
+  "occurredAt":"2026-03-05T01:00:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAJ",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "targetDate":"2026-03-05",
+    "requestedBy":"scheduler",
+    "sourceTypes":["x","youtube"],
+    "options":{"forceRecollect":false,"dryRun":false,"maxItemsPerSource":50}
+  }
+}'
 
-- Critical: 規約違反収集の通過。
-- High: 根拠情報欠落、誤理由コード。
+pull_one sub-it-insight-collected
+```
 
-## 11. 品質メトリクス
+### IC-IT-003
 
-| 指標 | 目標 |
-|---|---|
-| コンプライアンス遮断成功率 | 100% |
-| 根拠情報充足率 | 100% |
-| サイクル完了時間 | 20分以内 |
+```bash
+create_pull_sub sub-it-insight-failed event-insight-collect-failed-v1
 
-## 12. 体制・役割・スケジュール
+publish_event event-insight-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAK",
+  "eventType":"insight.collect.requested",
+  "occurredAt":"2026-03-05T01:01:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAK",
+  "schemaVersion":"1.0.0",
+  "payload":{"requestedBy":"scheduler"}
+}'
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+pull_one sub-it-insight-failed
+```
 
-## 13. 変更履歴
+### IC-IT-004
+
+- 一部ソース失敗条件で実行し、`insight.collected.payload.partialFailure=true` を確認する。
+
+### IC-IT-005
+
+- 出力イベントの `trace` が入力と一致すること。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/insight-collector/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- source policyシード投入済み
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.2 | `signalClass` / `soWhatScore` の境界値・異常系ケースを追加 |
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |
