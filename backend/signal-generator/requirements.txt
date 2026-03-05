@@ -6,5 +6,4 @@ lightgbm>=4.5,<5
 google-cloud-firestore>=2.0,<3
 google-cloud-storage>=2.0,<3
 google-cloud-pubsub>=2.0,<3
-mlflow>=2.0,<3
-pyarrow>=15.0,<20
+mlflow-skinny>=2.0,<3
