@@ -1,7 +1,7 @@
-# data-collector テスト設計書
+# data-collector API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.2  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: data-collector
 
 ## 1. 文書情報
@@ -9,100 +9,164 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/data-collector.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 日米市場データと逆日歩データの収集・正規化・保存品質を検証する。
-- 対象は `market.collect.requested` 受信から `market.collected/failed` 発行まで。
+- `market.collect.requested` 受信から `market.collected` / `market.collect.failed` 発行までを実装可能な粒度で検証する。
+- 対象はイベント契約整合、外部依存障害時の失敗制御、冪等性、監査追跡。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- 取得元APIごとに正常・欠損・遅延の異常系を網羅する。
-- データ検証失敗時の `market.collect.failed` 発行を必須確認する。
-- リトライは指数バックオフ最大3回を境界値で確認する。
+| API-ID | 種別 | topic | 優先度 | 主要リスク |
+|---|---|---|---|---|
+| DC-API-01 | Event購読 | `event-market-collect-requested-v1` | P0 | トリガー未処理 |
+| DC-API-02 | Event発行 | `event-market-collected-v1` | P0 | 正常結果不整合 |
+| DC-API-03 | Event発行 | `event-market-collect-failed-v1` | P0 | 障害通知漏れ |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| DC-RSK-01 | 欠損データを成功扱いする | 5 | 3 | 入力検証異常系テスト |
-| DC-RSK-02 | 逆日歩データ不整合 | 4 | 3 | 営業日/非営業日ケース |
-| DC-RSK-03 | API障害時再試行不備 | 4 | 2 | 再試行回数境界テスト |
-| DC-RSK-04 | 調整係数再計算ミス（look-ahead混入） | 5 | 2 | 逆順cumprod+shift境界テスト |
-| DC-RSK-05 | `AdjustmentFactor` 不正値の見逃し | 4 | 2 | 0/負値/欠損の異常系テスト |
+```bash
+cd docker
+make up
 
-## 5. テストレベル・タイプ・技法
+export BASE_URL="http://localhost:3002"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+export TRACE_ID="01ARZ3NDEKTSV4RRFFQ69G5FAV"
+```
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、異常系、性能、回帰 |
-| 技法 | 同値分割、境界値分析、状態遷移 |
+補助関数:
 
-## 6. エントリ/イグジット基準
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-- エントリ: 外部API資格情報、Secret Manager、Storage書込権限が準備済み。
-- イグジット: 実行率100%、重大欠陥0件、1サイクル10分以内、再試行仕様一致。
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-## 7. テスト環境・データ・ツール
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `cabal build` / `cabal test`, Cloud Logging, Cloud Monitoring |
+## 5. 詳細テストケース
 
-## 8. 要件トレーサビリティ
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| DC-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| DC-IT-002 | 正常収集イベント | P0 | `market.collected` を受信 |
+| DC-IT-003 | 不正入力イベント | P0 | `market.collect.failed` を受信 |
+| DC-IT-004 | 冪等性 | P0 | 同一identifierで二重保存しない |
+| DC-IT-005 | trace伝播 | P0 | 入出力で同一traceを確認 |
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-DC-01 | DC-COND-01 日次収集成功 | DC-TC-001 |
-| UC-DC-02 | DC-COND-02 欠損検知 | DC-TC-002 |
-| UC-DC-03 | DC-COND-03 逆日歩蓄積 | DC-TC-003 |
+### DC-IT-001 ヘルスチェック
 
-## 9. 主要テストケース
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| DC-TC-001 | 全取得元が正常応答 | 正規化データ保存、`market.collected`発行 |
-| DC-TC-002 | 取得元の一部が欠損 | `market.collect.failed`発行、後続停止 |
-| DC-TC-003 | 逆日歩営業日データ | 逆日歩が同一サイクルで保存 |
-| DC-TC-004 | API 5xx連続発生 | 最大3回再試行後に失敗イベント発行 |
-| DC-TC-005 | 株式分割発生日を含む銘柄系列 | `cumprod + shift(1)` が適用され、過去日の調整済み価格が最新基準へ整合 |
-| DC-TC-006 | `AdjustmentFactor=0` または負値 | `DATA_SCHEMA_INVALID` で失敗し成功イベントを発行しない |
-| DC-TC-007 | `AdjustmentFactor` 欠損行を含む | 当該銘柄を失敗扱いにし、結果イベントに失敗理由が記録される |
+### DC-IT-002 正常収集イベント
 
-## 10. 欠陥管理
+```bash
+create_pull_sub sub-it-market-collected event-market-collected-v1
 
-- Critical: 欠損未検知、誤成功イベント発行。
-- High: 正規化不整合、再試行回数不一致。
+publish_event event-market-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAV",
+  "eventType":"market.collect.requested",
+  "occurredAt":"2026-03-05T00:00:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAV",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","requestedBy":"scheduler","mode":"daily"}
+}'
 
-## 11. 品質メトリクス
+pull_one sub-it-market-collected
+```
 
-| 指標 | 目標 |
-|---|---|
-| サイクル完了時間 | 10分以内 |
-| 逆日歩取得成功率 | 99%以上 |
-| API失敗時通知率 | 100% |
+### DC-IT-003 不正入力イベント（targetDate欠落）
 
-## 12. 体制・役割・スケジュール
+```bash
+create_pull_sub sub-it-market-failed event-market-collect-failed-v1
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+publish_event event-market-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FBX",
+  "eventType":"market.collect.requested",
+  "occurredAt":"2026-03-05T00:01:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FBX",
+  "schemaVersion":"1.0.0",
+  "payload":{"requestedBy":"scheduler"}
+}'
 
-## 13. 変更履歴
+pull_one sub-it-market-failed
+```
+
+### DC-IT-004 冪等性（同一identifier再送）
+
+```bash
+publish_event event-market-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FZZ",
+  "eventType":"market.collect.requested",
+  "occurredAt":"2026-03-05T00:02:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FZZ",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","requestedBy":"scheduler"}
+}'
+
+publish_event event-market-collect-requested-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FZZ",
+  "eventType":"market.collect.requested",
+  "occurredAt":"2026-03-05T00:02:10Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FZZ",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","requestedBy":"scheduler"}
+}'
+```
+
+確認点:
+- 出力件数が意図せず増えない。
+
+### DC-IT-005 trace伝播
+
+- `pull_one` で取得したイベント本文に `trace=入力trace` が含まれること。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/data-collector/{yyyyMMdd}/`
+
+必須証跡:
+- publishリクエスト
+- pullレスポンス
+- trace相関結果
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- `make up` 完了
+- Pub/Sub emulator疎通確認済み
+
+イグジット:
+- P0成功率100%
+- Critical/High欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.2 | 調整係数再計算（cumprod+shift）と異常系ケースを追加 |
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |

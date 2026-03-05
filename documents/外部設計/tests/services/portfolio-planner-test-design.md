@@ -1,7 +1,7 @@
-# portfolio-planner テスト設計書
+# portfolio-planner API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.1  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: portfolio-planner
 
 ## 1. 文書情報
@@ -9,93 +9,143 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/portfolio-planner.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- シグナルから注文候補を生成する処理の正当性を検証する。
-- 対象は `signal.generated` 受信から `orders.proposed/failed` 発行まで。
+- `signal.generated` 受信から `orders.proposed` / `orders.proposal.failed` 発行までを実装可能な粒度で検証する。
+- 残高参照失敗時の停止、冪等性、提案根拠保存を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- 残高・保有状態・運用設定の統合ロジックを優先検証する。
-- 口座情報取得失敗時の停止と失敗イベント発行を必須確認する。
-- 同一 `identifier` の冪等処理を回帰対象に固定する。
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| PP-API-01 | Event購読 | `event-signal-generated-v1` | P0 |
+| PP-API-02 | Event発行 | `event-orders-proposed-v1` | P0 |
+| PP-API-03 | Event発行 | `event-orders-proposal-failed-v1` | P0 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| PP-RSK-01 | 誤注文候補生成 | 5 | 2 | 計算ロジック検証 |
-| PP-RSK-02 | 残高取得失敗時の誤続行 | 4 | 3 | 異常系停止確認 |
-| PP-RSK-03 | 冪等性欠如 | 4 | 2 | 重複イベントテスト |
+```bash
+export BASE_URL="http://localhost:3005"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、異常系、回帰 |
-| 技法 | 同値分割、境界値分析 |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-## 6. エントリ/イグジット基準
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-- エントリ: 保有状態/運用パラメータ/口座参照モックが準備済み。
-- イグジット: 実行率100%、重大欠陥0件、1サイクル5分以内。
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-## 7. テスト環境・データ・ツール
+## 5. 詳細テストケース
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `cabal build` / `cabal test`, Cloud Logging, Cloud Monitoring |
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| PP-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| PP-IT-002 | 正常提案 | P0 | `orders.proposed` 受信 |
+| PP-IT-003 | 入力欠損 | P0 | `orders.proposal.failed` 受信 |
+| PP-IT-004 | 冪等性 | P0 | 重複提案なし |
+| PP-IT-005 | trace伝播 | P0 | 同一trace |
 
-## 8. 要件トレーサビリティ
+### PP-IT-001
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-PP-01 | PP-COND-01 注文候補作成 | PP-TC-001 |
-| UC-PP-02 | PP-COND-02 残高失敗停止 | PP-TC-002 |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 9. 主要テストケース
+### PP-IT-002
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| PP-TC-001 | 正常入力 | `orders.proposed`発行、提案根拠保存 |
-| PP-TC-002 | 口座参照API失敗 | `orders.proposal.failed`発行、後続停止 |
-| PP-TC-003 | 同一identifier再受信 | 再計算されず冪等処理 |
-| PP-TC-004 | 閾値境界のポジション | 数量計算が仕様通り |
+```bash
+create_pull_sub sub-it-orders-proposed event-orders-proposed-v1
 
-## 10. 欠陥管理
+publish_event event-signal-generated-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAE",
+  "eventType":"signal.generated",
+  "occurredAt":"2026-03-05T00:30:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAE",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "signalVersion":"signal-v1",
+    "modelVersion":"model-v1",
+    "featureVersion":"feature-v1",
+    "storagePath":"gs://alpha-mind-local/signal/signal-v1.parquet",
+    "modelDiagnostics":{"degradationFlag":"normal","requiresComplianceReview":false}
+  }
+}'
 
-- Critical: 誤方向/誤数量の提案。
-- High: 失敗時誤続行、根拠未保存。
+pull_one sub-it-orders-proposed
+```
 
-## 11. 品質メトリクス
+### PP-IT-003
 
-| 指標 | 目標 |
-|---|---|
-| サイクル完了時間 | 5分以内 |
-| 失敗時停止率 | 100% |
-| 冪等違反件数 | 0件 |
+```bash
+create_pull_sub sub-it-orders-proposal-failed event-orders-proposal-failed-v1
 
-## 12. 体制・役割・スケジュール
+publish_event event-signal-generated-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAF",
+  "eventType":"signal.generated",
+  "occurredAt":"2026-03-05T00:31:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAF",
+  "schemaVersion":"1.0.0",
+  "payload":{
+    "signalVersion":"signal-v1",
+    "featureVersion":"feature-v1",
+    "storagePath":"gs://alpha-mind-local/signal/signal-v1.parquet"
+  }
+}'
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+pull_one sub-it-orders-proposal-failed
+```
 
-## 13. 変更履歴
+### PP-IT-004
+
+- 同一identifierイベントの再送で `orders.proposed` が重複しないことを確認する。
+
+### PP-IT-005
+
+- 出力イベントの `trace` が入力イベントと一致することを確認する。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/portfolio-planner/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- Firestoreシード済み
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |
