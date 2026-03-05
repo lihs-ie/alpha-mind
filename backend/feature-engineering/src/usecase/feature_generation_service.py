@@ -215,7 +215,7 @@ class FeatureGenerationService:
                         published_event=PublishedEventType.FEATURES_GENERATION_FAILED,
                         processed_at=now,
                     )
-        except (OSError, RuntimeError, ConnectionError, TimeoutError):
+        except OSError, RuntimeError, ConnectionError, TimeoutError:
             logger.exception("Failed to publish integration event for identifier=%s", generation.identifier)
             dispatch.fail(
                 reason_code=ReasonCode.DISPATCH_FAILED,

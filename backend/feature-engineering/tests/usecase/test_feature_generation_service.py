@@ -176,9 +176,7 @@ class TestSuccessfulFeatureGeneration:
         def track_generation_persist(generation: FeatureGeneration) -> None:
             call_order.append("generation_persist")
 
-        def track_idempotency_persist(
-            identifier: str, processed_at: datetime.datetime, trace: str
-        ) -> None:
+        def track_idempotency_persist(identifier: str, processed_at: datetime.datetime, trace: str) -> None:
             call_order.append("idempotency_persist")
 
         fixture.feature_generation_repository.persist.side_effect = track_generation_persist
@@ -678,9 +676,7 @@ class TestProcessingExceptionTransitionsToFailed:
     """Unexpected exceptions during steps 4-8 should transition generation to FAILED."""
 
     def test_insight_fetch_exception_transitions_to_failed(self, fixture: _ServiceFixture) -> None:
-        fixture.insight_record_repository.find_by_target_date.side_effect = ConnectionError(
-            "Firestore unavailable"
-        )
+        fixture.insight_record_repository.find_by_target_date.side_effect = ConnectionError("Firestore unavailable")
 
         service = fixture.build()
         market = _make_healthy_market()
