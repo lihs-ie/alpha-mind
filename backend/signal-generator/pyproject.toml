@@ -30,6 +30,9 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: 統合テスト (エミュレーター起動が必要)",
+]
 
 [tool.mypy]
 python_version = "3.14"
