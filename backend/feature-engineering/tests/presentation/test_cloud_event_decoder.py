@@ -115,6 +115,22 @@ class TestDecodePubsubPushMessage:
         with pytest.raises(CloudEventDecodeError, match=r"trace.*ULID"):
             decode_pubsub_push_message(pubsub_message)
 
+    def test_decode_invalid_occurred_at_format_raises_error(self) -> None:
+        payload = self._make_valid_payload()
+        payload["occurredAt"] = "not-a-datetime"
+        pubsub_message = self._wrap_in_pubsub_message(payload)
+
+        with pytest.raises(CloudEventDecodeError, match="occurredAt"):
+            decode_pubsub_push_message(pubsub_message)
+
+    def test_decode_occurred_at_without_timezone_raises_error(self) -> None:
+        payload = self._make_valid_payload()
+        payload["occurredAt"] = "2026-03-05T09:00:00"
+        pubsub_message = self._wrap_in_pubsub_message(payload)
+
+        with pytest.raises(CloudEventDecodeError, match="occurredAt"):
+            decode_pubsub_push_message(pubsub_message)
+
     def test_decode_missing_occurred_at_raises_error(self) -> None:
         payload = self._make_valid_payload()
         del payload["occurredAt"]  # type: ignore[arg-type]

@@ -6,21 +6,18 @@ for publishing integration events to their respective Pub/Sub topics.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
 from usecase.event_publisher import EventPublisher
 
-if TYPE_CHECKING:
-    pass
-
 
 class _FeaturesGeneratedPublisherProtocol(Protocol):
-    def publish(self, event: FeatureGenerationCompleted) -> None: ...
+    def publish(self, event: FeatureGenerationCompleted) -> str: ...
 
 
 class _FeaturesGenerationFailedPublisherProtocol(Protocol):
-    def publish(self, event: FeatureGenerationFailed) -> None: ...
+    def publish(self, event: FeatureGenerationFailed) -> str: ...
 
 
 class PubSubEventPublisher(EventPublisher):
@@ -38,18 +35,14 @@ class PubSubEventPublisher(EventPublisher):
         """Publish a features.generated integration event.
 
         Returns:
-            A synthetic message ID (the actual Pub/Sub message ID is consumed
-            internally by the underlying publisher's blocking call).
+            The message ID assigned by the messaging infrastructure.
         """
-        self._features_generated_publisher.publish(event)
-        return event.identifier
+        return self._features_generated_publisher.publish(event)
 
     def publish_features_generation_failed(self, event: FeatureGenerationFailed) -> str:
         """Publish a features.generation.failed integration event.
 
         Returns:
-            A synthetic message ID (the actual Pub/Sub message ID is consumed
-            internally by the underlying publisher's blocking call).
+            The message ID assigned by the messaging infrastructure.
         """
-        self._features_generation_failed_publisher.publish(event)
-        return event.identifier
+        return self._features_generation_failed_publisher.publish(event)

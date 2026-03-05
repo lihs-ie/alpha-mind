@@ -22,7 +22,6 @@ class TestDependencyContainer:
             "FEATURES_GENERATED_TOPIC": "features-generated",
             "FEATURES_GENERATION_FAILED_TOPIC": "features-generation-failed",
             "FEATURE_STORE_BUCKET": "feature-store-bucket",
-            "RAW_MARKET_DATA_BUCKET": "raw-market-data-bucket",
         }
 
     def test_feature_generation_service_is_created(self) -> None:
@@ -65,13 +64,6 @@ class TestDependencyContainer:
         del env["FEATURE_STORE_BUCKET"]
         with patch.dict(os.environ, env, clear=True), pytest.raises(EnvironmentError, match="FEATURE_STORE_BUCKET"):
             DependencyContainer()
-
-    def test_missing_raw_market_data_bucket_raises_error(self) -> None:
-        env = self._make_env_vars()
-        del env["RAW_MARKET_DATA_BUCKET"]
-        with patch.dict(os.environ, env, clear=True), pytest.raises(EnvironmentError, match="RAW_MARKET_DATA_BUCKET"):
-            DependencyContainer()
-
 
 class TestUlidFeatureVersionGenerator:
     """Tests for _UlidFeatureVersionGenerator."""

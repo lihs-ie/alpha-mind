@@ -3,6 +3,8 @@
 Covers RULE-FE-001 through RULE-FE-008 via TDD.
 """
 
+from __future__ import annotations
+
 import datetime
 import unittest.mock
 from unittest.mock import MagicMock
@@ -35,7 +37,7 @@ from domain.value_object.market_snapshot import MarketSnapshot
 from domain.value_object.source_status import SourceStatus
 from usecase.event_publisher import EventPublisher
 from usecase.feature_audit_writer import FeatureAuditWriter
-from usecase.feature_generation_service import FeatureGenerationService
+from usecase.feature_generation_service import FeatureGenerationService, RetryableFeatureGenerationError
 
 VALID_IDENTIFIER = "01JNPQRS000000000000000001"
 VALID_TRACE = "01JNPQRS000000000000000002"
@@ -226,7 +228,8 @@ class TestSourceStatusUnhealthy:
         service = fixture.build()
         market = _make_unhealthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # No artifact should be persisted
         fixture.feature_artifact_repository.persist.assert_not_called()
@@ -381,8 +384,9 @@ class TestArtifactPersistFailureTransitionsToFailed:
         service = fixture.build()
         market = _make_healthy_market()
 
-        # Should not raise - exception is caught and generation transitions to FAILED
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        # Retryable failure: dispatch completes, then RetryableFeatureGenerationError is raised
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Event must NOT be published as features.generated
         fixture.event_publisher.publish_features_generated.assert_not_called()
@@ -427,7 +431,8 @@ class TestFailureWithReasonCode:
         service = fixture.build()
         market = _make_unhealthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
         published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
@@ -506,7 +511,8 @@ class TestAuditFailureWritten:
         service = fixture.build()
         market = _make_unhealthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         fixture.feature_audit_writer.write_failure.assert_called_once()
         audit_call = fixture.feature_audit_writer.write_failure.call_args
@@ -601,7 +607,8 @@ class TestFailedEventRebuiltWhenDomainEventsCleared:
             service = fixture.build()
             market = _make_unhealthy_market()
 
-            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+            with pytest.raises(RetryableFeatureGenerationError):
+                service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Event is rebuilt from failure_detail → publish succeeds
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
@@ -704,8 +711,9 @@ class TestProcessingExceptionTransitionsToFailed:
         service = fixture.build()
         market = _make_healthy_market()
 
-        # Should not raise - exception is caught, generation transitions to FAILED
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        # Retryable failure: dispatch completes, then RetryableFeatureGenerationError is raised
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # features.generation.failed should be published
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
@@ -843,7 +851,8 @@ class TestRecoverableVsUnrecoverableProcessingError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Should be published as failed with retryable=True
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
@@ -866,7 +875,8 @@ class TestRecoverableVsUnrecoverableProcessingError:
         service = fixture.build()
         market = _make_healthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         # Should be published as failed with retryable=True
         fixture.event_publisher.publish_features_generation_failed.assert_called_once()
@@ -993,7 +1003,8 @@ class TestIdentifierNamingConvention:
         service = fixture.build()
         market = _make_unhealthy_market()
 
-        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+        with pytest.raises(RetryableFeatureGenerationError):
+            service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
 
         failed_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
         assert hasattr(failed_event, "identifier")

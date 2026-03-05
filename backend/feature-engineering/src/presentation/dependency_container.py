@@ -64,7 +64,6 @@ class DependencyContainer:
         self._features_generated_topic = _require_env("FEATURES_GENERATED_TOPIC")
         self._features_generation_failed_topic = _require_env("FEATURES_GENERATION_FAILED_TOPIC")
         self._feature_store_bucket = _require_env("FEATURE_STORE_BUCKET")
-        self._raw_market_data_bucket = _require_env("RAW_MARKET_DATA_BUCKET")
 
         self._firestore_client = firestore.Client(project=self._gcp_project_id)
         self._storage_client = storage.Client(project=self._gcp_project_id)

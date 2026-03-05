@@ -7,7 +7,6 @@ In production this feeds into Cloud Logging for audit trail.
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 
 from domain.value_object.enums import ReasonCode
@@ -15,9 +14,11 @@ from usecase.feature_audit_writer import FeatureAuditWriter
 
 logger = logging.getLogger("feature-engineering.audit")
 
+SERVICE_NAME = "feature-engineering"
+
 
 class LoggingFeatureAuditWriter(FeatureAuditWriter):
-    """Writes feature generation audit entries as structured JSON log messages."""
+    """Writes feature generation audit entries as structured log messages using extra fields."""
 
     def write_success(
         self,
@@ -27,14 +28,16 @@ class LoggingFeatureAuditWriter(FeatureAuditWriter):
         feature_version: str,
     ) -> None:
         logger.info(
-            json.dumps({
-                "audit_type": "feature_generation_success",
+            "feature_generation_success",
+            extra={
+                "service": SERVICE_NAME,
                 "identifier": identifier,
                 "trace": trace,
+                "eventType": "features.generated",
+                "audit_type": "feature_generation_success",
                 "target_date": target_date.isoformat(),
                 "feature_version": feature_version,
-                "service": "feature-engineering",
-            }),
+            },
         )
 
     def write_failure(
@@ -45,22 +48,26 @@ class LoggingFeatureAuditWriter(FeatureAuditWriter):
         detail: str | None,
     ) -> None:
         logger.warning(
-            json.dumps({
-                "audit_type": "feature_generation_failure",
+            "feature_generation_failure",
+            extra={
+                "service": SERVICE_NAME,
                 "identifier": identifier,
                 "trace": trace,
-                "reason_code": reason_code.value,
+                "eventType": "features.generation.failed",
+                "reasonCode": reason_code.value,
+                "audit_type": "feature_generation_failure",
                 "detail": detail,
-                "service": "feature-engineering",
-            }),
+            },
         )
 
     def write_duplicate(self, identifier: str, trace: str) -> None:
         logger.info(
-            json.dumps({
-                "audit_type": "feature_generation_duplicate",
+            "feature_generation_duplicate",
+            extra={
+                "service": SERVICE_NAME,
                 "identifier": identifier,
                 "trace": trace,
-                "service": "feature-engineering",
-            }),
+                "eventType": "market.collected",
+                "audit_type": "feature_generation_duplicate",
+            },
         )

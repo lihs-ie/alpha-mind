@@ -19,13 +19,22 @@ def application() -> flask.Flask:
 class TestHealthBlueprint:
     """Tests for health check endpoint."""
 
-    def test_healthz_returns_200_ok(self, application: flask.Flask) -> None:
+    def test_healthz_returns_200_with_json_body(self, application: flask.Flask) -> None:
         with application.test_client() as client:
             response = client.get("/healthz")
 
         assert response.status_code == 200
-        assert response.data == b"ok"
-        assert "text/plain" in response.content_type
+        assert response.content_type == "application/json"
+        data = response.get_json()
+        assert data["status"] == "ok"
+        assert "time" in data
+
+    def test_healthz_time_is_iso8601_utc(self, application: flask.Flask) -> None:
+        with application.test_client() as client:
+            response = client.get("/healthz")
+
+        data = response.get_json()
+        assert data["time"].endswith("Z")
 
     def test_unknown_path_returns_404(self, application: flask.Flask) -> None:
         with application.test_client() as client:

@@ -64,9 +64,9 @@ class TestPubSubEventPublisher:
         failed_publisher.publish.assert_called_once_with(event)
         generated_publisher.publish.assert_not_called()
 
-    def test_publish_features_generated_returns_message_id(self) -> None:
+    def test_publish_features_generated_returns_message_id_from_publisher(self) -> None:
         generated_publisher = MagicMock()
-        generated_publisher.publish.return_value = None
+        generated_publisher.publish.return_value = "msg-id-123"
         failed_publisher = MagicMock()
         publisher = PubSubEventPublisher(
             features_generated_publisher=generated_publisher,
@@ -76,12 +76,12 @@ class TestPubSubEventPublisher:
         event = self._make_completed_event()
         result = publisher.publish_features_generated(event)
 
-        assert isinstance(result, str)
+        assert result == "msg-id-123"
 
-    def test_publish_features_generation_failed_returns_message_id(self) -> None:
+    def test_publish_features_generation_failed_returns_message_id_from_publisher(self) -> None:
         generated_publisher = MagicMock()
         failed_publisher = MagicMock()
-        failed_publisher.publish.return_value = None
+        failed_publisher.publish.return_value = "msg-id-456"
         publisher = PubSubEventPublisher(
             features_generated_publisher=generated_publisher,
             features_generation_failed_publisher=failed_publisher,
@@ -90,7 +90,7 @@ class TestPubSubEventPublisher:
         event = self._make_failed_event()
         result = publisher.publish_features_generation_failed(event)
 
-        assert isinstance(result, str)
+        assert result == "msg-id-456"
 
     def test_publish_features_generated_propagates_publisher_error(self) -> None:
         generated_publisher = MagicMock()

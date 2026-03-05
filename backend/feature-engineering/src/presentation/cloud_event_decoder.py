@@ -69,7 +69,8 @@ def decode_pubsub_push_message(
             f"Invalid eventType: expected '{_EXPECTED_EVENT_TYPE}', got '{event_type}'"
         )
 
-    _require_string(envelope, "occurredAt")
+    occurred_at = _require_string(envelope, "occurredAt")
+    _validate_iso8601_utc(occurred_at)
     trace = _require_string(envelope, "trace")
     _validate_ulid(trace, "trace")
     _require_string(envelope, "schemaVersion")
@@ -90,6 +91,16 @@ def _require_string(data: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value:
         raise CloudEventDecodeError(f"Missing or invalid required field '{key}'")
     return value
+
+
+def _validate_iso8601_utc(value: str) -> None:
+    """Validate that a string is a valid ISO 8601 datetime with timezone info."""
+    try:
+        parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError("timezone required")
+    except ValueError as error:
+        raise CloudEventDecodeError(f"Invalid 'occurredAt' format: {value}") from error
 
 
 def _validate_ulid(value: str, field_name: str) -> None:

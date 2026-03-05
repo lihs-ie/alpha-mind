@@ -25,7 +25,9 @@ class TestCreateApplication:
             response = client.get("/healthz")
 
         assert response.status_code == 200
-        assert response.data == b"ok"
+        data = response.get_json()
+        assert data["status"] == "ok"
+        assert "time" in data
 
     def test_subscriber_endpoint_is_registered(self) -> None:
         service = MagicMock()

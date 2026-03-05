@@ -15,6 +15,8 @@ from presentation.cloud_event_decoder import CloudEventDecodeError, decode_pubsu
 
 logger = logging.getLogger(__name__)
 
+SERVICE_NAME = "feature-engineering"
+
 subscriber_blueprint = flask.Blueprint("subscriber", __name__)
 
 
@@ -29,7 +31,16 @@ def handle_pubsub_push() -> flask.Response:
     """
     request_json: dict[str, Any] | None = flask.request.get_json(silent=True)
     if request_json is None:
-        logger.warning("Received non-JSON request body")
+        logger.warning(
+            "Received non-JSON request body",
+            extra={
+                "service": SERVICE_NAME,
+                "identifier": "unknown",
+                "trace": "unknown",
+                "eventType": "market.collected",
+                "reasonCode": "REQUEST_VALIDATION_FAILED",
+            },
+        )
         return flask.Response("Invalid request: expected JSON body", status=400)
 
     try:
@@ -38,7 +49,13 @@ def handle_pubsub_push() -> flask.Response:
         logger.warning(
             "CloudEvent decode error: %s",
             error,
-            extra={"service": "feature-engineering"},
+            extra={
+                "service": SERVICE_NAME,
+                "identifier": "unknown",
+                "trace": "unknown",
+                "eventType": "market.collected",
+                "reasonCode": "REQUEST_VALIDATION_FAILED",
+            },
         )
         return flask.Response(f"Decode error: {error}", status=400)
 
@@ -52,16 +69,24 @@ def handle_pubsub_push() -> flask.Response:
         )
     except Exception as error:
         logger.exception(
-            "Error processing event identifier=%s trace=%s: %s",
-            identifier,
-            trace,
+            "Error processing event: %s",
             error,
             extra={
-                "service": "feature-engineering",
+                "service": SERVICE_NAME,
                 "identifier": identifier,
                 "trace": trace,
+                "eventType": "market.collected",
             },
         )
         return flask.Response("Internal server error", status=500)
 
+    logger.info(
+        "Successfully processed market.collected event",
+        extra={
+            "service": SERVICE_NAME,
+            "identifier": identifier,
+            "trace": trace,
+            "eventType": "market.collected",
+        },
+    )
     return flask.Response(status=204)
