@@ -1,5 +1,5 @@
 services:
   execution:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: execution

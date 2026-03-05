@@ -1,5 +1,5 @@
 services:
   insight-collector:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: insight-collector

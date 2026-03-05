@@ -1,5 +1,5 @@
 services:
   risk-guard:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: risk-guard

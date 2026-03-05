@@ -7,20 +7,20 @@ networks:
 services:
   firestore:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: firestore
 
   pubsub:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: pubsub
 
   gcs:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: gcs
 
   init:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: init

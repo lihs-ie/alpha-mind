@@ -4,8 +4,8 @@
 
 ## 方針
 
-- 共通依存（Firestore / PubSub / GCS / init）は `docker-compose.integration.base.yml` に集約。
-- サービスごとの差分は `docker-compose.integration.<service>.yml` に分離。
+- 共通依存（Firestore / PubSub / GCS / init）は `docker/docker-compose.integration.base.yml` に集約。
+- サービスごとの差分は `docker/docker-compose.integration.<service>.yml` に分離。
 - 実行時は `-f` で合成する。
 
 ## 使い方

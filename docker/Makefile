@@ -5,8 +5,8 @@
 COMPOSE_FILE := docker-compose.yml
 ENV_FILE     := .env.local
 COMPOSE      := docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
-INTEGRATION_DIR  := integration
-INTEGRATION_BASE := $(INTEGRATION_DIR)/docker-compose.integration.base.yml
+INTEGRATION_BASE := docker-compose.integration.base.yml
+INTEGRATION_FILE := docker-compose.integration.$(SERVICE).yml
 
 .PHONY: help up down init build build-service logs logs-service restart restart-service ps clean generate-jwt-keys integration-up integration-down integration-logs integration-ps
 
@@ -55,32 +55,32 @@ ps: ## 実行中サービスの一覧を表示する
 
 integration-up: generate-jwt-keys ## サービス別統合テスト構成を起動する (例: make integration-up SERVICE=bff)
 	@test -n "$(SERVICE)" || (echo "SERVICE is required (e.g. SERVICE=bff)"; exit 1)
-	@test -f "$(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
+	@test -f "$(INTEGRATION_FILE)" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
 	docker compose --env-file $(ENV_FILE) \
 	  -f $(INTEGRATION_BASE) \
-	  -f $(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml \
+	  -f $(INTEGRATION_FILE) \
 	  up -d --build
 
 integration-down: ## サービス別統合テスト構成を停止する (例: make integration-down SERVICE=bff)
 	@test -n "$(SERVICE)" || (echo "SERVICE is required (e.g. SERVICE=bff)"; exit 1)
-	@test -f "$(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
+	@test -f "$(INTEGRATION_FILE)" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
 	docker compose --env-file $(ENV_FILE) \
 	  -f $(INTEGRATION_BASE) \
-	  -f $(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml \
+	  -f $(INTEGRATION_FILE) \
 	  down --remove-orphans
 
 integration-logs: ## サービス別統合テスト構成のログを表示する (例: make integration-logs SERVICE=bff)
 	@test -n "$(SERVICE)" || (echo "SERVICE is required (e.g. SERVICE=bff)"; exit 1)
-	@test -f "$(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
+	@test -f "$(INTEGRATION_FILE)" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
 	docker compose --env-file $(ENV_FILE) \
 	  -f $(INTEGRATION_BASE) \
-	  -f $(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml \
+	  -f $(INTEGRATION_FILE) \
 	  logs -f
 
 integration-ps: ## サービス別統合テスト構成のプロセスを表示する (例: make integration-ps SERVICE=bff)
 	@test -n "$(SERVICE)" || (echo "SERVICE is required (e.g. SERVICE=bff)"; exit 1)
-	@test -f "$(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
+	@test -f "$(INTEGRATION_FILE)" || (echo "Unknown SERVICE: $(SERVICE)"; exit 1)
 	docker compose --env-file $(ENV_FILE) \
 	  -f $(INTEGRATION_BASE) \
-	  -f $(INTEGRATION_DIR)/docker-compose.integration.$(SERVICE).yml \
+	  -f $(INTEGRATION_FILE) \
 	  ps

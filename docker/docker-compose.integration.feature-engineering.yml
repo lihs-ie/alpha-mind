@@ -1,5 +1,5 @@
 services:
   feature-engineering:
     extends:
-      file: ../docker-compose.yml
+      file: ./docker-compose.yml
       service: feature-engineering
