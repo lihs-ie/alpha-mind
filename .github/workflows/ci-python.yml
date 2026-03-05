@@ -33,6 +33,10 @@ jobs:
             common:
               - ".github/workflows/ci-python.yml"
               - "backend/pyproject.toml"
+              - "docker/Makefile"
+              - "docker/docker-compose.yml"
+              - "docker/dockerfiles/Dockerfile.firestore-emulator"
+              - "docker/scripts/**"
             feature_engineering:
               - "backend/feature-engineering/**"
             signal_generator:

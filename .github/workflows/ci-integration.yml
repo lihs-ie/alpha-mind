@@ -28,6 +28,7 @@ jobs:
               - "docker/Makefile"
               - "docker/docker-compose.yml"
               - "docker/docker-compose.integration*.yml"
+              - "docker/dockerfiles/**"
               - "docker/README.integration.md"
               - "docker/scripts/**"
               - "backend/cabal.project"

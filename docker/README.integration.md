@@ -1,4 +1,4 @@
-# Integration Compose Profiles
+# Integration Compose Configs
 
 サービス別統合テスト向けの compose 構成。
 
