@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, cast
 
 from google.cloud.firestore_v1 import Client
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
+from infrastructure.error import InfrastructureDataFormatError
 
 COLLECTION_NAME = "idempotency_keys"
 TTL_DAYS = 30
@@ -27,23 +28,34 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
     def find(self, identifier: str) -> datetime.datetime | None:
         document_identifier = self._document_identifier(identifier)
-        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(document_identifier).get()  # type: ignore[assignment]
+        snapshot = cast(DocumentSnapshot, self._client.collection(COLLECTION_NAME).document(document_identifier).get())
         if not snapshot.exists:
             return None
         data = snapshot.to_dict()
         if data is None:
             return None
-        processed_at: datetime.datetime = data["processedAt"]
-        return processed_at
+        try:
+            processed_at = data["processedAt"]
+            if not isinstance(processed_at, datetime.datetime):
+                raise TypeError("processedAt must be datetime")
+            return processed_at
+        except (KeyError, TypeError) as error:
+            raise InfrastructureDataFormatError(
+                source=COLLECTION_NAME,
+                detail=f"Failed to deserialize document: {error}",
+                cause=error,
+            ) from error
 
-    def persist(self, identifier: str, processed_at: datetime.datetime) -> None:
+    def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> None:
         document_identifier = self._document_identifier(identifier)
         expires_at = processed_at + datetime.timedelta(days=TTL_DAYS)
         data: dict[str, Any] = {
             "identifier": identifier,
             "service": self._service_name,
             "processedAt": processed_at,
+            "trace": trace,
             "expiresAt": expires_at,
+            "updatedAt": processed_at,
         }
         self._client.collection(COLLECTION_NAME).document(document_identifier).set(data)
 

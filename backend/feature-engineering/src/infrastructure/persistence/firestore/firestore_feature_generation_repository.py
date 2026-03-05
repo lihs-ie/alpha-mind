@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, cast
 
 from google.cloud.firestore_v1 import Client, FieldFilter
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
@@ -20,6 +20,7 @@ from domain.value_object.feature_artifact import FeatureArtifact
 from domain.value_object.insight_snapshot import InsightSnapshot
 from domain.value_object.market_snapshot import MarketSnapshot
 from domain.value_object.source_status import SourceStatus
+from infrastructure.error import InfrastructureDataFormatError
 
 COLLECTION_NAME = "feature_generations"
 
@@ -31,7 +32,7 @@ class FirestoreFeatureGenerationRepository(FeatureGenerationRepository):
         self._client = client
 
     def find(self, identifier: str) -> FeatureGeneration | None:
-        snapshot: DocumentSnapshot = self._client.collection(COLLECTION_NAME).document(identifier).get()  # type: ignore[assignment]
+        snapshot = cast(DocumentSnapshot, self._client.collection(COLLECTION_NAME).document(identifier).get())
         if not snapshot.exists:
             return None
         data = snapshot.to_dict()
@@ -103,58 +104,66 @@ def _serialize(generation: FeatureGeneration) -> dict[str, Any]:
         "featureArtifact": artifact_data,
         "failureDetail": failure_data,
         "processedAt": generation.processed_at,
+        "updatedAt": generation.processed_at,
     }
 
 
 def _deserialize(data: dict[str, Any]) -> FeatureGeneration:
     """Reconstruct FeatureGeneration aggregate from Firestore document."""
-    market_data = data["market"]
-    source_status_data = market_data["sourceStatus"]
+    try:
+        market_data = data["market"]
+        source_status_data = market_data["sourceStatus"]
 
-    market = MarketSnapshot(
-        target_date=datetime.date.fromisoformat(market_data["targetDate"]),
-        storage_path=market_data["storagePath"],
-        source_status=SourceStatus(
-            jp=SourceStatusValue(source_status_data["jp"]),
-            us=SourceStatusValue(source_status_data["us"]),
-        ),
-    )
-
-    insight: InsightSnapshot | None = None
-    if data.get("insight") is not None:
-        insight_data = data["insight"]
-        insight = InsightSnapshot(
-            record_count=insight_data["recordCount"],
-            latest_collected_at=insight_data["latestCollectedAt"],
-            filtered_by_target_date=insight_data["filteredByTargetDate"],
+        market = MarketSnapshot(
+            target_date=datetime.date.fromisoformat(market_data["targetDate"]),
+            storage_path=market_data["storagePath"],
+            source_status=SourceStatus(
+                jp=SourceStatusValue(source_status_data["jp"]),
+                us=SourceStatusValue(source_status_data["us"]),
+            ),
         )
 
-    feature_artifact: FeatureArtifact | None = None
-    if data.get("featureArtifact") is not None:
-        artifact_data = data["featureArtifact"]
-        feature_artifact = FeatureArtifact(
-            feature_version=artifact_data["featureVersion"],
-            storage_path=artifact_data["storagePath"],
-            row_count=artifact_data["rowCount"],
-            feature_count=artifact_data["featureCount"],
-        )
+        insight: InsightSnapshot | None = None
+        if data.get("insight") is not None:
+            insight_data = data["insight"]
+            insight = InsightSnapshot(
+                record_count=insight_data["recordCount"],
+                latest_collected_at=insight_data["latestCollectedAt"],
+                filtered_by_target_date=insight_data["filteredByTargetDate"],
+            )
 
-    failure_detail: FailureDetail | None = None
-    if data.get("failureDetail") is not None:
-        failure_data = data["failureDetail"]
-        failure_detail = FailureDetail(
-            reason_code=ReasonCode(failure_data["reasonCode"]),
-            detail=failure_data["detail"],
-            retryable=failure_data["retryable"],
-        )
+        feature_artifact: FeatureArtifact | None = None
+        if data.get("featureArtifact") is not None:
+            artifact_data = data["featureArtifact"]
+            feature_artifact = FeatureArtifact(
+                feature_version=artifact_data["featureVersion"],
+                storage_path=artifact_data["storagePath"],
+                row_count=artifact_data["rowCount"],
+                feature_count=artifact_data["featureCount"],
+            )
 
-    return FeatureGeneration(
-        identifier=data["identifier"],
-        status=FeatureGenerationStatus(data["status"]),
-        market=market,
-        trace=data["trace"],
-        insight=insight,
-        feature_artifact=feature_artifact,
-        failure_detail=failure_detail,
-        processed_at=data.get("processedAt"),
-    )
+        failure_detail: FailureDetail | None = None
+        if data.get("failureDetail") is not None:
+            failure_data = data["failureDetail"]
+            failure_detail = FailureDetail(
+                reason_code=ReasonCode(failure_data["reasonCode"]),
+                detail=failure_data["detail"],
+                retryable=failure_data["retryable"],
+            )
+
+        return FeatureGeneration(
+            identifier=data["identifier"],
+            status=FeatureGenerationStatus(data["status"]),
+            market=market,
+            trace=data["trace"],
+            insight=insight,
+            feature_artifact=feature_artifact,
+            failure_detail=failure_detail,
+            processed_at=data.get("processedAt"),
+        )
+    except (KeyError, ValueError) as error:
+        raise InfrastructureDataFormatError(
+            source=COLLECTION_NAME,
+            detail=f"Failed to deserialize document: {error}",
+            cause=error,
+        ) from error

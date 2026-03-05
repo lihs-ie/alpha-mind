@@ -77,6 +77,7 @@ class TestFirestoreFeatureDispatchRepositoryPersist:
         assert data["dispatchDecision"]["publishedEvent"] is None
         assert data["dispatchDecision"]["reasonCode"] is None
         assert data["processedAt"] is None
+        assert data["updatedAt"] is None
 
     def test_persist_published_dispatch(self) -> None:
         mock_client = MagicMock()
@@ -92,6 +93,7 @@ class TestFirestoreFeatureDispatchRepositoryPersist:
         assert data["dispatchStatus"] == "published"
         assert data["dispatchDecision"]["publishedEvent"] == "features.generated"
         assert data["processedAt"] == datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC)
+        assert data["updatedAt"] == datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC)
 
     def test_persist_failed_dispatch(self) -> None:
         mock_client = MagicMock()
@@ -195,3 +197,57 @@ class TestFirestoreFeatureDispatchRepositoryTerminate:
         mock_client.collection.assert_called_once_with("feature_dispatches")
         mock_collection.document.assert_called_once_with(VALID_ULID)
         mock_document.delete.assert_called_once()
+
+
+class TestFirestoreFeatureDispatchRepositoryDeserializeErrors:
+    def test_find_raises_for_missing_dispatch_decision(self) -> None:
+        import pytest
+
+        from infrastructure.error import InfrastructureDataFormatError
+
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "dispatchStatus": "pending",
+            "trace": VALID_TRACE,
+            # "dispatchDecision" is missing
+        }
+
+        repository = FirestoreFeatureDispatchRepository(client=mock_client)
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find(VALID_ULID)
+
+    def test_find_raises_for_invalid_dispatch_status(self) -> None:
+        import pytest
+
+        from infrastructure.error import InfrastructureDataFormatError
+
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "dispatchStatus": "invalid_status",
+            "trace": VALID_TRACE,
+            "dispatchDecision": {
+                "dispatchStatus": "invalid_status",
+                "publishedEvent": None,
+                "reasonCode": None,
+            },
+        }
+
+        repository = FirestoreFeatureDispatchRepository(client=mock_client)
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find(VALID_ULID)

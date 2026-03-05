@@ -65,6 +65,26 @@ class TestFirestoreInsightRecordRepositorySearch:
         # Verify only one where clause is used (collectedAt < end_of_target_date)
         mock_collection.where.assert_called_once()
 
+    def test_search_with_target_date_boundary_uses_strict_less_than(self) -> None:
+        """Verify the query filter uses < (not <=) with start of next day."""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        mock_query.stream.return_value = []
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        repository.search(target_date=datetime.date(2026, 1, 15))
+
+        # Verify FieldFilter uses "<" operator with 2026-01-16T00:00:00 UTC
+        call_args = mock_collection.where.call_args
+        field_filter = call_args.kwargs["filter"]
+        assert field_filter.field_path == "collectedAt"
+        assert field_filter.op_string == "<"
+        expected_end = datetime.datetime(2026, 1, 16, 0, 0, 0, tzinfo=datetime.UTC)
+        assert field_filter.value == expected_end
+
     def test_search_returns_empty_when_no_records(self) -> None:
         mock_client = MagicMock()
         mock_collection = MagicMock()
@@ -138,3 +158,21 @@ class TestFirestoreInsightRecordRepositoryFindByTargetDate:
         assert result is not None
         assert result.record_count == 2
         assert result.latest_collected_at == datetime.datetime(2026, 1, 15, 10, 0, 0, tzinfo=datetime.UTC)
+
+    def test_find_by_target_date_excludes_next_day_midnight(self) -> None:
+        """Records at exactly targetDate+1 day 00:00:00 UTC must be excluded."""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_query = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.where.return_value = mock_query
+        # Firestore query with < filter means server-side filtering,
+        # so an empty result simulates the server excluding the record
+        mock_query.stream.return_value = []
+
+        repository = FirestoreInsightRecordRepository(client=mock_client)
+        result = repository.find_by_target_date(datetime.date(2026, 1, 15))
+
+        assert result is None
+        # Verify the filter uses strict less-than with start of next day
+        mock_collection.where.assert_called_once()

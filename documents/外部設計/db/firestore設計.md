@@ -147,7 +147,7 @@
 - 処理済みイベント管理
 
 ドキュメントID:
-- `identifier`
+- `{service}:{identifier}` (サービス間衝突防止のためサービス名プレフィックスを付与)
 
 主要フィールド:
 - `identifier`
@@ -155,6 +155,7 @@
 - `processedAt`
 - `trace`
 - `expiresAt` (timestamp, TTL)
+- `updatedAt` (timestamp)
 
 ### 3.9 `skill_registry`
 
@@ -405,6 +406,41 @@
 - `result` (`allow` / `deny`)
 - `reasonCode` (string, optional)
 - `decidedAt` (timestamp)
+
+### 3.21 `feature_generations`
+
+用途:
+- 特徴量生成処理の状態管理（`feature-engineering` オーナー）
+
+ドキュメントID:
+- `identifier` (ULID)
+
+主要フィールド:
+- `identifier`
+- `status` (`pending` / `generated` / `failed`)
+- `market` (map: `targetDate`, `storagePath`, `sourceStatus`)
+- `trace`
+- `insight` (map, optional)
+- `featureArtifact` (map, optional)
+- `failureDetail` (map, optional)
+- `processedAt` (timestamp, optional)
+- `updatedAt` (timestamp, optional)
+
+### 3.22 `feature_dispatches`
+
+用途:
+- 特徴量イベント配信の状態管理（`feature-engineering` オーナー）
+
+ドキュメントID:
+- `identifier` (ULID)
+
+主要フィールド:
+- `identifier`
+- `dispatchStatus` (`pending` / `published` / `failed`)
+- `trace`
+- `dispatchDecision` (map: `dispatchStatus`, `publishedEvent`, `reasonCode`)
+- `processedAt` (timestamp, optional)
+- `updatedAt` (timestamp, optional)
 
 ## 4. 主要アクセスパターン
 

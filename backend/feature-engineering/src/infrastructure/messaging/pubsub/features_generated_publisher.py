@@ -11,6 +11,8 @@ from infrastructure.event_mapping.domain_to_integration_event_mapper import (
     DomainToIntegrationEventMapper,
 )
 
+SERVICE_SOURCE = "urn:alpha-mind:service:feature-engineering"
+
 
 class FeaturesGeneratedPublisher:
     """Publishes FeatureGenerationCompleted domain events to Pub/Sub as CloudEvents."""
@@ -26,7 +28,12 @@ class FeaturesGeneratedPublisher:
         future = self._client.publish(
             self._topic_path,
             data=data,
-            content_type="application/json",
+            datacontenttype="application/json",
+            ce_specversion="1.0",
+            ce_id=envelope["identifier"],
+            ce_type=envelope["eventType"],
+            ce_source=SERVICE_SOURCE,
+            ce_time=envelope["occurredAt"],
         )
         # Block until the message is delivered
         future.result()

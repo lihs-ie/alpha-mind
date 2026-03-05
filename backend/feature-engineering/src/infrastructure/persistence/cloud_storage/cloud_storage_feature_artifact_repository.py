@@ -9,6 +9,7 @@ from google.cloud.storage import Client
 
 from domain.repository.feature_artifact_repository import FeatureArtifactRepository
 from domain.value_object.feature_artifact import FeatureArtifact
+from infrastructure.error import InfrastructureDataFormatError
 
 
 class CloudStorageFeatureArtifactRepository(FeatureArtifactRepository):
@@ -36,7 +37,14 @@ class CloudStorageFeatureArtifactRepository(FeatureArtifactRepository):
         if not blob.exists():
             return None
         content = blob.download_as_text()
-        data: dict[str, Any] = json.loads(content)
+        try:
+            data: dict[str, Any] = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise InfrastructureDataFormatError(
+                source=self._bucket_name,
+                detail=f"Failed to parse metadata JSON for {feature_version}: {error}",
+                cause=error,
+            ) from error
         return _deserialize(data)
 
     def terminate(self, feature_version: str) -> None:
@@ -56,9 +64,16 @@ def _serialize(artifact: FeatureArtifact) -> dict[str, Any]:
 
 
 def _deserialize(data: dict[str, Any]) -> FeatureArtifact:
-    return FeatureArtifact(
-        feature_version=data["featureVersion"],
-        storage_path=data["storagePath"],
-        row_count=data["rowCount"],
-        feature_count=data["featureCount"],
-    )
+    try:
+        return FeatureArtifact(
+            feature_version=data["featureVersion"],
+            storage_path=data["storagePath"],
+            row_count=data["rowCount"],
+            feature_count=data["featureCount"],
+        )
+    except (KeyError, ValueError) as error:
+        raise InfrastructureDataFormatError(
+            source="feature_store",
+            detail=f"Failed to deserialize metadata: {error}",
+            cause=error,
+        ) from error

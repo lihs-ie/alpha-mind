@@ -72,3 +72,55 @@ class TestFeaturesGenerationFailedPublisher:
 
         published_data = json.loads(mock_publisher_client.publish.call_args[1]["data"])
         assert published_data["payload"]["detail"] is None
+
+    def test_publish_passes_cloud_events_attributes(self) -> None:
+        mock_publisher_client = MagicMock()
+        mock_future = MagicMock()
+        mock_publisher_client.publish.return_value = mock_future
+
+        publisher = FeaturesGenerationFailedPublisher(
+            client=mock_publisher_client,
+            topic_path="projects/alpha-mind/topics/features.generation.failed",
+        )
+
+        event = FeatureGenerationFailed(
+            identifier=VALID_ULID,
+            reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+            detail="US market data unavailable",
+            trace=VALID_TRACE,
+            occurred_at=datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC),
+        )
+
+        publisher.publish(event)
+
+        call_kwargs = mock_publisher_client.publish.call_args[1]
+        assert call_kwargs["datacontenttype"] == "application/json"
+        assert call_kwargs["ce_specversion"] == "1.0"
+        assert call_kwargs["ce_id"] == VALID_ULID
+        assert call_kwargs["ce_type"] == "features.generation.failed"
+        assert call_kwargs["ce_source"] == "urn:alpha-mind:service:feature-engineering"
+        assert call_kwargs["ce_time"] == "2026-01-15T09:00:00Z"
+
+    def test_publish_raises_when_delivery_fails(self) -> None:
+        import pytest
+
+        mock_publisher_client = MagicMock()
+        mock_future = MagicMock()
+        mock_future.result.side_effect = Exception("Pub/Sub delivery failed")
+        mock_publisher_client.publish.return_value = mock_future
+
+        publisher = FeaturesGenerationFailedPublisher(
+            client=mock_publisher_client,
+            topic_path="projects/alpha-mind/topics/features.generation.failed",
+        )
+
+        event = FeatureGenerationFailed(
+            identifier=VALID_ULID,
+            reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+            detail="US market data unavailable",
+            trace=VALID_TRACE,
+            occurred_at=datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC),
+        )
+
+        with pytest.raises(Exception, match="Pub/Sub delivery failed"):
+            publisher.publish(event)

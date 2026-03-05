@@ -4,8 +4,11 @@ import datetime
 import json
 from unittest.mock import MagicMock
 
+import pytest
+
 from domain.value_object.enums import SourceStatusValue
 from domain.value_object.market_snapshot import MarketSnapshot
+from infrastructure.error import InfrastructureDataFormatError
 from infrastructure.persistence.cloud_storage.cloud_storage_market_data_repository import (
     CloudStorageMarketDataRepository,
 )
@@ -161,3 +164,28 @@ class TestCloudStorageMarketDataRepositoryFindByTargetDate:
         assert result is not None
         assert result.target_date == datetime.date(2026, 1, 15)
         assert result.source_status.us == SourceStatusValue.FAILED
+
+
+class TestCloudStorageMarketDataRepositoryDeserializeErrors:
+    def test_find_raises_for_missing_source_status(self) -> None:
+        mock_client = MagicMock()
+        mock_bucket = MagicMock()
+        mock_blob = MagicMock()
+        mock_client.bucket.return_value = mock_bucket
+        mock_bucket.blob.return_value = mock_blob
+        mock_blob.exists.return_value = True
+        mock_blob.download_as_text.return_value = json.dumps(
+            {
+                "identifier": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                "targetDate": "2026-01-15",
+                "storagePath": "gs://test/path",
+                # "sourceStatus" is missing
+            }
+        )
+
+        repository = CloudStorageMarketDataRepository(
+            client=mock_client,
+            bucket_name="raw_market_data",
+        )
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find("01ARZ3NDEKTSV4RRFFQ69G5FAV")

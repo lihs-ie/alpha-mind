@@ -3,6 +3,8 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pytest
+
 from domain.model.feature_generation import FeatureGeneration
 from domain.value_object.enums import (
     FeatureGenerationStatus,
@@ -14,6 +16,7 @@ from domain.value_object.feature_artifact import FeatureArtifact
 from domain.value_object.insight_snapshot import InsightSnapshot
 from domain.value_object.market_snapshot import MarketSnapshot
 from domain.value_object.source_status import SourceStatus
+from infrastructure.error import InfrastructureDataFormatError
 from infrastructure.persistence.firestore.firestore_feature_generation_repository import (
     FirestoreFeatureGenerationRepository,
 )
@@ -119,6 +122,7 @@ class TestFirestoreFeatureGenerationRepositoryPersist:
         assert persisted_data["featureArtifact"] is None
         assert persisted_data["failureDetail"] is None
         assert persisted_data["processedAt"] is None
+        assert persisted_data["updatedAt"] is None
 
     def test_persist_generated_generation(self) -> None:
         mock_client = MagicMock()
@@ -144,6 +148,7 @@ class TestFirestoreFeatureGenerationRepositoryPersist:
         assert persisted_data["featureArtifact"]["rowCount"] == 100
         assert persisted_data["featureArtifact"]["featureCount"] == 25
         assert persisted_data["processedAt"] == datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC)
+        assert persisted_data["updatedAt"] == datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC)
 
     def test_persist_failed_generation(self) -> None:
         mock_client = MagicMock()
@@ -428,3 +433,51 @@ class TestFirestoreFeatureGenerationRepositoryTerminate:
         mock_client.collection.assert_called_once_with("feature_generations")
         mock_collection.document.assert_called_once_with(VALID_ULID)
         mock_document.delete.assert_called_once()
+
+
+class TestFirestoreFeatureGenerationRepositoryDeserializeErrors:
+    """Deserialization should raise clear errors for malformed Firestore documents."""
+
+    def test_find_raises_for_missing_market_field(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "status": "pending",
+            "trace": VALID_TRACE,
+            # "market" field is missing
+        }
+
+        repository = FirestoreFeatureGenerationRepository(client=mock_client)
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find(VALID_ULID)
+
+    def test_find_raises_for_invalid_status(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "status": "unknown_status",
+            "market": {
+                "targetDate": "2026-01-15",
+                "storagePath": "gs://test/path",
+                "sourceStatus": {"jp": "ok", "us": "ok"},
+            },
+            "trace": VALID_TRACE,
+        }
+
+        repository = FirestoreFeatureGenerationRepository(client=mock_client)
+        with pytest.raises(InfrastructureDataFormatError):
+            repository.find(VALID_ULID)
