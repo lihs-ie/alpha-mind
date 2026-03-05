@@ -206,6 +206,9 @@ class SignalGenerationService:
 
             # Step 6: 推論実行
             prediction_dataframe = model.predict(feature_dataframe)
+
+            # Step 7 準備: predict 戻り値が異常な場合は同一 try 内で捕捉
+            prediction_count = len(prediction_dataframe)
         except TimeoutError:
             logger.exception("依存先タイムアウト: identifier=%s", command.identifier)
             return self._handle_inference_failure(
@@ -227,7 +230,6 @@ class SignalGenerationService:
             )
 
         # Step 7: 件数整合検証 (RULE-SG-004) - ドメインポリシーに委譲
-        prediction_count = len(prediction_dataframe)
         if not self._inference_consistency_policy.is_count_consistent(
             generated_count=prediction_count,
             universe_count=command.universe_count,
@@ -281,7 +283,16 @@ class SignalGenerationService:
         generation.complete(signal_artifact, model_diagnostics, completed_at)
 
         # Step 9: SignalGeneration 集約を永続化
-        self._signal_generation_repository.persist(generation)
+        try:
+            self._signal_generation_repository.persist(generation)
+        except Exception:
+            logger.exception("SignalGeneration 永続化失敗: identifier=%s", command.identifier)
+            return self._finalize_failure(
+                command=command,
+                retryable=True,
+                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+                detail="SignalGeneration 永続化に失敗しました",
+            )
 
         # Phase 2: complete() 後 - fail() へ戻さない
         # INV-SG-004: 既に signal.generated が publish 済みの場合はスキップ
@@ -395,7 +406,10 @@ class SignalGenerationService:
             detail=detail,
         )
         generation.fail(failure_detail, now)
-        self._signal_generation_repository.persist(generation)
+        try:
+            self._signal_generation_repository.persist(generation)
+        except Exception:
+            logger.exception("失敗集約永続化失敗: identifier=%s", command.identifier)
         try:
             self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
         except Exception:
@@ -462,12 +476,17 @@ class SignalGenerationService:
         )
         self._signal_event_publisher.publish_signal_generation_failed(failed_event)
 
-        dispatch = self._signal_dispatch_factory.from_signal_generation(
-            identifier=command.identifier,
-            trace=command.trace,
-        )
-        dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, now)
-        self._signal_dispatch_repository.persist(dispatch)
+        # publish 成功後の dispatch 永続化 — 失敗しても例外を伝播しない
+        # (イベントは既に外部に出ているため retryable にすると重複の温床になる)
+        try:
+            dispatch = self._signal_dispatch_factory.from_signal_generation(
+                identifier=command.identifier,
+                trace=command.trace,
+            )
+            dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, now)
+            self._signal_dispatch_repository.persist(dispatch)
+        except Exception:
+            logger.exception("失敗 dispatch 永続化失敗: identifier=%s", command.identifier)
 
     def _finalize_failure(
         self,
