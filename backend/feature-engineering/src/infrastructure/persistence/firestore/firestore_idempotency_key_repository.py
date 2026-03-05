@@ -49,9 +49,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             # transaction so that concurrent consumers cannot both succeed.
             return self._try_atomic_reclaim(document_reference, data, now)
 
-    def _try_atomic_reclaim(
-        self, document_reference: Any, data: dict[str, Any], now: datetime.datetime
-    ) -> bool:
+    def _try_atomic_reclaim(self, document_reference: Any, data: dict[str, Any], now: datetime.datetime) -> bool:
         """Atomically reclaim an expired document inside a Firestore transaction.
 
         The transaction reads the existing document, checks expiration, then
