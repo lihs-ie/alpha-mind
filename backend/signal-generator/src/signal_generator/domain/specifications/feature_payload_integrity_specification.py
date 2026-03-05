@@ -23,6 +23,8 @@ class FeaturePayloadIntegritySpecification:
         self._clock = clock
 
     def is_satisfied_by(self, feature_snapshot: FeatureSnapshot) -> bool:
+        if not isinstance(feature_snapshot.feature_version, str):
+            return False
         if not _FEATURE_VERSION_PATTERN.match(feature_snapshot.feature_version):
             return False
         if not feature_snapshot.storage_path:

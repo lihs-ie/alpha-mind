@@ -114,7 +114,15 @@ class SignalGenerationService:
         now = self._clock()
 
         # Step 1: 冪等性チェック (RULE-SG-003) - 原子的 acquire で競合を防止
-        if not self._idempotency_key_repository.persist(idempotency_key, now, command.trace):
+        try:
+            acquired = self._idempotency_key_repository.persist(idempotency_key, now, command.trace)
+        except Exception:
+            logger.exception("冪等性キー acquire 失敗: identifier=%s", command.identifier)
+            return GenerateSignalResult.failure(
+                reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+                detail="冪等性キー acquire に失敗しました",
+            )
+        if not acquired:
             logger.info("重複イベント検出: identifier=%s", command.identifier)
             return GenerateSignalResult.duplicate()
 
@@ -267,8 +275,9 @@ class SignalGenerationService:
                 detail="signal_store 書き込みに失敗しました",
             )
 
-        # 集約を完了状態にする
-        generation.complete(signal_artifact, model_diagnostics, now)
+        # 集約を完了状態にする (推論完了時点のタイムスタンプを使用)
+        completed_at = self._clock()
+        generation.complete(signal_artifact, model_diagnostics, completed_at)
 
         # Step 9: SignalGeneration 集約を永続化
         self._signal_generation_repository.persist(generation)
@@ -284,7 +293,7 @@ class SignalGenerationService:
                 storage_path=signal_storage_path,
                 model_diagnostics=model_diagnostics,
                 trace=command.trace,
-                occurred_at=now,
+                occurred_at=completed_at,
             )
 
             dispatch = self._signal_dispatch_factory.from_signal_generation(
@@ -292,8 +301,16 @@ class SignalGenerationService:
                 trace=command.trace,
             )
             self._signal_event_publisher.publish_signal_generated(completed_event)
-            dispatch.publish(EventType.SIGNAL_GENERATED, now)
+            dispatch.publish(EventType.SIGNAL_GENERATED, completed_at)
             self._signal_dispatch_repository.persist(dispatch)
+        except ValueError:
+            logger.exception("イベント発行バリデーション失敗: identifier=%s", command.identifier)
+            return self._finalize_failure(
+                command=command,
+                retryable=False,
+                reason_code=ReasonCode.INTERNAL_ERROR,
+                detail="イベント発行に失敗しました",
+            )
         except Exception:
             logger.exception("イベント発行失敗: identifier=%s", command.identifier)
             return self._finalize_failure(

@@ -155,6 +155,20 @@ class TestIdempotencyCheck:
         )
         signal_generation_repository.persist.assert_not_called()
 
+    def test_idempotency_acquire_failure_returns_structured_failure(self) -> None:
+        """冪等性キー acquire が例外を投げた場合、構造化された失敗結果を返す。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.side_effect = ConnectionError("Firestore unavailable")
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+
     def test_new_event_proceeds_to_processing(self) -> None:
         """persist が True を返した場合、通常処理に進む。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
@@ -644,6 +658,43 @@ class TestFailurePath:
             f"signal-generator:{_IDENTIFIER}",
         )
 
+    def test_publisher_value_error_is_non_retryable(self) -> None:
+        """Phase2でpublisherがValueErrorを投げた場合、non-retryableなINTERNAL_ERRORで失敗する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generated.side_effect = ValueError("invalid envelope")
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.INTERNAL_ERROR
+        # non-retryable なので terminate は呼ばれない
+        idempotency_repository.terminate.assert_not_called()
+
     def test_timeout_error_maps_to_dependency_timeout(self) -> None:
         """TimeoutError は DEPENDENCY_TIMEOUT にマッピングされる。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
@@ -1021,6 +1072,52 @@ class TestFailurePath:
 
 
 # --- Model Version Verification Tests ---
+
+
+class TestCompletionTimestamp:
+    """完了タイムスタンプのテスト。"""
+
+    def test_completed_event_uses_completion_time_not_receipt_time(self) -> None:
+        """完了イベントの occurred_at は受信時刻ではなく推論完了時刻を使用する。"""
+        receipt_time = datetime.datetime(2026, 3, 5, 12, 0, 0, tzinfo=datetime.UTC)
+        completion_time = datetime.datetime(2026, 3, 5, 12, 5, 30, tzinfo=datetime.UTC)
+        clock_calls = iter([receipt_time, completion_time])
+
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generated.return_value = "msg-001"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_event_publisher=event_publisher,
+            clock=receipt_time,  # _build_service uses lambda: effective_clock_value
+        )
+        # clock を差し替え: 2回目の呼び出しで completion_time を返す
+        service._clock = lambda: next(clock_calls)
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is True
+        published_event = event_publisher.publish_signal_generated.call_args[0][0]
+        # occurred_at は受信時刻(12:00)ではなく完了時刻(12:05:30)
+        assert published_event.occurred_at == completion_time
 
 
 class TestModelVersionVerification:
