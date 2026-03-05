@@ -67,7 +67,7 @@ class TestMapFeatureGenerationFailed:
         envelope = DomainToIntegrationEventMapper.map(event)
 
         assert envelope["payload"]["reasonCode"] == "FEATURE_GENERATION_FAILED"
-        assert envelope["payload"]["detail"] is None
+        assert "detail" not in envelope["payload"]
 
 
 class TestReasonCodeValidation:

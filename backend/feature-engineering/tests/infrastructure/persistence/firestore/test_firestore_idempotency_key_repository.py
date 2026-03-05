@@ -44,18 +44,44 @@ class TestFirestoreIdempotencyKeyRepositoryFind:
         mock_document.get.return_value = mock_snapshot
         mock_snapshot.exists = True
         processed_at = datetime.datetime(2026, 1, 15, 9, 0, 0, tzinfo=datetime.UTC)
+        future_expires_at = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30)
         mock_snapshot.to_dict.return_value = {
             "identifier": VALID_ULID,
             "service": SERVICE_NAME,
             "processedAt": processed_at,
             "trace": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
-            "expiresAt": datetime.datetime(2026, 2, 14, 9, 0, 0, tzinfo=datetime.UTC),
+            "expiresAt": future_expires_at,
         }
 
         repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
         result = repository.find(VALID_ULID)
 
         assert result == processed_at
+        mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
+
+    def test_find_returns_none_when_expired(self) -> None:
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        processed_at = datetime.datetime(2025, 12, 1, 9, 0, 0, tzinfo=datetime.UTC)
+        past_expires_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "service": SERVICE_NAME,
+            "processedAt": processed_at,
+            "trace": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+            "expiresAt": past_expires_at,
+        }
+
+        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
+        result = repository.find(VALID_ULID)
+
+        assert result is None
         mock_collection.document.assert_called_once_with(EXPECTED_DOCUMENT_ID)
 
 

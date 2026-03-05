@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from typing import Any
 
 from google.cloud.storage import Client
@@ -13,6 +14,8 @@ from domain.value_object.enums import SourceStatusValue
 from domain.value_object.market_snapshot import MarketSnapshot
 from domain.value_object.source_status import SourceStatus
 from infrastructure.error import InfrastructureDataFormatError
+
+logger = logging.getLogger(__name__)
 
 
 class CloudStorageMarketDataRepository(MarketDataRepository):
@@ -57,21 +60,25 @@ class CloudStorageMarketDataRepository(MarketDataRepository):
         bucket = self._client.bucket(self._bucket_name)
         blobs = list(bucket.list_blobs())
 
+        matches: list[tuple[str, dict[str, Any]]] = []
+
         for blob in blobs:
             if not blob.name.endswith("/metadata.json"):
                 continue
             content = blob.download_as_text()
             try:
                 data: dict[str, Any] = json.loads(content)
-            except json.JSONDecodeError as error:
-                raise InfrastructureDataFormatError(
-                    source=self._bucket_name,
-                    detail=f"Failed to parse metadata JSON for {blob.name}: {error}",
-                    cause=error,
-                ) from error
+            except json.JSONDecodeError:
+                logger.warning("Skipping corrupt metadata: %s", blob.name)
+                continue
             if data.get("targetDate") == target_date.isoformat():
-                return _deserialize(data)
-        return None
+                matches.append((blob.name, data))
+
+        if not matches:
+            return None
+
+        matches.sort(key=lambda pair: pair[0], reverse=True)
+        return _deserialize(matches[0][1])
 
 
 def _deserialize(data: dict[str, Any]) -> MarketSnapshot:

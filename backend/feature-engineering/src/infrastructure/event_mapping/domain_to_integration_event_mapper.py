@@ -89,14 +89,17 @@ def _map_failed(event: FeatureGenerationFailed) -> dict[str, Any]:
     if reason_code_value not in _ASYNCAPI_REASON_CODES:
         raise ValueError(f"reasonCode '{reason_code_value}' is not defined in AsyncAPI contract")
 
+    payload: dict[str, Any] = {
+        "reasonCode": reason_code_value,
+    }
+    if event.detail is not None:
+        payload["detail"] = event.detail
+
     return {
         "identifier": event.identifier,
         "eventType": "features.generation.failed",
         "occurredAt": _format_utc_iso8601(event.occurred_at),
         "trace": event.trace,
         "schemaVersion": SCHEMA_VERSION,
-        "payload": {
-            "reasonCode": reason_code_value,
-            "detail": event.detail,
-        },
+        "payload": payload,
     }

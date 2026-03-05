@@ -71,7 +71,7 @@ class TestFeaturesGenerationFailedPublisher:
         publisher.publish(event)
 
         published_data = json.loads(mock_publisher_client.publish.call_args[1]["data"])
-        assert published_data["payload"]["detail"] is None
+        assert "detail" not in published_data["payload"]
 
     def test_publish_passes_cloud_events_attributes(self) -> None:
         mock_publisher_client = MagicMock()
