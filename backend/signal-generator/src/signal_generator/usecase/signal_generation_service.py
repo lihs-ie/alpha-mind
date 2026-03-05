@@ -310,7 +310,10 @@ class SignalGenerationService:
     ) -> GenerateSignalResult:
         """推論前フェーズ(入力検証・モデル解決)の失敗ハンドリング。"""
         retryable = reason_code not in ReasonCode.non_retryable()
-        self._persist_failed_generation(command, now, reason_code)
+        try:
+            self._persist_failed_generation(command, now, reason_code)
+        except Exception:
+            logger.exception("失敗集約永続化失敗: identifier=%s", command.identifier)
         try:
             self._publish_failed_event_and_dispatch(command, now, reason_code)
         except Exception:
@@ -424,7 +427,10 @@ class SignalGenerationService:
         """失敗結果を返す。retryable な場合は冪等性キーを terminate して再処理を許可する。"""
         if retryable:
             idempotency_key = f"{_SERVICE_PREFIX}:{command.identifier}"
-            self._idempotency_key_repository.terminate(idempotency_key)
+            try:
+                self._idempotency_key_repository.terminate(idempotency_key)
+            except Exception:
+                logger.exception("冪等性キー terminate 失敗: identifier=%s", command.identifier)
         return GenerateSignalResult.failure(reason_code=reason_code, detail=detail)
 
     def _build_signal_version(self, command: GenerateSignalCommand) -> str:
@@ -450,6 +456,4 @@ class SignalGenerationService:
         """例外の種別からReasonCodeを分類する。"""
         if isinstance(error, (ConnectionError, OSError)):
             return ReasonCode.DEPENDENCY_UNAVAILABLE
-        if isinstance(error, ValueError):
-            return ReasonCode.REQUEST_VALIDATION_FAILED
         return ReasonCode.INTERNAL_ERROR

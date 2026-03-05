@@ -1,11 +1,13 @@
 """FeaturePayloadIntegritySpecification."""
 
 import datetime
+import re
 from collections.abc import Callable
 
 from signal_generator.domain.value_objects.feature_snapshot import FeatureSnapshot
 
 _GCS_PREFIX = "gs://"
+_FEATURE_VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
 class FeaturePayloadIntegritySpecification:
@@ -21,7 +23,7 @@ class FeaturePayloadIntegritySpecification:
         self._clock = clock
 
     def is_satisfied_by(self, feature_snapshot: FeatureSnapshot) -> bool:
-        if not feature_snapshot.feature_version:
+        if not _FEATURE_VERSION_PATTERN.match(feature_snapshot.feature_version):
             return False
         if not feature_snapshot.storage_path:
             return False

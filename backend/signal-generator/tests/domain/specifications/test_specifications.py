@@ -93,6 +93,49 @@ class TestFeaturePayloadIntegritySpecification:
         )
         assert spec.is_satisfied_by(feature) is False
 
+    @pytest.mark.parametrize(
+        "malicious_version",
+        [
+            "../../x",
+            "../etc/passwd",
+            "v1.0.0/../../secret",
+            "",
+            " ",
+            "a" * 65,  # 65文字 = 上限超過
+        ],
+    )
+    def test_path_traversal_feature_version_does_not_satisfy(self, malicious_version: str) -> None:
+        """feature_version にパス汚染値が含まれる場合は不合格になる。"""
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
+        feature = FeatureSnapshot(
+            target_date=datetime.date(2026, 1, 1),
+            feature_version=malicious_version,
+            storage_path="gs://feature_store/2026-01-01/features.parquet",
+        )
+        assert spec.is_satisfied_by(feature) is False
+
+    @pytest.mark.parametrize(
+        "valid_version",
+        [
+            "v1.0.0",
+            "v2.3.4-beta",
+            "model_v1.2",
+            "A",
+            "a" * 64,  # ちょうど上限
+        ],
+    )
+    def test_valid_feature_version_satisfies(self, valid_version: str) -> None:
+        """正当な feature_version は合格する。"""
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
+        feature = FeatureSnapshot(
+            target_date=datetime.date(2026, 1, 1),
+            feature_version=valid_version,
+            storage_path="gs://feature_store/2026-01-01/features.parquet",
+        )
+        assert spec.is_satisfied_by(feature) is True
+
 
 class TestApprovedModelExistsSpecification:
     def test_approved_model_satisfies_specification(self) -> None:
