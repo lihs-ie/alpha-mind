@@ -8,14 +8,16 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 from signal_generator.presentation.dependency_container import create_application
 
 
-def create_app() -> object:
+def create_app() -> Any:
     """Flask アプリケーションファクトリ。
 
     WSGI サーバー (gunicorn, Cloud Run) から呼び出されるエントリーポイント。
+    flask がランタイム依存のため、型は Any として返す。
     """
     _configure_logging()
     return create_application()
@@ -36,7 +38,7 @@ def main() -> None:
     application = create_app()
     logger = logging.getLogger(__name__)
     logger.info("Signal Generator starting on port %d", port)
-    application.run(host="0.0.0.0", port=port)  # type: ignore[union-attr]
+    application.run(host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":  # pragma: no cover

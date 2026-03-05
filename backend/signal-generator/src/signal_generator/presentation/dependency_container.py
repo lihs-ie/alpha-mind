@@ -40,17 +40,11 @@ def create_application(
     application = flask.Flask(__name__)
 
     # 環境変数から設定を読み込む
-    default_universe_count = int(
-        os.environ.get("DEFAULT_UNIVERSE_COUNT", str(_DEFAULT_UNIVERSE_COUNT))
-    )
+    default_universe_count = int(os.environ.get("DEFAULT_UNIVERSE_COUNT", str(_DEFAULT_UNIVERSE_COUNT)))
     application.config["DEFAULT_UNIVERSE_COUNT"] = default_universe_count
 
     # サービスの解決
-    service = (
-        signal_generation_service
-        if signal_generation_service is not None
-        else _build_signal_generation_service()
-    )
+    service = signal_generation_service if signal_generation_service is not None else _build_signal_generation_service()
 
     application.config["SIGNAL_GENERATION_SERVICE"] = service
 
@@ -72,6 +66,8 @@ def _build_signal_generation_service() -> SignalGenerationService:
     すべてのインフラストラクチャ依存を解決してサービスを返す。
     GCP クライアント等の初期化はここで一度だけ行う。
     """
+    from google.cloud.firestore_v1 import Client as FirestoreClient
+
     from signal_generator.domain.factories.signal_dispatch_factory import (
         SignalDispatchFactory,
     )
@@ -93,6 +89,12 @@ def _build_signal_generation_service() -> SignalGenerationService:
     from signal_generator.infrastructure.firestore.firestore_model_registry_repository import (
         FirestoreModelRegistryRepository,
     )
+    from signal_generator.infrastructure.firestore.firestore_signal_dispatch_repository import (
+        FirestoreSignalDispatchRepository,
+    )
+    from signal_generator.infrastructure.firestore.firestore_signal_generation_repository import (
+        FirestoreSignalGenerationRepository,
+    )
     from signal_generator.infrastructure.messaging.pubsub_signal_event_publisher import (
         PubSubSignalEventPublisher,
     )
@@ -111,30 +113,36 @@ def _build_signal_generation_service() -> SignalGenerationService:
 
     # GCP プロジェクト設定
     gcp_project = os.environ.get("GCP_PROJECT", "")
-    signal_topic = os.environ.get("SIGNAL_TOPIC", "signal-events")
     mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "")
 
-    # Firestore リポジトリ
-    idempotency_key_repository = FirestoreIdempotencyKeyRepository()
-    model_registry_repository = FirestoreModelRegistryRepository()
+    # Firestore クライアント (全リポジトリで共有)
+    firestore_client = FirestoreClient(project=gcp_project)
 
-    # SignalGeneration / SignalDispatch リポジトリ
-    # NOTE: 将来的には Firestore 実装を追加。現時点では stub として
-    # idempotency_key_repository と model_registry_repository のみ使用。
-    signal_generation_repository = _create_stub_repository("signal_generation")
-    signal_dispatch_repository = _create_stub_repository("signal_dispatch")
+    # Firestore リポジトリ
+    idempotency_key_repository = FirestoreIdempotencyKeyRepository(firestore_client=firestore_client)
+    model_registry_repository = FirestoreModelRegistryRepository(firestore_client=firestore_client)
+    signal_generation_repository = FirestoreSignalGenerationRepository(firestore_client=firestore_client)
+    signal_dispatch_repository = FirestoreSignalDispatchRepository(firestore_client=firestore_client)
+
+    # Cloud Storage クライアント
+    from google.cloud.storage import Client as StorageClient
+
+    storage_client = StorageClient(project=gcp_project)
 
     # ストレージ
-    feature_reader = CloudStorageFeatureReader()
-    signal_writer = CloudStorageSignalWriter()
+    feature_reader = CloudStorageFeatureReader(storage_client=storage_client)
+    signal_writer = CloudStorageSignalWriter(storage_client=storage_client)
 
     # モデルローダー
     model_loader = MLflowModelLoader(tracking_uri=mlflow_tracking_uri)
 
     # イベントパブリッシャー
+    from google.cloud.pubsub_v1 import PublisherClient
+
+    publisher_client = PublisherClient()
     signal_event_publisher = PubSubSignalEventPublisher(
+        publisher_client=publisher_client,
         project_id=gcp_project,
-        topic_id=signal_topic,
     )
 
     # ドメインサービス・仕様
@@ -160,20 +168,3 @@ def _build_signal_generation_service() -> SignalGenerationService:
         inference_consistency_policy=inference_consistency_policy,
         clock=lambda: datetime.datetime.now(datetime.UTC),
     )
-
-
-def _create_stub_repository(name: str) -> object:
-    """未実装リポジトリのスタブを返す。
-
-    本番実装が完了するまでの暫定措置。
-    """
-    logger.warning("Using stub repository for %s", name)
-
-    class _StubRepository:
-        def persist(self, *args: object, **kwargs: object) -> None:
-            pass
-
-        def find(self, *args: object, **kwargs: object) -> None:
-            return None
-
-    return _StubRepository()

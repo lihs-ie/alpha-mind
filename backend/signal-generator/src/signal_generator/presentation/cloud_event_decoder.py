@@ -9,10 +9,13 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
+
+_ULID_PATTERN = re.compile(r"^[0-9A-HJKMNP-TV-Z]{26}$")
 
 _EXPECTED_EVENT_TYPE = "features.generated"
 
@@ -50,6 +53,10 @@ def decode_pubsub_push_message(
     Raises:
         CloudEventDecodeError: エンベロープまたはペイロードの構造が不正な場合。
     """
+    # Step 0: push_message の型検証
+    if not isinstance(push_message, dict):
+        raise CloudEventDecodeError(f"push_message must be a dict, got {type(push_message).__name__}")
+
     # Step 1: Pub/Sub エンベロープの検証
     message = push_message.get("message")
     if not isinstance(message, dict):
@@ -63,34 +70,33 @@ def decode_pubsub_push_message(
     try:
         data_bytes = base64.b64decode(data_encoded, validate=True)
     except Exception as error:
-        raise CloudEventDecodeError(
-            f"Failed to decode base64 data: {error}"
-        ) from error
+        raise CloudEventDecodeError(f"Failed to decode base64 data: {error}") from error
 
     # Step 3: JSON パース
     try:
         cloud_event = json.loads(data_bytes)
     except json.JSONDecodeError as error:
-        raise CloudEventDecodeError(
-            f"Failed to parse JSON from decoded data: {error}"
-        ) from error
+        raise CloudEventDecodeError(f"Failed to parse JSON from decoded data: {error}") from error
 
     if not isinstance(cloud_event, dict):
         raise CloudEventDecodeError("Decoded JSON is not an object")
 
     # Step 4: CloudEvents エンベロープのフィールド検証
     _require_string_field(cloud_event, "identifier")
+    _require_ulid_field(cloud_event, "identifier")
     _require_string_field(cloud_event, "trace")
+    _require_ulid_field(cloud_event, "trace")
     _require_string_field(cloud_event, "eventType")
+    _require_string_field(cloud_event, "occurredAt")
+    _require_datetime_field(cloud_event, "occurredAt")
+    _require_string_field(cloud_event, "schemaVersion")
 
     event_type = cloud_event["eventType"]
     if event_type != _EXPECTED_EVENT_TYPE:
-        raise CloudEventDecodeError(
-            f"Unexpected eventType: expected '{_EXPECTED_EVENT_TYPE}', got '{event_type}'"
-        )
+        raise CloudEventDecodeError(f"Unexpected eventType: expected '{_EXPECTED_EVENT_TYPE}', got '{event_type}'")
 
-    occurred_at = cloud_event.get("occurredAt", "")
-    schema_version = cloud_event.get("schemaVersion", "")
+    occurred_at: str = cloud_event["occurredAt"]
+    schema_version: str = cloud_event["schemaVersion"]
 
     # Step 5: payload の検証
     payload = cloud_event.get("payload")
@@ -106,9 +112,7 @@ def decode_pubsub_push_message(
     try:
         target_date = date.fromisoformat(target_date_string)
     except (ValueError, TypeError) as error:
-        raise CloudEventDecodeError(
-            f"Invalid targetDate format: '{target_date_string}'"
-        ) from error
+        raise CloudEventDecodeError(f"Invalid targetDate format: '{target_date_string}'") from error
 
     # universeCount はオプション
     universe_count_raw = payload.get("universeCount")
@@ -139,3 +143,21 @@ def _require_string_field(data: dict[str, object], field_name: str) -> None:
     value = data.get(field_name)
     if not isinstance(value, str) or not value:
         raise CloudEventDecodeError(f"Missing or empty required field: '{field_name}'")
+
+
+def _require_ulid_field(data: dict[str, object], field_name: str) -> None:
+    """フィールドが ULID 形式 (Crockford Base32, 26文字) であることを検証する。"""
+    value = data[field_name]
+    assert isinstance(value, str)
+    if not _ULID_PATTERN.match(value):
+        raise CloudEventDecodeError(f"Invalid ULID format for '{field_name}': '{value}'")
+
+
+def _require_datetime_field(data: dict[str, object], field_name: str) -> None:
+    """フィールドが ISO8601 date-time 形式であることを検証する。"""
+    value = data[field_name]
+    assert isinstance(value, str)
+    try:
+        datetime.fromisoformat(value)
+    except (ValueError, TypeError) as error:
+        raise CloudEventDecodeError(f"Invalid date-time format for '{field_name}': '{value}'") from error

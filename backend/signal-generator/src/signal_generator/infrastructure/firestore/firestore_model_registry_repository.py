@@ -1,11 +1,10 @@
 """Firestore implementation of ModelRegistryRepository."""
 
-from typing import Any
+from typing import Any, cast
 
 from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.firestore_v1 import Query
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
-from google.cloud.firestore_v1.base_query import BaseQuery
 
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.repositories.model_registry_repository import (
@@ -35,19 +34,20 @@ class FirestoreModelRegistryRepository(ModelRegistryRepository):
 
     def find(self, model_version: str) -> ModelSnapshot | None:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(model_version)
-        document_snapshot: DocumentSnapshot = document_reference.get()  # type: ignore[assignment]
+        document_snapshot = cast(DocumentSnapshot, document_reference.get())
         if not document_snapshot.exists:
             return None
         return _to_model_snapshot(document_snapshot.to_dict())
 
     def search(self, criteria: dict[str, object], limit: int = 100) -> list[ModelSnapshot]:
-        query: BaseQuery = self._firestore_client.collection(_COLLECTION_NAME)  # type: ignore[assignment]
-        for field_name, value in criteria.items():
+        collection = self._firestore_client.collection(_COLLECTION_NAME)
+        if not criteria:
+            return [_to_model_snapshot(document.to_dict()) for document in collection.limit(limit).stream()]
+        items = list(criteria.items())
+        query: Query = collection.where(items[0][0], "==", items[0][1])
+        for field_name, value in items[1:]:
             query = query.where(field_name, "==", value)
-        return [
-            _to_model_snapshot(document.to_dict())
-            for document in query.limit(limit).stream()  # type: ignore[union-attr]
-        ]
+        return [_to_model_snapshot(document.to_dict()) for document in query.limit(limit).stream()]
 
 
 def _to_model_snapshot(document_data: dict[str, Any] | None) -> ModelSnapshot:

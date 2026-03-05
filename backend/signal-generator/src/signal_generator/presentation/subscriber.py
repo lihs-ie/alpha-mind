@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from signal_generator.domain.enums.reason_code import ReasonCode
 from signal_generator.presentation.cloud_event_decoder import (
@@ -24,11 +24,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_SERVICE_NAME = "signal-generator"
+
 subscriber_blueprint = Blueprint("subscriber", __name__)
 
 
 @subscriber_blueprint.route("/", methods=["POST"])
-def handle_pubsub_push() -> tuple[object, int]:
+def handle_pubsub_push() -> tuple[Response, int]:
     """Pub/Sub push エンドポイント。
 
     エラー戦略:
@@ -39,14 +41,21 @@ def handle_pubsub_push() -> tuple[object, int]:
     # Step 1: リクエストボディの取得
     body = request.get_json(silent=True)
     if body is None:
-        logger.warning("Request body is not valid JSON")
+        logger.warning(
+            "Request body is not valid JSON",
+            extra={"service": _SERVICE_NAME},
+        )
         return jsonify({"status": "error", "error": "Invalid request body"}), 200
 
     # Step 2: CloudEvents エンベロープのデコード
     try:
         cloud_event_payload = decode_pubsub_push_message(body)
     except CloudEventDecodeError as error:
-        logger.warning("CloudEvent decode failed: %s", error)
+        logger.warning(
+            "CloudEvent decode failed: %s",
+            error,
+            extra={"service": _SERVICE_NAME},
+        )
         return jsonify({"status": "error", "error": str(error)}), 200
 
     # Step 3: GenerateSignalCommand の構築
@@ -54,6 +63,13 @@ def handle_pubsub_push() -> tuple[object, int]:
     default_universe_count: int = current_app.config["DEFAULT_UNIVERSE_COUNT"]
 
     universe_count = cloud_event_payload.universe_count or default_universe_count
+
+    structured_extra = {
+        "service": _SERVICE_NAME,
+        "identifier": cloud_event_payload.identifier,
+        "trace": cloud_event_payload.trace,
+        "eventType": cloud_event_payload.event_type,
+    }
 
     try:
         command = GenerateSignalCommand(
@@ -65,7 +81,11 @@ def handle_pubsub_push() -> tuple[object, int]:
             trace=cloud_event_payload.trace,
         )
     except ValueError as error:
-        logger.warning("Command validation failed: %s", error)
+        logger.warning(
+            "Command validation failed: %s",
+            error,
+            extra=structured_extra,
+        )
         return jsonify({"status": "error", "error": str(error)}), 200
 
     # Step 4: ユースケース実行
@@ -73,6 +93,7 @@ def handle_pubsub_push() -> tuple[object, int]:
         "Processing signal generation: identifier=%s, trace=%s",
         command.identifier,
         command.trace,
+        extra=structured_extra,
     )
 
     try:
@@ -81,21 +102,43 @@ def handle_pubsub_push() -> tuple[object, int]:
         logger.exception(
             "Unhandled exception in signal generation: identifier=%s",
             command.identifier,
+            extra=structured_extra,
         )
         return jsonify({"status": "error", "error": "Internal server error"}), 500
 
     # Step 5: 結果に応じたレスポンス
     if result.is_success:
+        logger.info(
+            "Signal generation completed: identifier=%s",
+            command.identifier,
+            extra=structured_extra,
+        )
         return jsonify({"status": "ok"}), 200
 
     # 失敗 - retryable かどうかで HTTP ステータスを分ける
-    is_retryable = result.reason_code is not None and result.reason_code not in ReasonCode.non_retryable()
+    # reason_code が None の場合は安全側で nack (500) を返す
+    if result.reason_code is None:
+        logger.warning(
+            "Failure with unknown reason_code (defaulting to nack): identifier=%s, trace=%s",
+            command.identifier,
+            command.trace,
+            extra=structured_extra,
+        )
+        return jsonify({"status": "error", "error": result.detail or "Unknown failure"}), 500
+
+    failure_extra = {
+        **structured_extra,
+        "reasonCode": str(result.reason_code),
+    }
+
+    is_retryable = result.reason_code not in ReasonCode.non_retryable()
 
     if is_retryable:
         logger.warning(
             "Retryable failure: identifier=%s, reason=%s",
             command.identifier,
             result.reason_code,
+            extra=failure_extra,
         )
         return jsonify({"status": "error", "error": result.detail or str(result.reason_code)}), 500
 
@@ -103,5 +146,6 @@ def handle_pubsub_push() -> tuple[object, int]:
         "Non-retryable failure (ack): identifier=%s, reason=%s",
         command.identifier,
         result.reason_code,
+        extra=failure_extra,
     )
     return jsonify({"status": "error", "error": result.detail or str(result.reason_code)}), 200

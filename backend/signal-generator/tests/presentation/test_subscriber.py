@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json
 from datetime import date
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import flask
 import pytest
@@ -76,9 +76,7 @@ def client(application: flask.Flask) -> flask.testing.FlaskClient:
 class TestSubscriberSuccess:
     """POST / with valid message and successful usecase."""
 
-    def test_returns_200_on_success(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_200_on_success(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         mock_service.execute.return_value = GenerateSignalResult.success()
         cloud_event = _build_cloud_event()
         body = _build_pubsub_body(cloud_event)
@@ -135,9 +133,7 @@ class TestSubscriberSuccess:
         command = mock_service.execute.call_args[0][0]
         assert command.universe_count == 500
 
-    def test_returns_200_on_duplicate(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_200_on_duplicate(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         mock_service.execute.return_value = GenerateSignalResult.duplicate()
         cloud_event = _build_cloud_event()
         body = _build_pubsub_body(cloud_event)
@@ -161,9 +157,7 @@ class TestSubscriberValidationFailure:
         assert response.status_code == 200
         mock_service.execute.assert_not_called()
 
-    def test_returns_200_on_missing_fields(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_200_on_missing_fields(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         cloud_event = _build_cloud_event()
         del cloud_event["identifier"]
         body = _build_pubsub_body(cloud_event)
@@ -173,17 +167,13 @@ class TestSubscriberValidationFailure:
         assert response.status_code == 200
         mock_service.execute.assert_not_called()
 
-    def test_returns_200_on_empty_body(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_200_on_empty_body(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         response = client.post("/", json={})
 
         assert response.status_code == 200
         mock_service.execute.assert_not_called()
 
-    def test_returns_200_on_non_json_body(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_200_on_non_json_body(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         response = client.post("/", data=b"not json", content_type="text/plain")
 
         assert response.status_code == 200
@@ -211,9 +201,7 @@ class TestSubscriberValidationFailure:
 class TestSubscriberUsecaseFailure:
     """POST / when usecase returns failure."""
 
-    def test_returns_500_on_retryable_failure(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_returns_500_on_retryable_failure(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         mock_service.execute.return_value = GenerateSignalResult.failure(
             reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
             detail="Firestore unavailable",
@@ -254,9 +242,7 @@ class TestSubscriberUsecaseFailure:
 class TestSubscriberResponseBody:
     """Response body format validation."""
 
-    def test_success_response_contains_status(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_success_response_contains_status(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         mock_service.execute.return_value = GenerateSignalResult.success()
         cloud_event = _build_cloud_event()
         body = _build_pubsub_body(cloud_event)
@@ -290,3 +276,98 @@ class TestSubscriberResponseBody:
         data = json.loads(response.data)
 
         assert "error" in data
+
+
+class TestSubscriberStructuredLogging:
+    """構造化ログの検証: 全ログに service, identifier, trace, eventType を含める。"""
+
+    def test_success_log_contains_structured_fields(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """成功時のログに構造化フィールドが含まれる。"""
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            # info ログが呼ばれていることを確認
+            info_calls = mock_logger.info.call_args_list
+            assert len(info_calls) >= 1
+            # extra に構造化フィールドが含まれる
+            for call in info_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+                assert extra.get("identifier") == "01JARQ0000AAAAAAAAAAAAAAAA"
+                assert extra.get("trace") == "01JARQ0000BBBBBBBBBBBBBBBB"
+                assert extra.get("eventType") == "features.generated"
+
+    def test_decode_failure_log_contains_service_field(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """デコード失敗時のログに service フィールドが含まれる。"""
+        cloud_event = _build_cloud_event(event_type="wrong.type")
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 1
+            for call in warning_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+
+    def test_unhandled_exception_log_contains_structured_fields(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """未ハンドル例外のログに構造化フィールドが含まれる。"""
+        mock_service.execute.side_effect = RuntimeError("unexpected")
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            exception_calls = mock_logger.exception.call_args_list
+            assert len(exception_calls) >= 1
+            for call in exception_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+                assert extra.get("identifier") == "01JARQ0000AAAAAAAAAAAAAAAA"
+                assert extra.get("trace") == "01JARQ0000BBBBBBBBBBBBBBBB"
+
+    def test_invalid_body_log_contains_service_field(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """不正ボディ時のログに service フィールドが含まれる。"""
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", data=b"not json", content_type="text/plain")
+
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 1
+            for call in warning_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+
+
+class TestSubscriberNullReasonCodeSafety:
+    """reason_code が None の失敗結果に対する安全側のデフォルト動作。"""
+
+    def test_failure_with_none_reason_code_returns_500(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """reason_code が None の失敗時は安全側で 500 (nack) を返す。"""
+        mock_service.execute.return_value = GenerateSignalResult(
+            is_success=False,
+            is_duplicate=False,
+            reason_code=None,
+            detail="Unknown failure",
+        )
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 500

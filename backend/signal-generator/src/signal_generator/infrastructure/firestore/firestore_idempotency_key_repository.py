@@ -1,6 +1,7 @@
 """Firestore implementation of IdempotencyKeyRepository."""
 
 import datetime
+from typing import cast
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client as FirestoreClient
@@ -26,7 +27,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
     def find(self, identifier: str) -> bool:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
-        document_snapshot: DocumentSnapshot = document_reference.get()  # type: ignore[assignment]
+        document_snapshot = cast(DocumentSnapshot, document_reference.get())
         return bool(document_snapshot.exists)
 
     def persist(

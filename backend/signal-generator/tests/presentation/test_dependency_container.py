@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import flask
 
 from signal_generator.presentation.dependency_container import (
-    _create_stub_repository,
     create_application,
 )
 
@@ -79,9 +78,7 @@ class TestCreateApplicationProduction:
 
     def test_without_override_calls_build_service(self) -> None:
         """Verify that without override, _build_signal_generation_service is called."""
-        with patch(
-            "signal_generator.presentation.dependency_container._build_signal_generation_service"
-        ) as mock_build:
+        with patch("signal_generator.presentation.dependency_container._build_signal_generation_service") as mock_build:
             mock_build.return_value = MagicMock()
             application = create_application()
             mock_build.assert_called_once()
@@ -101,17 +98,16 @@ class TestBuildSignalGenerationService:
                 "signal_generator.infrastructure.firestore.firestore_model_registry_repository.FirestoreModelRegistryRepository"
             ),
             patch(
-                "signal_generator.infrastructure.storage.cloud_storage_feature_reader.CloudStorageFeatureReader"
+                "signal_generator.infrastructure.firestore.firestore_signal_generation_repository.FirestoreSignalGenerationRepository"
             ),
             patch(
-                "signal_generator.infrastructure.storage.cloud_storage_signal_writer.CloudStorageSignalWriter"
+                "signal_generator.infrastructure.firestore.firestore_signal_dispatch_repository.FirestoreSignalDispatchRepository"
             ),
-            patch(
-                "signal_generator.infrastructure.mlflow.mlflow_model_loader.MLflowModelLoader"
-            ),
-            patch(
-                "signal_generator.infrastructure.messaging.pubsub_signal_event_publisher.PubSubSignalEventPublisher"
-            ),
+            patch("signal_generator.infrastructure.storage.cloud_storage_feature_reader.CloudStorageFeatureReader"),
+            patch("signal_generator.infrastructure.storage.cloud_storage_signal_writer.CloudStorageSignalWriter"),
+            patch("signal_generator.infrastructure.mlflow.mlflow_model_loader.MLflowModelLoader"),
+            patch("signal_generator.infrastructure.messaging.pubsub_signal_event_publisher.PubSubSignalEventPublisher"),
+            patch("google.cloud.firestore_v1.Client"),
         ):
             from signal_generator.presentation.dependency_container import (
                 _build_signal_generation_service,
@@ -126,13 +122,35 @@ class TestBuildSignalGenerationService:
             assert isinstance(service, SignalGenerationService)
 
 
-class TestCreateStubRepository:
-    """Tests for _create_stub_repository."""
+class TestProductionBuildUsesFirestoreRepositories:
+    """本番ビルドで Firestore リポジトリが使用されることを確認。"""
 
-    def test_stub_repository_persist_returns_none(self) -> None:
-        stub = _create_stub_repository("test")
-        assert stub.persist() is None  # type: ignore[union-attr]
+    def test_build_service_uses_firestore_signal_generation_repository(self) -> None:
+        """_build_signal_generation_service が FirestoreSignalGenerationRepository を使用する。"""
+        with (
+            patch(
+                "signal_generator.infrastructure.firestore.firestore_idempotency_key_repository.FirestoreIdempotencyKeyRepository"
+            ),
+            patch(
+                "signal_generator.infrastructure.firestore.firestore_model_registry_repository.FirestoreModelRegistryRepository"
+            ),
+            patch(
+                "signal_generator.infrastructure.firestore.firestore_signal_generation_repository.FirestoreSignalGenerationRepository"
+            ) as mock_signal_generation_repository_class,
+            patch(
+                "signal_generator.infrastructure.firestore.firestore_signal_dispatch_repository.FirestoreSignalDispatchRepository"
+            ) as mock_signal_dispatch_repository_class,
+            patch("signal_generator.infrastructure.storage.cloud_storage_feature_reader.CloudStorageFeatureReader"),
+            patch("signal_generator.infrastructure.storage.cloud_storage_signal_writer.CloudStorageSignalWriter"),
+            patch("signal_generator.infrastructure.mlflow.mlflow_model_loader.MLflowModelLoader"),
+            patch("signal_generator.infrastructure.messaging.pubsub_signal_event_publisher.PubSubSignalEventPublisher"),
+            patch("google.cloud.firestore_v1.Client"),
+        ):
+            from signal_generator.presentation.dependency_container import (
+                _build_signal_generation_service,
+            )
 
-    def test_stub_repository_find_returns_none(self) -> None:
-        stub = _create_stub_repository("test")
-        assert stub.find() is None  # type: ignore[union-attr]
+            _build_signal_generation_service()
+
+            mock_signal_generation_repository_class.assert_called_once()
+            mock_signal_dispatch_repository_class.assert_called_once()
