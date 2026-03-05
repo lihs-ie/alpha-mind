@@ -109,6 +109,7 @@ def _build_service(
     clock: datetime.datetime | None = None,
 ) -> SignalGenerationService:
     """テスト用にモック依存を注入した SignalGenerationService を構築する。"""
+    effective_clock_value = clock or _FIXED_NOW
     return SignalGenerationService(
         idempotency_key_repository=idempotency_key_repository or MagicMock(spec=IdempotencyKeyRepository),
         model_registry_repository=model_registry_repository or MagicMock(spec=ModelRegistryRepository),
@@ -125,7 +126,7 @@ def _build_service(
         ),
         approved_model_policy=ApprovedModelPolicy(),
         inference_consistency_policy=InferenceConsistencyPolicy(),
-        clock=lambda: _FIXED_NOW,
+        clock=lambda: effective_clock_value,
     )
 
 
@@ -202,7 +203,15 @@ class TestInputValidation:
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
         idempotency_repository.persist.return_value = True
 
-        service = _build_service(idempotency_key_repository=idempotency_repository)
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
 
         command = GenerateSignalCommand(
             identifier=_IDENTIFIER,
@@ -217,13 +226,24 @@ class TestInputValidation:
 
         assert result.is_success is False
         assert result.reason_code == ReasonCode.REQUEST_VALIDATION_FAILED
+        # 失敗時に SignalGeneration が永続化され、失敗イベントが発行されること
+        signal_generation_repository.persist.assert_called_once()
+        event_publisher.publish_signal_generation_failed.assert_called_once()
 
     def test_invalid_storage_path_causes_failure(self) -> None:
         """storage_path が gs:// で始まらない場合、REQUEST_VALIDATION_FAILED で失敗する。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
         idempotency_repository.persist.return_value = True
 
-        service = _build_service(idempotency_key_repository=idempotency_repository)
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
 
         command = GenerateSignalCommand(
             identifier=_IDENTIFIER,
@@ -244,7 +264,15 @@ class TestInputValidation:
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
         idempotency_repository.persist.return_value = True
 
-        service = _build_service(idempotency_key_repository=idempotency_repository)
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
 
         command = GenerateSignalCommand(
             identifier=_IDENTIFIER,
@@ -408,14 +436,18 @@ class TestHappyPath:
         model_loader = MagicMock(spec=ModelLoader)
         model_loader.load.return_value = _MockModelPredictor()
 
+        def _record_signal_write(*positional_arguments: object, **keyword_arguments: object) -> None:
+            call_order.append("signal_write")
+
         signal_writer = MagicMock(spec=SignalWriter)
-        signal_writer.write.side_effect = lambda *positional_arguments, **keyword_arguments: call_order.append("signal_write")
+        signal_writer.write.side_effect = _record_signal_write
+
+        def _record_event_publish(*positional_arguments: object, **keyword_arguments: object) -> str:
+            call_order.append("event_publish")
+            return "msg-001"
 
         event_publisher = MagicMock(spec=SignalEventPublisher)
-        event_publisher.publish_signal_generated.side_effect = lambda *positional_arguments, **keyword_arguments: (
-            call_order.append("event_publish"),
-            "msg-001",
-        )[-1]
+        event_publisher.publish_signal_generated.side_effect = _record_event_publish
 
         service = _build_service(
             idempotency_key_repository=idempotency_repository,
@@ -949,3 +981,149 @@ class TestIdempotencyKeyRecording:
             _FIXED_NOW,
             _TRACE,
         )
+
+    def test_retryable_failure_terminates_idempotency_key(self) -> None:
+        """retryable な失敗時、冪等性キーが terminate されて再処理が可能になる。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.side_effect = ConnectionError("Cloud Storage unavailable")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        # retryable な失敗なので terminate が呼ばれる
+        idempotency_repository.terminate.assert_called_once_with(
+            f"signal-generator:{_IDENTIFIER}",
+        )
+
+    def test_non_retryable_failure_does_not_terminate_idempotency_key(self) -> None:
+        """non-retryable な失敗時、冪等性キーは terminate されない。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        # REQUEST_VALIDATION_FAILED は non-retryable
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+        )
+
+        command = GenerateSignalCommand(
+            identifier=_IDENTIFIER,
+            target_date=_TARGET_DATE,
+            feature_version="",
+            storage_path=_STORAGE_PATH,
+            universe_count=100,
+            trace=_TRACE,
+        )
+
+        result = service.execute(command)
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.REQUEST_VALIDATION_FAILED
+        # non-retryable なので terminate は呼ばれない
+        idempotency_repository.terminate.assert_not_called()
+
+
+# --- Signal Writer Failure Tests ---
+
+
+class TestSignalWriterFailure:
+    """signal_store 書き込み失敗のテスト。"""
+
+    def test_signal_writer_failure_returns_structured_failure(self) -> None:
+        """signal_writer の失敗時、構造化された失敗結果を返す。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        signal_writer.write.side_effect = ConnectionError("Cloud Storage write failed")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        # SignalGeneration が failed 状態で永続化されたか
+        signal_generation_repository.persist.assert_called()
+        persisted = signal_generation_repository.persist.call_args[0][0]
+        assert persisted.status == GenerationStatus.FAILED
+        # 失敗イベントが発行されたか
+        event_publisher.publish_signal_generation_failed.assert_called_once()
+
+    def test_signal_writer_timeout_returns_dependency_timeout(self) -> None:
+        """signal_writer のタイムアウト時、DEPENDENCY_TIMEOUT で失敗する。"""
+        idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
+        idempotency_repository.persist.return_value = True
+
+        model_registry = MagicMock(spec=ModelRegistryRepository)
+        model_registry.find_by_status.return_value = _make_approved_model_snapshot()
+
+        feature_reader = MagicMock(spec=FeatureReader)
+        feature_reader.read.return_value = _make_feature_dataframe()
+
+        model_loader = MagicMock(spec=ModelLoader)
+        model_loader.load.return_value = _MockModelPredictor()
+
+        signal_writer = MagicMock(spec=SignalWriter)
+        signal_writer.write.side_effect = TimeoutError("write timeout")
+
+        signal_generation_repository = MagicMock(spec=SignalGenerationRepository)
+
+        event_publisher = MagicMock(spec=SignalEventPublisher)
+        event_publisher.publish_signal_generation_failed.return_value = "msg-fail"
+
+        service = _build_service(
+            idempotency_key_repository=idempotency_repository,
+            model_registry_repository=model_registry,
+            feature_reader=feature_reader,
+            model_loader=model_loader,
+            signal_writer=signal_writer,
+            signal_generation_repository=signal_generation_repository,
+            signal_event_publisher=event_publisher,
+        )
+
+        result = service.execute(_make_command())
+
+        assert result.is_success is False
+        assert result.reason_code == ReasonCode.DEPENDENCY_TIMEOUT

@@ -1,5 +1,7 @@
 """GenerateSignalResult DTO."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from signal_generator.domain.enums.reason_code import ReasonCode

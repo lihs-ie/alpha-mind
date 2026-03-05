@@ -97,7 +97,7 @@ class SignalGenerationService:
         """features.generated イベントを処理し、シグナル生成を実行する。
 
         処理フロー:
-        1. 冪等性チェック (RULE-SG-003) - 原子的 acquire
+        1. 冪等性キー acquire (RULE-SG-003) - 原子的 persist
         2. 入力検証 (RULE-SG-001)
         3. approved モデル解決 (RULE-SG-002)
         4. 特徴量読み込み
@@ -107,7 +107,8 @@ class SignalGenerationService:
         8. signal_store へ保存 (RULE-SG-005)
         9. 集約永続化
         10. イベント発行 (RULE-SG-006)
-        11. 冪等性キー記録
+
+        retryable な失敗時は冪等性キーを terminate して再処理を許可する。
         """
         idempotency_key = f"{_SERVICE_PREFIX}:{command.identifier}"
         now = self._clock()
@@ -124,11 +125,13 @@ class SignalGenerationService:
             storage_path=command.storage_path,
         )
         if not self._feature_payload_integrity_specification.is_satisfied_by(feature_snapshot):
-            logger.warning("入力検証失敗: identifier=%s", command.identifier)
-            return GenerateSignalResult.failure(
-                reason_code=ReasonCode.REQUEST_VALIDATION_FAILED,
-                detail="入力検証に失敗しました",
+            reason_code = ReasonCode.REQUEST_VALIDATION_FAILED
+            logger.warning(
+                "入力検証失敗: identifier=%s, reason=%s",
+                command.identifier,
+                reason_code,
             )
+            return self._handle_model_resolution_failure(command, now, reason_code)
 
         # Step 3: approved モデル解決 (RULE-SG-002)
         model_snapshot = self._model_registry_repository.find_by_status(ModelStatus.APPROVED)
@@ -235,7 +238,27 @@ class SignalGenerationService:
         model_diagnostics = self._build_model_diagnostics()
 
         # Step 8: signal_store へ保存 (RULE-SG-005: 保存後にのみイベント発行)
-        self._signal_writer.write(prediction_dataframe, signal_storage_path)
+        try:
+            self._signal_writer.write(prediction_dataframe, signal_storage_path)
+        except TimeoutError:
+            logger.exception("signal_store 書き込みタイムアウト: identifier=%s", command.identifier)
+            return self._handle_inference_failure(
+                generation=generation,
+                command=command,
+                now=now,
+                reason_code=ReasonCode.DEPENDENCY_TIMEOUT,
+                detail="signal_store 書き込みタイムアウト",
+            )
+        except Exception as error:
+            logger.exception("signal_store 書き込み失敗: identifier=%s", command.identifier)
+            reason_code = self._classify_exception_reason_code(error)
+            return self._handle_inference_failure(
+                generation=generation,
+                command=command,
+                now=now,
+                reason_code=reason_code,
+                detail="signal_store 書き込みに失敗しました",
+            )
 
         # 集約を完了状態にする
         generation.complete(signal_artifact, model_diagnostics, now)
@@ -280,16 +303,20 @@ class SignalGenerationService:
         reason_code: ReasonCode,
     ) -> GenerateSignalResult:
         """モデル解決失敗のハンドリング。"""
+        retryable = reason_code not in ReasonCode.non_retryable()
         self._persist_failed_generation(command, now, reason_code)
         try:
             self._publish_failed_event_and_dispatch(command, now, reason_code)
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
-            return GenerateSignalResult.failure(
+            return self._finalize_failure(
+                command, retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="失敗イベント発行に失敗しました",
             )
-        return GenerateSignalResult.failure(reason_code=reason_code)
+        return self._finalize_failure(
+            command, retryable=retryable, reason_code=reason_code,
+        )
 
     def _handle_inference_failure(
         self,
@@ -304,9 +331,10 @@ class SignalGenerationService:
         detail はサニタイズ済みメッセージのみを受け取る。
         生の例外文言は logger で記録し、外部には伝播しない。
         """
+        retryable = reason_code not in ReasonCode.non_retryable()
         failure_detail = FailureDetail(
             reason_code=reason_code,
-            retryable=reason_code not in ReasonCode.non_retryable(),
+            retryable=retryable,
             detail=detail,
         )
         generation.fail(failure_detail, now)
@@ -315,11 +343,14 @@ class SignalGenerationService:
             self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
-            return GenerateSignalResult.failure(
+            return self._finalize_failure(
+                command, retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="失敗イベント発行に失敗しました",
             )
-        return GenerateSignalResult.failure(reason_code=reason_code, detail=detail)
+        return self._finalize_failure(
+            command, retryable=retryable, reason_code=reason_code, detail=detail,
+        )
 
     def _persist_failed_generation(
         self,
@@ -369,6 +400,19 @@ class SignalGenerationService:
         )
         dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, now)
         self._signal_dispatch_repository.persist(dispatch)
+
+    def _finalize_failure(
+        self,
+        command: GenerateSignalCommand,
+        retryable: bool,
+        reason_code: ReasonCode,
+        detail: str | None = None,
+    ) -> GenerateSignalResult:
+        """失敗結果を返す。retryable な場合は冪等性キーを terminate して再処理を許可する。"""
+        if retryable:
+            idempotency_key = f"{_SERVICE_PREFIX}:{command.identifier}"
+            self._idempotency_key_repository.terminate(idempotency_key)
+        return GenerateSignalResult.failure(reason_code=reason_code, detail=detail)
 
     def _build_signal_version(self, command: GenerateSignalCommand) -> str:
         """signal_version を採番する。"""
