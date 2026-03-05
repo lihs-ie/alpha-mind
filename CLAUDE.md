@@ -214,7 +214,7 @@ UIテキスト: Inter + Noto Sans JP / 数値表示: JetBrains Mono
 
 ## イベント共通仕様
 
-CloudEvents 互換 JSON。必須属性: `eventId`(冪等性キー), `eventType`, `occurredAt`(ISO8601 UTC), `traceId`, `schemaVersion`, `payload`
+CloudEvents 互換 JSON。必須属性: `identifier`(冪等性キー/ULID), `eventType`, `occurredAt`(ISO8601 UTC), `trace`(ULID), `schemaVersion`, `payload`
 
 ## エラーハンドリング
 

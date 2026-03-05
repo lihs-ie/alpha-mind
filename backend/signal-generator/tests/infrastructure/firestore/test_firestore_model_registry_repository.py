@@ -128,7 +128,7 @@ class TestFirestoreModelRegistryRepository:
         }
 
         mock_query = MagicMock()
-        mock_query.stream.return_value = iter([mock_document_1, mock_document_2])
+        mock_query.limit.return_value.stream.return_value = iter([mock_document_1, mock_document_2])
         mock_client.collection.return_value.where.return_value = mock_query
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
@@ -141,7 +141,7 @@ class TestFirestoreModelRegistryRepository:
     def test_search_returns_empty_list_when_no_matches(self) -> None:
         mock_client = MagicMock()
         mock_query = MagicMock()
-        mock_query.stream.return_value = iter([])
+        mock_query.limit.return_value.stream.return_value = iter([])
         mock_client.collection.return_value.where.return_value = mock_query
 
         repository = FirestoreModelRegistryRepository(firestore_client=mock_client)

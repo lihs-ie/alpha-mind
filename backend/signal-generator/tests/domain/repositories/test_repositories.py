@@ -147,8 +147,11 @@ class TestIdempotencyKeyRepositoryIsAbstract:
             def find(self, identifier: str) -> bool:
                 return identifier in self._stored
 
-            def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> None:
+            def persist(self, identifier: str, processed_at: datetime.datetime, trace: str) -> bool:
+                if identifier in self._stored:
+                    return False
                 self._stored.add(identifier)
+                return True
 
             def terminate(self, identifier: str) -> None:
                 self._stored.discard(identifier)

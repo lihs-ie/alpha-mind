@@ -40,13 +40,13 @@ class FirestoreModelRegistryRepository(ModelRegistryRepository):
             return None
         return _to_model_snapshot(document_snapshot.to_dict())
 
-    def search(self, criteria: dict[str, object]) -> list[ModelSnapshot]:
+    def search(self, criteria: dict[str, object], limit: int = 100) -> list[ModelSnapshot]:
         query: BaseQuery = self._firestore_client.collection(_COLLECTION_NAME)  # type: ignore[assignment]
         for field_name, value in criteria.items():
             query = query.where(field_name, "==", value)
         return [
             _to_model_snapshot(document.to_dict())
-            for document in query.stream()  # type: ignore[union-attr]
+            for document in query.limit(limit).stream()  # type: ignore[union-attr]
         ]
 
 

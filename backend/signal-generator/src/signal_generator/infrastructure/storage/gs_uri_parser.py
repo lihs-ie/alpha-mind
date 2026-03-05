@@ -13,4 +13,10 @@ def parse_gs_uri(uri: str) -> tuple[str, str]:
 
     bucket_name = without_prefix[:slash_index]
     object_path = without_prefix[slash_index + 1 :]
+
+    if not bucket_name:
+        raise ValueError(f"Cloud Storage URI のバケット名が空 (got: {uri})")
+    if not object_path:
+        raise ValueError(f"Cloud Storage URI のオブジェクトパスが空 (got: {uri})")
+
     return bucket_name, object_path

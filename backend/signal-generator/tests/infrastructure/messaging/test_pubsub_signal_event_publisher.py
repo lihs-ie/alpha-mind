@@ -41,13 +41,13 @@ class TestPubSubSignalEventPublisher:
             slippage_adjusted_sharpe=1.1,
         )
         event = SignalGenerationCompletedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             signal_version="sv-20260305",
             model_version="v1.0.0",
             feature_version="fv-20260305",
             storage_path="gs://bucket/signals/2026-03-05.parquet",
             model_diagnostics=model_diagnostics,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
         )
 
@@ -62,9 +62,9 @@ class TestPubSubSignalEventPublisher:
 
         # CloudEvents エンベロープの内容を確認
         message_data = json.loads(publish_call[1]["data"])
-        assert message_data["identifier"] == "01JTEST000000000000000000"
+        assert message_data["identifier"] == "01JTEST0000000000000000000"
         assert message_data["eventType"] == "signal.generated"
-        assert message_data["trace"] == "01JTRACE00000000000000000"
+        assert message_data["trace"] == "01JTRACE000000000000000000"
         assert message_data["schemaVersion"] == "1.0.0"
         assert "payload" in message_data
 
@@ -88,9 +88,9 @@ class TestPubSubSignalEventPublisher:
         )
 
         event = SignalGenerationFailedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             reason_code=ReasonCode.MODEL_NOT_APPROVED,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
             detail="Model v0.9.0 is not approved",
         )
@@ -104,9 +104,9 @@ class TestPubSubSignalEventPublisher:
         assert topic_path == "projects/my-project/topics/event-signal-generation-failed-v1"
 
         message_data = json.loads(publish_call[1]["data"])
-        assert message_data["identifier"] == "01JTEST000000000000000000"
+        assert message_data["identifier"] == "01JTEST0000000000000000000"
         assert message_data["eventType"] == "signal.generation.failed"
-        assert message_data["trace"] == "01JTRACE00000000000000000"
+        assert message_data["trace"] == "01JTRACE000000000000000000"
         assert message_data["schemaVersion"] == "1.0.0"
 
         payload = message_data["payload"]
@@ -129,13 +129,13 @@ class TestPubSubSignalEventPublisher:
             requires_compliance_review=False,
         )
         event = SignalGenerationCompletedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             signal_version="sv-20260305",
             model_version="v1.0.0",
             feature_version="fv-20260305",
             storage_path="gs://bucket/signals/2026-03-05.parquet",
             model_diagnostics=model_diagnostics,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
         )
 
@@ -158,9 +158,9 @@ class TestPubSubSignalEventPublisher:
         )
 
         event = SignalGenerationFailedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             reason_code=ReasonCode.DEPENDENCY_TIMEOUT,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
         )
 

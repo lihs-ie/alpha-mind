@@ -5,10 +5,12 @@ import io
 import pandas
 from google.cloud.storage import Client as StorageClient
 
+from signal_generator.domain.ports.signal_writer import SignalWriter
+from signal_generator.infrastructure.retry import with_retry
 from signal_generator.infrastructure.storage.gs_uri_parser import parse_gs_uri
 
 
-class CloudStorageSignalWriter:
+class CloudStorageSignalWriter(SignalWriter):
     """signal_store バケットに推論結果 Parquet を書き出す。"""
 
     def __init__(self, storage_client: StorageClient) -> None:
@@ -23,4 +25,4 @@ class CloudStorageSignalWriter:
         buffer = io.BytesIO()
         dataframe.to_parquet(buffer, index=False)
         buffer.seek(0)
-        blob.upload_from_file(buffer, content_type="application/octet-stream")
+        with_retry(lambda: blob.upload_from_file(buffer, content_type="application/octet-stream"))

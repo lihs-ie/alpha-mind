@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from signal_generator.domain.ports.model_loader import ModelLoader
+
 
 class ModelLoadError(Exception):
     """MLflow からのモデルロードに失敗した場合の例外。"""
 
 
-class MLflowModelLoader:
+class MLflowModelLoader(ModelLoader):
     """MLflow Model Registry から推論用モデルをロードする。"""
 
     def __init__(self, tracking_uri: str) -> None:
@@ -38,4 +40,7 @@ class MLflowModelLoader:
         try:
             return mlflow.pyfunc.load_model(model_uri=model_uri)
         except Exception as error:
-            raise ModelLoadError(f"モデル '{model_name}' (uri={model_uri}) のロードに失敗: {error}") from error
+            sanitized_message = str(error)[:200]
+            raise ModelLoadError(
+                f"モデル '{model_name}' (uri={model_uri}) のロードに失敗: {sanitized_message}"
+            ) from error

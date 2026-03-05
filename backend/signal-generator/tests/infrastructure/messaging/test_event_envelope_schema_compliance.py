@@ -27,7 +27,10 @@ from signal_generator.infrastructure.messaging.pubsub_signal_event_publisher imp
 _REQUIRED_ENVELOPE_KEYS = {"identifier", "eventType", "occurredAt", "trace", "schemaVersion", "payload"}
 
 
-def _publish_and_extract(event: Any, method_name: str) -> dict[str, Any]:
+def _publish_and_extract(
+    event: SignalGenerationCompletedEvent | SignalGenerationFailedEvent,
+    method_name: str,
+) -> dict[str, Any]:
     """Publish an event via mock and return the parsed envelope."""
     mock_publisher_client = MagicMock()
     future = MagicMock()
@@ -41,7 +44,8 @@ def _publish_and_extract(event: Any, method_name: str) -> dict[str, Any]:
     getattr(publisher, method_name)(event)
 
     publish_call = mock_publisher_client.publish.call_args
-    return json.loads(publish_call[1]["data"])
+    result: dict[str, Any] = json.loads(publish_call[1]["data"])
+    return result
 
 
 class TestSignalGeneratedEnvelopeSchemaCompliance:
@@ -59,13 +63,13 @@ class TestSignalGeneratedEnvelopeSchemaCompliance:
             slippage_adjusted_sharpe=slippage_adjusted_sharpe,
         )
         return SignalGenerationCompletedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             signal_version="sv-20260305",
             model_version="v1.0.0",
             feature_version="fv-20260305",
             storage_path="gs://bucket/signals/2026-03-05.parquet",
             model_diagnostics=model_diagnostics,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
         )
 
@@ -128,9 +132,9 @@ class TestSignalGenerationFailedEnvelopeSchemaCompliance:
 
     def _make_event(self, detail: str | None = None) -> SignalGenerationFailedEvent:
         return SignalGenerationFailedEvent(
-            identifier="01JTEST000000000000000000",
+            identifier="01JTEST0000000000000000000",
             reason_code=ReasonCode.MODEL_NOT_APPROVED,
-            trace="01JTRACE00000000000000000",
+            trace="01JTRACE000000000000000000",
             occurred_at=datetime.datetime(2026, 3, 5, 10, 30, 0, tzinfo=datetime.UTC),
             detail=detail,
         )

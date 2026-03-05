@@ -50,6 +50,20 @@ class TestCloudStorageFeatureReader:
         with pytest.raises(ValueError, match="オブジェクトパス"):
             reader.read("gs://bucket-only")
 
+    def test_read_raises_value_error_for_empty_bucket_name(self) -> None:
+        mock_storage_client = MagicMock()
+        reader = CloudStorageFeatureReader(storage_client=mock_storage_client)
+
+        with pytest.raises(ValueError, match="バケット名が空"):
+            reader.read("gs:///path/to/file")
+
+    def test_read_raises_value_error_for_empty_object_path(self) -> None:
+        mock_storage_client = MagicMock()
+        reader = CloudStorageFeatureReader(storage_client=mock_storage_client)
+
+        with pytest.raises(ValueError, match="オブジェクトパスが空"):
+            reader.read("gs://bucket/")
+
     def test_read_with_nested_path(self) -> None:
         mock_storage_client = MagicMock()
         mock_bucket = MagicMock()

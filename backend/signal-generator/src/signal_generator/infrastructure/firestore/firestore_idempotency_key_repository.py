@@ -34,7 +34,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         identifier: str,
         processed_at: datetime.datetime,
         trace: str,
-    ) -> None:
+    ) -> bool:
         expires_at = processed_at + datetime.timedelta(days=_TTL_DAYS)
         document_data = {
             "identifier": identifier,
@@ -46,10 +46,9 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         try:
             document_reference.create(document_data)
-        except AlreadyExists as error:
-            raise ValueError(
-                f"Idempotency key '{identifier}' already exists. Duplicate event processing detected."
-            ) from error
+            return True
+        except AlreadyExists:
+            return False
 
     def terminate(self, identifier: str) -> None:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
