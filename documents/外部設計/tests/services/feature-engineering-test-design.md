@@ -1,7 +1,7 @@
-# feature-engineering テスト設計書
+# feature-engineering API統合テスト設計書
 
-最終更新日: 2026-03-03  
-文書バージョン: v0.2  
+最終更新日: 2026-03-05  
+文書バージョン: v0.3  
 対象サービス: feature-engineering
 
 ## 1. 文書情報
@@ -9,100 +9,133 @@
 | 項目 | 内容 |
 |---|---|
 | 作成者 | Codex |
-| 関連要件 | `documents/機能仕様書.md` |
 | 関連設計 | `documents/外部設計/services/feature-engineering.md` |
-| 適用リリース | `2026.03`（Tag運用: `stg-{yyyyMMddHHmm}` -> `prod-{yyyyMMddHHmm}`） |
+| API契約 | `documents/外部設計/api/asyncapi.yaml` |
+| 適用リリース | `2026.03` |
 
 ## 2. 目的と適用範囲
 
-- 市場データと定性インサイトの融合特徴量生成品質を検証する。
-- 対象は `market.collected` 受信から特徴量保存、`features.generated/failed` 発行まで。
+- `market.collected` 受信から `features.generated` / `features.generation.failed` 発行までを実装可能な粒度で検証する。
+- 定性×定量融合、単位同期、時系列健全性、失敗通知を対象とする。
 
-## 3. テスト方針
+## 3. テスト対象API（イベント契約）
 
-- 将来情報混入検知を最優先リスクとして扱う。
-- `collectedAt <= targetDate` の時系列制約を境界値で検証する。
-- 失敗時は後続抑止のため `features.generation.failed` 発行を必須確認する。
+| API-ID | 種別 | topic | 優先度 |
+|---|---|---|---|
+| FE-API-01 | Event購読 | `event-market-collected-v1` | P0 |
+| FE-API-02 | Event発行 | `event-features-generated-v1` | P0 |
+| FE-API-03 | Event発行 | `event-features-generation-failed-v1` | P0 |
 
-## 4. テスト対象と品質リスク
+## 4. テスト環境と前提
 
-| リスクID | リスク内容 | 影響度 | 発生確率 | 対応 |
-|---|---|---:|---:|---|
-| FE-RSK-01 | リーク特徴量混入 | 5 | 2 | 時系列検証テスト |
-| FE-RSK-02 | 定性データ時点不整合 | 4 | 3 | 境界値テスト |
-| FE-RSK-03 | 必須列欠損の見逃し | 4 | 3 | 入力バリデーション異常系 |
-| FE-RSK-04 | 財務指標の単位不整合（分割跨ぎ） | 5 | 2 | 調整係数同期テスト |
-| FE-RSK-05 | BPS の不適切 `forward fill` | 4 | 2 | 分割境界異常系テスト |
+```bash
+export BASE_URL="http://localhost:3003"
+export PUBSUB_URL="http://localhost:8085"
+export PROJECT_ID="alpha-mind-local"
+```
 
-## 5. テストレベル・タイプ・技法
+補助関数:
 
-| 観点 | 内容 |
-|---|---|
-| レベル | Unit / Integration / System |
-| タイプ | 機能、データ品質、異常系、回帰 |
-| 技法 | 同値分割、境界値分析、デシジョンテーブル |
+```bash
+publish_event() {
+  topic="$1"
+  json="$2"
+  data=$(printf '%s' "$json" | base64 | tr -d '\n')
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/topics/$topic:publish" \
+    -H 'content-type: application/json' \
+    -d "{\"messages\":[{\"data\":\"$data\"}]}" | jq .
+}
 
-## 6. エントリ/イグジット基準
+create_pull_sub() {
+  sub="$1"; topic="$2"
+  curl -sS -X PUT "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub" \
+    -H 'content-type: application/json' \
+    -d "{\"topic\":\"projects/$PROJECT_ID/topics/$topic\",\"ackDeadlineSeconds\":60}" | jq .
+}
 
-- エントリ: 入力データセット、insight_records、Storage書込先が準備済み。
-- イグジット: 実行率100%、重大欠陥0件、1サイクル15分以内。
+pull_one() {
+  sub="$1"
+  curl -sS -X POST "$PUBSUB_URL/v1/projects/$PROJECT_ID/subscriptions/$sub:pull" \
+    -H 'content-type: application/json' \
+    -d '{"maxMessages":1}' | jq .
+}
+```
 
-## 7. テスト環境・データ・ツール
+## 5. 詳細テストケース
 
-| 区分 | 内容 |
-|---|---|
-| 環境 | `local`, `stg` |
-| テストデータ | 正常系・異常系の固定データセット |
-| ツール | `ruff check`, `pytest`, Cloud Logging, Cloud Monitoring |
+| TC-ID | 観点 | 優先度 | 期待結果 |
+|---|---|---|---|
+| FE-IT-001 | ヘルスチェック | P1 | `/healthz` = 200 |
+| FE-IT-002 | 正常特徴量生成 | P0 | `features.generated` 受信 |
+| FE-IT-003 | 入力欠損 | P0 | `features.generation.failed` 受信 |
+| FE-IT-004 | 冪等性 | P0 | 二重生成なし |
+| FE-IT-005 | trace伝播 | P0 | 同一trace |
 
-## 8. 要件トレーサビリティ
+### FE-IT-001
 
-| UC ID | テスト条件ID | テストケースID |
-|---|---|---|
-| UC-FE-01 | FE-COND-01 特徴量生成成功 | FE-TC-001 |
-| UC-FE-03 | FE-COND-02 定性融合 | FE-TC-002 |
-| UC-FE-02 | FE-COND-03 入力不整合停止 | FE-TC-003 |
+```bash
+curl -si "$BASE_URL/healthz"
+```
 
-## 9. 主要テストケース
+### FE-IT-002
 
-| テストケースID | 観点 | 期待結果 |
-|---|---|---|
-| FE-TC-001 | 正常入力 | 特徴量保存、`features.generated`発行 |
-| FE-TC-002 | 定性データ時点境界 | `collectedAt <= targetDate` のみ利用 |
-| FE-TC-003 | 必須列欠損 | `features.generation.failed`発行、後続抑止 |
-| FE-TC-004 | 将来情報混入 | 失敗扱いで保存しない |
-| FE-TC-005 | 分割日を跨ぐ PBR 計算 | 価格とBPSに同一 `adjustmentCumFactor` が適用され、単位不整合が発生しない |
-| FE-TC-006 | 分割イベント跨ぎで BPS 欠損補完 | 単純 `forward fill` を拒否し `features.generation.failed` を発行 |
-| FE-TC-007 | `unitSyncCheckPassed=false` 行が閾値超過 | `DATA_SCHEMA_INVALID` で失敗し保存しない |
+```bash
+create_pull_sub sub-it-features-generated event-features-generated-v1
 
-## 10. 欠陥管理
+publish_event event-market-collected-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAA",
+  "eventType":"market.collected",
+  "occurredAt":"2026-03-05T00:10:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAA",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","storagePath":"gs://alpha-mind-local/market/2026-03-05.parquet","sourceStatus":{"jp":"ok","us":"ok"}}
+}'
 
-- Critical: 将来情報混入、誤成功イベント。
-- High: 列欠損未検知、時点不整合。
+pull_one sub-it-features-generated
+```
 
-## 11. 品質メトリクス
+### FE-IT-003
 
-| 指標 | 目標 |
-|---|---|
-| サイクル完了時間 | 15分以内 |
-| 時系列制約違反検知率 | 100% |
-| 失敗通知率 | 100% |
+```bash
+create_pull_sub sub-it-features-failed event-features-generation-failed-v1
 
-## 12. 体制・役割・スケジュール
+publish_event event-market-collected-v1 '{
+  "identifier":"01ARZ3NDEKTSV4RRFFQ69G5FAB",
+  "eventType":"market.collected",
+  "occurredAt":"2026-03-05T00:11:00Z",
+  "trace":"01ARZ3NDEKTSV4RRFFQ69G5FAB",
+  "schemaVersion":"1.0.0",
+  "payload":{"targetDate":"2026-03-05","sourceStatus":{"jp":"ok","us":"ok"}}
+}'
 
-| 項目 | 内容 |
-|---|---|
-| 体制 | 開発 + QA + PO |
-| 進め方 | 設計レビュー後に実行、完了判定会で終了判断 |
-| スケジュール | 毎週火曜: 設計レビュー -> 毎週水曜〜木曜: STG実行 -> 毎週金曜: 完了判定（必要時は翌営業日にPROD昇格判定） |
+pull_one sub-it-features-failed
+```
 
-## 13. 変更履歴
+### FE-IT-004
+
+- 同一 `identifier` の `market.collected` を2回 publish し、`features.generated` が重複しないことを確認する。
+
+### FE-IT-005
+
+- `pull_one` の結果イベントで `trace` が入力と一致すること。
+
+## 6. 証跡取得
+
+保存先:
+- `documents/外部設計/tests/evidence/feature-engineering/{yyyyMMdd}/`
+
+## 7. エントリ/イグジット基準
+
+エントリ:
+- Pub/Sub / Firestore / GCS emulator稼働中
+
+イグジット:
+- P0成功率100%
+- 重大欠陥0件
+
+## 8. 変更履歴
 
 | 日付 | 版 | 変更内容 |
 |---|---|---|
-| 2026-03-03 | v0.2 | 財務指標単位同期（BPS/PBR）と分割境界の異常系ケースを追加 |
-| 2026-03-03 | v0.1 | 初版作成 |
-
-## 14. 参考
-
-- `documents/外部設計/テスト設計書テンプレート.md`
+| 2026-03-05 | v0.3 | 実装レベル（コマンド/証跡）へ詳細化 |
+| 2026-03-05 | v0.2 | API統合テスト設計へ全面更新 |
