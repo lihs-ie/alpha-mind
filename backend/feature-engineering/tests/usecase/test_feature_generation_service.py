@@ -312,6 +312,32 @@ class TestIdempotencyDuplicateEvent:
             identifier=VALID_IDENTIFIER, trace=VALID_TRACE
         )
 
+    def test_duplicate_via_reserve_skips_dispatch_find(self, fixture: _ServiceFixture) -> None:
+        """When reserve() returns False, dispatch repository should not be queried."""
+        fixture.idempotency_key_repository.reserve.return_value = False
+
+        service = fixture.build()
+        service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        fixture.feature_dispatch_repository.find.assert_not_called()
+
+
+class TestPublishedDispatchGuardPersistsIdempotencyKey:
+    """When PUBLISHED dispatch is detected, idempotency key should be confirmed."""
+
+    def test_published_dispatch_persists_idempotency_key(self, fixture: _ServiceFixture) -> None:
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.PUBLISHED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        service = fixture.build()
+        service.execute(identifier=VALID_IDENTIFIER, market=_make_healthy_market(), trace=VALID_TRACE)
+
+        # Duplicate audit should be written
+        fixture.feature_audit_writer.write_duplicate.assert_called_once()
+        # No processing should occur
+        fixture.feature_artifact_repository.persist.assert_not_called()
+
 
 class TestFeaturesGeneratedAfterStorage:
     """RULE-FE-005: Event is published only after artifact storage succeeds."""

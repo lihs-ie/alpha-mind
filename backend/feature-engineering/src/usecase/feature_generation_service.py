@@ -139,7 +139,7 @@ class FeatureGenerationService:
                     ),
                     processed_at=datetime.datetime.now(tz=datetime.UTC),
                 )
-            except Exception:
+            except Exception as error:
                 logger.exception(
                     "Unexpected error during feature generation processing; identifier=%s",
                     identifier,
@@ -147,7 +147,7 @@ class FeatureGenerationService:
                 generation.fail(
                     failure_detail=FailureDetail(
                         reason_code=ReasonCode.FEATURE_GENERATION_FAILED,
-                        detail="Unexpected error during feature generation processing",
+                        detail=f"Unexpected processing error: {type(error).__name__}: {error}",
                         retryable=False,
                     ),
                     processed_at=datetime.datetime.now(tz=datetime.UTC),
