@@ -3,3 +3,4 @@ services:
     extends:
       file: ./docker-compose.yml
       service: agent-orchestrator
+    ports: !reset []

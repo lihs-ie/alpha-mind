@@ -14,6 +14,11 @@ BASE_URL="http://${FIRESTORE_HOST}/v1/projects/${PROJECT_ID}/databases/${DATABAS
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SEED_FILE="${SCRIPT_DIR}/seed-data.json"
 
+curl_status() {
+  curl -sS --retry 10 --retry-delay 1 --retry-connrefused \
+    -o /dev/null -w "%{http_code}" "$@" || echo "000"
+}
+
 if [[ ! -f "${SEED_FILE}" ]]; then
   echo "[ERROR] seed-data.json not found: ${SEED_FILE}" >&2
   exit 1
@@ -27,7 +32,7 @@ upsert_document() {
   local body="{\"fields\": ${fields_json}}"
 
   local http_status
-  http_status=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+  http_status=$(curl_status -X PATCH \
     -H "Content-Type: application/json" \
     -d "${body}" \
     "${url}")
