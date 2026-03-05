@@ -86,9 +86,24 @@ jobs:
         working-directory: backend/${{ matrix.service }}
         run: mypy src/
 
+      - name: Start emulators (Docker)
+        working-directory: docker
+        run: make init
+
       - name: Test (pytest)
         working-directory: backend/${{ matrix.service }}
+        env:
+          GCP_PROJECT_ID: alpha-mind-local
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          PUBSUB_EMULATOR_HOST: localhost:8085
+          STORAGE_EMULATOR_HOST: localhost:4443
+          FIRESTORE_DATABASE: "(default)"
         run: pytest
+
+      - name: Stop emulators (Docker)
+        if: always()
+        working-directory: docker
+        run: make down
 
   ci-python-result:
     name: CI Python Result
