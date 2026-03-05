@@ -1,0 +1,5 @@
+services:
+  portfolio-planner:
+    extends:
+      file: ../docker-compose.yml
+      service: portfolio-planner

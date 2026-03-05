@@ -1,0 +1,5 @@
+services:
+  hypothesis-lab:
+    extends:
+      file: ../docker-compose.yml
+      service: hypothesis-lab
