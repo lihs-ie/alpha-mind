@@ -13,7 +13,7 @@ import flask.testing
 import pytest
 from google.cloud import firestore, storage  # type: ignore[attr-defined]
 from google.cloud.pubsub_v1 import SubscriberClient
-from tests.integration.conftest import (
+from tests.integration.helpers import (
     FEATURE_STORE_BUCKET,
     FEATURES_GENERATED_TOPIC,
     FEATURES_GENERATION_FAILED_TOPIC,
