@@ -111,8 +111,8 @@ class _ServiceFixture:
 
         self.feature_audit_writer: MagicMock = MagicMock(spec=FeatureAuditWriter)
 
-        # Default: no duplicate
-        self.idempotency_key_repository.find.return_value = None
+        # Default: no duplicate (reserve succeeds = newly reserved)
+        self.idempotency_key_repository.reserve.return_value = True
         # Default: no existing dispatch (step 1b guard)
         self.feature_dispatch_repository.find.return_value = None
         # Default: insight available
@@ -291,10 +291,9 @@ class TestLeakageDetected:
 class TestIdempotencyDuplicateEvent:
     """RULE-FE-004: Duplicate identifier causes early return with no side effects."""
 
-    def test_idempotency_duplicate_event(self, fixture: _ServiceFixture) -> None:
-        fixture.idempotency_key_repository.find.return_value = datetime.datetime(
-            2026, 3, 3, 10, 0, 0, tzinfo=datetime.UTC
-        )
+    def test_idempotency_duplicate_via_reserve(self, fixture: _ServiceFixture) -> None:
+        """reserve() returns False → atomic duplicate detection."""
+        fixture.idempotency_key_repository.reserve.return_value = False
 
         service = fixture.build()
         market = _make_healthy_market()
@@ -487,9 +486,7 @@ class TestAuditDuplicateWritten:
     """Audit log is written on duplicate event detection."""
 
     def test_audit_duplicate_written(self, fixture: _ServiceFixture) -> None:
-        fixture.idempotency_key_repository.find.return_value = datetime.datetime(
-            2026, 3, 3, 10, 0, 0, tzinfo=datetime.UTC
-        )
+        fixture.idempotency_key_repository.reserve.return_value = False
 
         service = fixture.build()
         market = _make_healthy_market()
@@ -731,11 +728,12 @@ class TestAuditWithMissingFeatureArtifact:
 
 
 class TestDispatchExistsGuard:
-    """Step 1b: Existing dispatch record prevents re-processing after partial failure."""
+    """Step 1b: PUBLISHED dispatch prevents re-processing; FAILED dispatch allows retry."""
 
-    def test_existing_dispatch_skips_processing(self, fixture: _ServiceFixture) -> None:
-        """If a dispatch already exists for this identifier, skip re-processing."""
+    def test_published_dispatch_skips_processing(self, fixture: _ServiceFixture) -> None:
+        """If a PUBLISHED dispatch exists, skip re-processing (duplicate)."""
         existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.PUBLISHED
         fixture.feature_dispatch_repository.find.return_value = existing_dispatch
 
         service = fixture.build()
@@ -754,6 +752,22 @@ class TestDispatchExistsGuard:
             identifier=VALID_IDENTIFIER, trace=VALID_TRACE
         )
 
+    def test_failed_dispatch_allows_retry(self, fixture: _ServiceFixture) -> None:
+        """If a FAILED dispatch exists, re-processing is allowed (not duplicate)."""
+        existing_dispatch = MagicMock(spec=FeatureDispatch)
+        existing_dispatch.dispatch_status = DispatchStatus.FAILED
+        fixture.feature_dispatch_repository.find.return_value = existing_dispatch
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Processing should proceed normally
+        fixture.feature_artifact_repository.persist.assert_called_once()
+        fixture.event_publisher.publish_features_generated.assert_called_once()
+        fixture.feature_audit_writer.write_duplicate.assert_not_called()
+
     def test_no_existing_dispatch_proceeds_normally(self, fixture: _ServiceFixture) -> None:
         """When no dispatch exists, processing proceeds normally."""
         fixture.feature_dispatch_repository.find.return_value = None
@@ -766,6 +780,73 @@ class TestDispatchExistsGuard:
         # Normal processing should occur
         fixture.feature_artifact_repository.persist.assert_called_once()
         fixture.event_publisher.publish_features_generated.assert_called_once()
+
+
+class TestReservationReleaseOnDispatchFailure:
+    """When dispatch fails, the idempotency reservation is released to allow retry."""
+
+    def test_dispatch_failure_releases_reservation(self, fixture: _ServiceFixture) -> None:
+        fixture.event_publisher.publish_features_generated.side_effect = RuntimeError("Pub/Sub unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Reservation should be released (terminate called)
+        fixture.idempotency_key_repository.terminate.assert_called_once_with(VALID_IDENTIFIER)
+        # Idempotency key should NOT be persisted (dispatch failed)
+        fixture.idempotency_key_repository.persist.assert_not_called()
+
+    def test_successful_dispatch_persists_idempotency_key(self, fixture: _ServiceFixture) -> None:
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Idempotency key should be persisted (dispatch succeeded)
+        fixture.idempotency_key_repository.persist.assert_called_once()
+        # Reservation should NOT be released
+        fixture.idempotency_key_repository.terminate.assert_not_called()
+
+
+class TestRecoverableVsUnrecoverableProcessingError:
+    """Processing errors are classified as recoverable or non-recoverable."""
+
+    def test_connection_error_is_retryable(self, fixture: _ServiceFixture) -> None:
+        fixture.insight_record_repository.find_by_target_date.side_effect = ConnectionError("Firestore unavailable")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should be published as failed with retryable=True
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+        published_event = fixture.event_publisher.publish_features_generation_failed.call_args[0][0]
+        assert isinstance(published_event, FeatureGenerationFailed)
+        assert published_event.reason_code == ReasonCode.FEATURE_GENERATION_FAILED
+
+        # Generation should have retryable failure detail
+        persisted_generation = fixture.feature_generation_repository.persist.call_args[0][0]
+        assert persisted_generation.failure_detail is not None
+        assert persisted_generation.failure_detail.retryable is True
+
+    def test_unexpected_error_is_not_retryable(self, fixture: _ServiceFixture) -> None:
+        fixture.insight_record_repository.find_by_target_date.side_effect = ValueError("Unexpected bug")
+
+        service = fixture.build()
+        market = _make_healthy_market()
+
+        service.execute(identifier=VALID_IDENTIFIER, market=market, trace=VALID_TRACE)
+
+        # Should be published as failed with retryable=False
+        fixture.event_publisher.publish_features_generation_failed.assert_called_once()
+
+        # Generation should have non-retryable failure detail
+        persisted_generation = fixture.feature_generation_repository.persist.call_args[0][0]
+        assert persisted_generation.failure_detail is not None
+        assert persisted_generation.failure_detail.retryable is False
 
 
 class TestDispatchPublishCatchesAllExceptions:

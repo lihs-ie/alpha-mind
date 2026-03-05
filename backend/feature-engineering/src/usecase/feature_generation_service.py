@@ -42,8 +42,8 @@ class FeatureGenerationService:
     """Usecase service that orchestrates feature generation from market.collected events.
 
     Processing flow (Issue #30, steps 1-13):
-     1. IdempotencyKeyRepository.find(identifier) — duplicate check (RULE-FE-004)
-     1b. FeatureDispatchRepository.find(identifier) — partial-failure guard
+     1. IdempotencyKeyRepository.reserve(identifier) — atomic duplicate check (RULE-FE-004)
+     1b. FeatureDispatchRepository.find(identifier) — partial-failure guard (PUBLISHED only)
      2. FeatureGenerationFactory.from_market_collected_event — create aggregate (RULE-FE-001/002)
      3. If status == FAILED, skip preprocessing (steps 4-8) and proceed to dispatch (steps 9-13)
      4. InsightRecordRepository.find_by_target_date — fetch insight
@@ -56,12 +56,7 @@ class FeatureGenerationService:
     11. FeatureDispatch.publish + FeatureDispatchRepository.persist — record dispatch
     12. FeatureGenerationRepository.persist — persist generation state
     13. IdempotencyKeyRepository.persist + audit log (idempotency key only on successful dispatch)
-
-    Concurrency note: Step 1 is a non-atomic check-then-act sequence.
-    IdempotencyKeyRepository.reserve() provides an atomic alternative for
-    infrastructure implementations that support it (e.g., Firestore create).
-    Step 1b adds a secondary guard against re-publishing after partial failures
-    where the event was published but the idempotency key was not yet written.
+        If dispatch fails, the reservation is released to allow retry.
     """
 
     def __init__(
@@ -100,20 +95,21 @@ class FeatureGenerationService:
             market: Normalized market snapshot from market.collected event.
             trace: Trace ID for distributed tracing.
         """
-        # Step 1: Idempotency check (RULE-FE-004)
-        existing_processed_at = self._idempotency_key_repository.find(identifier)
-        if existing_processed_at is not None:
+        # Step 1: Atomic idempotency reservation (RULE-FE-004).
+        # reserve() atomically checks and claims the identifier, preventing
+        # concurrent duplicate processing under parallel consumer/redelivery.
+        if not self._idempotency_key_repository.reserve(identifier=identifier, trace=trace):
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
-        # Step 1b: Guard against re-processing after partial failure.
+        # Step 1b: Guard against re-publishing after partial failure.
         # If a previous attempt published an event but crashed before persisting
-        # the idempotency key, the dispatch record serves as a secondary guard
-        # to prevent duplicate event publication on retry.
+        # the idempotency key, the dispatch record with PUBLISHED status serves
+        # as a secondary guard. FAILED dispatches are allowed to re-process.
         existing_dispatch = self._feature_dispatch_repository.find(identifier)
-        if existing_dispatch is not None:
+        if existing_dispatch is not None and existing_dispatch.dispatch_status == DispatchStatus.PUBLISHED:
             logger.warning(
-                "Dispatch already exists for identifier=%s; skipping re-processing",
+                "Published dispatch already exists for identifier=%s; skipping re-processing",
                 identifier,
             )
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
@@ -130,6 +126,19 @@ class FeatureGenerationService:
         if generation.status != FeatureGenerationStatus.FAILED:
             try:
                 self._process_feature_generation(generation)
+            except (ConnectionError, TimeoutError, OSError) as error:
+                logger.exception(
+                    "Recoverable processing error; identifier=%s",
+                    identifier,
+                )
+                generation.fail(
+                    failure_detail=FailureDetail(
+                        reason_code=ReasonCode.FEATURE_GENERATION_FAILED,
+                        detail=f"Recoverable processing error: {error}",
+                        retryable=True,
+                    ),
+                    processed_at=datetime.datetime.now(tz=datetime.UTC),
+                )
             except Exception:
                 logger.exception(
                     "Unexpected error during feature generation processing; identifier=%s",
@@ -139,7 +148,7 @@ class FeatureGenerationService:
                     failure_detail=FailureDetail(
                         reason_code=ReasonCode.FEATURE_GENERATION_FAILED,
                         detail="Unexpected error during feature generation processing",
-                        retryable=True,
+                        retryable=False,
                     ),
                     processed_at=datetime.datetime.now(tz=datetime.UTC),
                 )
@@ -247,13 +256,16 @@ class FeatureGenerationService:
         # Step 12: Persist generation state
         self._feature_generation_repository.persist(generation)
 
-        # Step 13: Persist idempotency key (only on successful dispatch) and write audit log
+        # Step 13: Persist idempotency key (only on successful dispatch) and write audit log.
+        # On dispatch failure, release the reservation to allow retry.
         if dispatch.dispatch_status == DispatchStatus.PUBLISHED:
             self._idempotency_key_repository.persist(
                 identifier=generation.identifier,
                 processed_at=now,
                 trace=generation.trace,
             )
+        else:
+            self._idempotency_key_repository.terminate(generation.identifier)
 
         self._write_audit(generation, dispatch)
 

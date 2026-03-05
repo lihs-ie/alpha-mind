@@ -53,13 +53,21 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         data = snapshot.to_dict()
         if data is None:
             return None
+
+        # Documents in "reserved" status have no processedAt yet;
+        # they represent in-flight processing, not completed events.
+        if data.get("status") == "reserved":
+            return None
+
+        now = datetime.datetime.now(datetime.UTC)
+        expires_at = data.get("expiresAt")
+        if isinstance(expires_at, datetime.datetime) and expires_at <= now:
+            return None
+
         try:
             processed_at = data["processedAt"]
             if not isinstance(processed_at, datetime.datetime):
                 raise TypeError("processedAt must be datetime")
-            expires_at = data.get("expiresAt")
-            if isinstance(expires_at, datetime.datetime) and expires_at <= datetime.datetime.now(datetime.UTC):
-                return None
             return processed_at
         except (KeyError, TypeError) as error:
             raise InfrastructureDataFormatError(

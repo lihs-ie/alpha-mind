@@ -53,6 +53,30 @@ class TestFirestoreIdempotencyKeyRepositoryReserve:
 
 
 class TestFirestoreIdempotencyKeyRepositoryFind:
+    def test_find_returns_none_for_reserved_document(self) -> None:
+        """Reserved documents are in-flight, not fully processed — find() returns None."""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_snapshot = MagicMock()
+        mock_client.collection.return_value = mock_collection
+        mock_collection.document.return_value = mock_document
+        mock_document.get.return_value = mock_snapshot
+        mock_snapshot.exists = True
+        mock_snapshot.to_dict.return_value = {
+            "identifier": VALID_ULID,
+            "service": SERVICE_NAME,
+            "status": "reserved",
+            "reservedAt": datetime.datetime.now(datetime.UTC),
+            "trace": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+            "expiresAt": datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=30),
+        }
+
+        repository = FirestoreIdempotencyKeyRepository(client=mock_client, service_name=SERVICE_NAME)
+        result = repository.find(VALID_ULID)
+
+        assert result is None
+
     def test_find_returns_none_when_not_found(self) -> None:
         mock_client = MagicMock()
         mock_collection = MagicMock()
