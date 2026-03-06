@@ -24,3 +24,8 @@ services:
       file: ./docker-compose.yml
       service: signal-generator
     ports: !reset []
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
