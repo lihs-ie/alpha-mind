@@ -29,6 +29,8 @@ make integration-down SERVICE=bff
 - CIでは対象サービスのみを `build/up` し、不要サービスのビルドを避ける。
 - CIでは Haskell サービスに対して `type=gha` と `type=registry(GHCR)` を併用し、キャッシュヒット率を安定化する。
 - fork 由来の PR ではレジストリ書き込み権限がないため、GHCR キャッシュ書き込みを自動で無効化し `type=gha` のみ利用する。
+- CIでは `backend/<service>/tests/integration` が存在するサービスのみ実 integration テストを実行し、未実装サービスは healthz スモークのみ実行する。
+- エミュレータは `127.0.0.1::PORT` の動的ポート公開を使い、並列ジョブ間のポート衝突を回避する。
 - 終了処理は `always()` で `integration-down` を必ず実行する。
 
 ## 対応サービス

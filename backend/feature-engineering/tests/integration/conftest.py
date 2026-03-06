@@ -30,14 +30,14 @@ from presentation.dependency_container import DependencyContainer
 
 @pytest.fixture(scope="session", autouse=True)
 def emulator_environment() -> None:
-    """Set environment variables for GCP emulators (docker/docker-compose.yml)."""
-    os.environ["FIRESTORE_EMULATOR_HOST"] = "localhost:8080"
-    os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
-    os.environ["STORAGE_EMULATOR_HOST"] = "http://localhost:4443"
-    os.environ["GCP_PROJECT_ID"] = PROJECT_ID
-    os.environ["FEATURES_GENERATED_TOPIC"] = FEATURES_GENERATED_TOPIC
-    os.environ["FEATURES_GENERATION_FAILED_TOPIC"] = FEATURES_GENERATION_FAILED_TOPIC
-    os.environ["FEATURE_STORE_BUCKET"] = FEATURE_STORE_BUCKET
+    """Set defaults for emulator endpoints while allowing CI overrides."""
+    os.environ.setdefault("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+    os.environ.setdefault("PUBSUB_EMULATOR_HOST", "localhost:8085")
+    os.environ.setdefault("STORAGE_EMULATOR_HOST", "http://localhost:4443")
+    os.environ.setdefault("GCP_PROJECT_ID", PROJECT_ID)
+    os.environ.setdefault("FEATURES_GENERATED_TOPIC", FEATURES_GENERATED_TOPIC)
+    os.environ.setdefault("FEATURES_GENERATION_FAILED_TOPIC", FEATURES_GENERATION_FAILED_TOPIC)
+    os.environ.setdefault("FEATURE_STORE_BUCKET", FEATURE_STORE_BUCKET)
 
 
 @pytest.fixture(scope="session")
