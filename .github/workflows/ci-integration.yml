@@ -137,21 +137,45 @@ jobs:
       - uses: actions/checkout@v6.0.2
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v4.0.0
 
-      - name: Build Firestore emulator image (cache)
-        uses: docker/build-push-action@v7.0.0
-        with:
-          context: docker
-          file: docker/dockerfiles/Dockerfile.firestore-emulator
-          tags: ${{ env.COMPOSE_PROJECT_NAME }}-firestore:latest
-          load: true
-          cache-from: type=gha,scope=firestore-emulator
-          cache-to: type=gha,scope=firestore-emulator,mode=max
+      - name: Build integration images (cache)
+        working-directory: docker
+        env:
+          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
+        run: |
+          set -euo pipefail
+
+          targets=("${SERVICE}")
+          if [[ "${SERVICE}" == "bff" ]]; then
+            targets+=("risk-guard")
+          fi
+
+          compose() {
+            docker compose --env-file .env.local \
+              -f docker-compose.integration.base.yml \
+              -f docker-compose.integration.${SERVICE}.yml \
+              -f docker-compose.integration.cache.yml "$@"
+          }
+
+          compose build --builder "${BUILDX_BUILDER}" "${targets[@]}"
 
       - name: Start integration stack
         working-directory: docker
-        run: make integration-up SERVICE=${{ matrix.service }}
+        run: |
+          set -euo pipefail
+
+          targets=("${SERVICE}")
+          if [[ "${SERVICE}" == "bff" ]]; then
+            targets+=("risk-guard")
+          fi
+
+          docker compose --env-file .env.local \
+            -f docker-compose.integration.base.yml \
+            -f docker-compose.integration.${SERVICE}.yml \
+            -f docker-compose.integration.cache.yml \
+            up -d --no-build --remove-orphans "${targets[@]}"
 
       - name: Wait for services to be ready
         working-directory: docker
@@ -161,7 +185,8 @@ jobs:
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml "$@"
+              -f docker-compose.integration.${SERVICE}.yml \
+              -f docker-compose.integration.cache.yml "$@"
           }
 
           mapfile -t services < <(compose ps --services)
@@ -206,7 +231,8 @@ jobs:
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml "$@"
+              -f docker-compose.integration.${SERVICE}.yml \
+              -f docker-compose.integration.cache.yml "$@"
           }
 
           compose exec -T "$SERVICE" sh -lc '
@@ -229,7 +255,8 @@ jobs:
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml "$@"
+              -f docker-compose.integration.${SERVICE}.yml \
+              -f docker-compose.integration.cache.yml "$@"
           }
 
           compose ps -a > /tmp/integration-logs/${SERVICE}/ps.txt || true

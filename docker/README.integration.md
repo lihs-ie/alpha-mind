@@ -6,6 +6,7 @@
 
 - 共通依存（Firestore / PubSub / GCS / init）は `docker/docker-compose.integration.base.yml` に集約。
 - サービスごとの差分は `docker/docker-compose.integration.<service>.yml` に分離。
+- CI用の BuildKit キャッシュ設定は `docker/docker-compose.integration.cache.yml` に分離。
 - 実行時は `-f` で合成する。
 
 ## 使い方
@@ -22,7 +23,9 @@ make integration-down SERVICE=bff
 ## CIでの衝突回避
 
 - `COMPOSE_PROJECT_NAME` をジョブごとに一意化する。
-- CIマトリクスは `max-parallel: 1` で実行し、共有ポート競合を回避する。
+- CIマトリクスは `max-parallel: 6` で実行し、並列性と安定性を両立する。
+- CIでは `build --builder <buildx> + up --no-build` を使い、Haskell/Python イメージの再ビルドを最小化する。
+- CIでは対象サービスのみを `build/up` し、不要サービスのビルドを避ける。
 - 終了処理は `always()` で `integration-down` を必ず実行する。
 
 ## 対応サービス
