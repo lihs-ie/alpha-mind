@@ -67,6 +67,7 @@ from signal_generator.infrastructure.storage.cloud_storage_signal_writer import 
     CloudStorageSignalWriter,
 )
 from signal_generator.presentation.dependency_container import create_application
+from signal_generator.usecase.signal_audit_writer import SignalAuditWriter
 from signal_generator.usecase.signal_generation_service import SignalGenerationService
 
 
@@ -450,6 +451,7 @@ def application(
     feature_payload_integrity_specification = FeaturePayloadIntegritySpecification()
     approved_model_policy = ApprovedModelPolicy()
     inference_consistency_policy = InferenceConsistencyPolicy()
+    signal_audit_writer = SignalAuditWriter()
 
     service = SignalGenerationService(
         idempotency_key_repository=idempotency_key_repository,
@@ -465,6 +467,7 @@ def application(
         feature_payload_integrity_specification=feature_payload_integrity_specification,
         approved_model_policy=approved_model_policy,
         inference_consistency_policy=inference_consistency_policy,
+        signal_audit_writer=signal_audit_writer,
         clock=lambda: datetime.datetime.now(datetime.UTC),
     )
 
@@ -497,6 +500,7 @@ def build_cloud_event(
             "targetDate": "2026-03-05",
             "featureVersion": "feature-v1",
             "storagePath": TEST_FEATURE_STORAGE_PATH,
+            "universeCount": 100,
         }
     return {
         "identifier": identifier,

@@ -336,14 +336,16 @@ class SignalGenerationService:
             self._signal_event_publisher.publish_signal_generated(completed_event)
         except ValueError:
             logger.exception("イベント発行バリデーション失敗: identifier=%s", command.identifier)
+            self._persist_failed_dispatch(command, completed_at, ReasonCode.INTERNAL_ERROR)
             return self._finalize_failure(
                 command=command,
-                retryable=False,
+                retryable=True,
                 reason_code=ReasonCode.INTERNAL_ERROR,
                 detail="イベント発行に失敗しました",
             )
         except Exception:
             logger.exception("イベント発行失敗: identifier=%s", command.identifier)
+            self._persist_failed_dispatch(command, completed_at, ReasonCode.DEPENDENCY_UNAVAILABLE)
             return self._finalize_failure(
                 command=command,
                 retryable=True,
@@ -396,6 +398,7 @@ class SignalGenerationService:
             self._publish_failed_event_and_dispatch(command, now, reason_code)
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
+            self._persist_failed_dispatch(command, now, ReasonCode.DEPENDENCY_UNAVAILABLE)
             return self._finalize_failure(
                 command,
                 retryable=True,
@@ -446,6 +449,7 @@ class SignalGenerationService:
             self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
         except Exception:
             logger.exception("失敗イベント発行失敗: identifier=%s", command.identifier)
+            self._persist_failed_dispatch(command, now, ReasonCode.DEPENDENCY_UNAVAILABLE)
             return self._finalize_failure(
                 command,
                 retryable=True,
@@ -516,6 +520,23 @@ class SignalGenerationService:
                 trace=command.trace,
             )
             dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, now)
+            self._signal_dispatch_repository.persist(dispatch)
+        except Exception:
+            logger.exception("失敗 dispatch 永続化失敗: identifier=%s", command.identifier)
+
+    def _persist_failed_dispatch(
+        self,
+        command: GenerateSignalCommand,
+        now: datetime.datetime,
+        reason_code: ReasonCode,
+    ) -> None:
+        """イベント発行失敗時に SignalDispatch を failed 状態で永続化する。"""
+        try:
+            dispatch = self._signal_dispatch_factory.from_signal_generation(
+                identifier=command.identifier,
+                trace=command.trace,
+            )
+            dispatch.fail(reason_code, now)
             self._signal_dispatch_repository.persist(dispatch)
         except Exception:
             logger.exception("失敗 dispatch 永続化失敗: identifier=%s", command.identifier)

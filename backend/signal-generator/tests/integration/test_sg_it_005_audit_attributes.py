@@ -57,6 +57,7 @@ class TestAuditAttributesIntegration:
             "targetDate": "2026-03-05",
             "featureVersion": feature_version,
             "storagePath": TEST_FEATURE_STORAGE_PATH,
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier=identifier,

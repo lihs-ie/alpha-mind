@@ -33,7 +33,7 @@ class TestFirestoreSignalDispatchRepository:
         result = repository.find("01JTEST0000000000000000000")
 
         assert result is None
-        mock_client.collection.assert_called_once_with("idempotency_keys")
+        mock_client.collection.assert_called_once_with("signal_dispatches")
 
     def test_persist_calls_set_with_document_data(self) -> None:
         mock_client = MagicMock()
@@ -47,7 +47,7 @@ class TestFirestoreSignalDispatchRepository:
         )
         repository.persist(dispatch)
 
-        mock_client.collection.assert_called_once_with("idempotency_keys")
+        mock_client.collection.assert_called_once_with("signal_dispatches")
         mock_client.collection.return_value.document.assert_called_once_with("01JTEST0000000000000000000")
         mock_document_reference.set.assert_called_once()
 
@@ -64,7 +64,7 @@ class TestFirestoreSignalDispatchRepository:
         repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
         repository.terminate("01JTEST0000000000000000000")
 
-        mock_client.collection.assert_called_once_with("idempotency_keys")
+        mock_client.collection.assert_called_once_with("signal_dispatches")
         mock_document_reference.delete.assert_called_once()
 
     def test_find_returns_pending_dispatch(self) -> None:
@@ -144,6 +144,39 @@ class TestFirestoreSignalDispatchRepository:
         from signal_generator.domain.enums.dispatch_status import DispatchStatus
 
         assert result.dispatch_status == DispatchStatus.FAILED
+
+    def test_to_signal_dispatch_none_document_data_raises_value_error(self) -> None:
+        """document_data が None の場合は ValueError を送出する。"""
+        import pytest
+
+        from signal_generator.infrastructure.firestore.firestore_signal_dispatch_repository import (
+            _to_signal_dispatch,
+        )
+
+        with pytest.raises(ValueError, match="document_data must not be None"):
+            _to_signal_dispatch(None)
+
+    def test_persist_failed_dispatch_includes_reason_code(self) -> None:
+        import datetime
+
+        from signal_generator.domain.enums.reason_code import ReasonCode
+
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
+        dispatch = SignalDispatch(
+            identifier="01JTEST0000000000000000000",
+            trace="01JTRACE000000000000000000",
+        )
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        dispatch.fail(ReasonCode.DEPENDENCY_UNAVAILABLE, processed_at)
+        repository.persist(dispatch)
+
+        document_data = mock_document_reference.set.call_args[0][0]
+        assert document_data["dispatchStatus"] == "failed"
+        assert document_data["reasonCode"] == "DEPENDENCY_UNAVAILABLE"
 
     def test_persist_published_dispatch_includes_published_event(self) -> None:
         import datetime

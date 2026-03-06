@@ -13,7 +13,7 @@ from signal_generator.domain.repositories.signal_dispatch_repository import (
     SignalDispatchRepository,
 )
 
-_COLLECTION_NAME = "idempotency_keys"
+_COLLECTION_NAME = "signal_dispatches"
 
 
 class FirestoreSignalDispatchRepository(SignalDispatchRepository):

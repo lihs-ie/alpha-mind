@@ -275,14 +275,30 @@ class TestCloudEventOccurredAtValidation:
         with pytest.raises(CloudEventDecodeError, match="occurredAt"):
             decode_pubsub_push_message(message)
 
-    def test_valid_occurred_at_with_offset(self) -> None:
-        """occurredAt がオフセット付き ISO8601 の場合は受け入れる。"""
+    def test_non_utc_offset_raises_error(self) -> None:
+        """occurredAt が UTC でないオフセット付きの場合はエラーを送出する。"""
         cloud_event = _build_cloud_event(occurred_at="2026-03-05T09:00:00+09:00")
+        message = _build_pubsub_message(cloud_event)
+
+        with pytest.raises(CloudEventDecodeError, match="must be UTC"):
+            decode_pubsub_push_message(message)
+
+    def test_naive_occurred_at_raises_error(self) -> None:
+        """occurredAt がタイムゾーン情報なしの場合はエラーを送出する。"""
+        cloud_event = _build_cloud_event(occurred_at="2026-03-05T09:00:00")
+        message = _build_pubsub_message(cloud_event)
+
+        with pytest.raises(CloudEventDecodeError, match="timezone-aware"):
+            decode_pubsub_push_message(message)
+
+    def test_utc_offset_zero_is_accepted(self) -> None:
+        """occurredAt が +00:00 オフセットの場合は UTC として受け入れる。"""
+        cloud_event = _build_cloud_event(occurred_at="2026-03-05T09:00:00+00:00")
         message = _build_pubsub_message(cloud_event)
 
         result = decode_pubsub_push_message(message)
 
-        assert result.occurred_at == "2026-03-05T09:00:00+09:00"
+        assert result.occurred_at == "2026-03-05T09:00:00+00:00"
 
 
 class TestCloudEventSchemaVersionValidation:
@@ -385,6 +401,94 @@ class TestUniverseCountRequiredByAsyncApiSchema:
 
         with pytest.raises(CloudEventDecodeError, match="universeCount"):
             decode_pubsub_push_message(message)
+
+
+class TestExtractEnvelopeIdentifiers:
+    """extract_envelope_identifiers のテスト。"""
+
+    def test_extracts_valid_identifiers(self) -> None:
+        """正常な CloudEvent から identifier と trace を抽出する。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        cloud_event = _build_cloud_event()
+        message = _build_pubsub_message(cloud_event)
+
+        result = extract_envelope_identifiers(message)
+
+        assert result is not None
+        assert result == ("01JARQ0000AAAAAAAAAAAAAAAA", "01JARQ0000BBBBBBBBBBBBBBBB")
+
+    def test_returns_none_when_message_key_missing(self) -> None:
+        """message キーがない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        result = extract_envelope_identifiers({"subscription": "sub-001"})
+        assert result is None
+
+    def test_returns_none_when_data_key_missing(self) -> None:
+        """data キーがない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        result = extract_envelope_identifiers({"message": {"messageId": "msg-001"}})
+        assert result is None
+
+    def test_returns_none_when_json_invalid(self) -> None:
+        """JSON が不正な場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        encoded = base64.b64encode(b"not json").decode()
+        result = extract_envelope_identifiers({"message": {"data": encoded}})
+        assert result is None
+
+    def test_returns_none_when_identifier_missing(self) -> None:
+        """identifier が欠損している場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        cloud_event = _build_cloud_event()
+        del cloud_event["identifier"]
+        message = _build_pubsub_message(cloud_event)
+
+        result = extract_envelope_identifiers(message)
+        assert result is None
+
+    def test_returns_none_when_identifier_not_ulid(self) -> None:
+        """identifier が ULID でない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        cloud_event = _build_cloud_event(identifier="not-a-ulid")
+        message = _build_pubsub_message(cloud_event)
+
+        result = extract_envelope_identifiers(message)
+        assert result is None
+
+    def test_returns_none_when_trace_not_ulid(self) -> None:
+        """trace が ULID でない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        cloud_event = _build_cloud_event(trace="not-a-ulid")
+        message = _build_pubsub_message(cloud_event)
+
+        result = extract_envelope_identifiers(message)
+        assert result is None
+
+    def test_returns_none_when_decoded_json_not_dict(self) -> None:
+        """デコードされた JSON が dict でない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        encoded = base64.b64encode(json.dumps([1, 2, 3]).encode()).decode()
+        result = extract_envelope_identifiers({"message": {"data": encoded}})
+        assert result is None
+
+    def test_returns_none_when_identifier_not_string(self) -> None:
+        """identifier が文字列でない場合は None を返す。"""
+        from signal_generator.presentation.cloud_event_decoder import extract_envelope_identifiers
+
+        cloud_event = _build_cloud_event()
+        cloud_event["identifier"] = 12345
+        message = _build_pubsub_message(cloud_event)
+
+        result = extract_envelope_identifiers(message)
+        assert result is None
 
 
 class TestPubsubPushMessageTypeValidation:

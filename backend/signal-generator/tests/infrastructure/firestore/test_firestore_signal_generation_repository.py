@@ -209,6 +209,104 @@ class TestFirestoreSignalGenerationRepository:
 
         assert result == []
 
+    def test_to_signal_generation_none_document_data_raises_value_error(self) -> None:
+        """document_data が None の場合は ValueError を送出する。"""
+        import pytest
+
+        from signal_generator.infrastructure.firestore.firestore_signal_generation_repository import (
+            _to_signal_generation,
+        )
+
+        with pytest.raises(ValueError, match="document_data must not be None"):
+            _to_signal_generation(None)
+
+    def test_search_empty_criteria_returns_all_documents(self) -> None:
+        """criteria が空の場合は全ドキュメントを返す。"""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_document.to_dict.return_value = {
+            "identifier": "01JTEST0000000000000000000",
+            "status": "pending",
+            "featureSnapshot": {
+                "targetDate": "2026-03-05",
+                "featureVersion": "v1.0.0",
+                "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            },
+            "universeCount": 100,
+            "trace": "01JTRACE000000000000000000",
+            "processedAt": None,
+        }
+        mock_collection.stream.return_value = iter([mock_document])
+        mock_client.collection.return_value = mock_collection
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        result = repository.search({})
+
+        assert len(result) == 1
+        assert result[0].identifier == "01JTEST0000000000000000000"
+
+    def test_search_multiple_criteria_chains_where_clauses(self) -> None:
+        """criteria に複数条件がある場合は where を連鎖する。"""
+        mock_client = MagicMock()
+        mock_query = MagicMock()
+        mock_query.where.return_value = mock_query
+        mock_query.stream.return_value = iter([])
+        mock_client.collection.return_value = mock_query
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        result = repository.search({"status": "pending", "trace": "01JTRACE000000000000000000"})
+
+        assert result == []
+        # where が2回呼ばれること
+        assert mock_query.where.call_count == 2
+
+    def test_find_generated_with_optional_diagnostics_fields(self) -> None:
+        """diagnostics に optional フィールド (costAdjustedReturn, slippageAdjustedSharpe) がある場合の復元。"""
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_document_snapshot = MagicMock()
+        mock_document_snapshot.exists = True
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        mock_document_snapshot.to_dict.return_value = {
+            "identifier": "01JTEST0000000000000000000",
+            "status": "generated",
+            "featureSnapshot": {
+                "targetDate": "2026-03-05",
+                "featureVersion": "v1.0.0",
+                "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            },
+            "universeCount": 100,
+            "trace": "01JTRACE000000000000000000",
+            "processedAt": processed_at,
+            "modelSnapshot": {
+                "modelVersion": "v1.0.0",
+                "status": "approved",
+                "approvedAt": processed_at.isoformat(),
+            },
+            "signalArtifact": {
+                "signalVersion": "sv-20260305",
+                "storagePath": "gs://signals/2026-03-05.parquet",
+                "generatedCount": 100,
+                "universeCount": 100,
+            },
+            "modelDiagnosticsSnapshot": {
+                "degradationFlag": "warn",
+                "requiresComplianceReview": False,
+                "costAdjustedReturn": 0.05,
+                "slippageAdjustedSharpe": 1.2,
+            },
+        }
+        mock_document_reference.get.return_value = mock_document_snapshot
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        result = repository.find("01JTEST0000000000000000000")
+
+        assert result is not None
+        assert result.status == GenerationStatus.GENERATED
+        assert result.model_diagnostics_snapshot is not None
+
     def test_persist_generated_includes_signal_artifact(self) -> None:
         from signal_generator.domain.enums.degradation_flag import DegradationFlag
         from signal_generator.domain.enums.model_status import ModelStatus
@@ -257,3 +355,128 @@ class TestFirestoreSignalGenerationRepository:
         assert "modelDiagnosticsSnapshot" in document_data
         assert document_data["modelDiagnosticsSnapshot"]["degradationFlag"] == "normal"
         assert document_data["modelDiagnosticsSnapshot"]["requiresComplianceReview"] is False
+
+    def test_persist_generated_with_optional_diagnostics_fields(self) -> None:
+        """diagnostics に costAdjustedReturn, slippageAdjustedSharpe がある場合のシリアライズ。"""
+        from signal_generator.domain.enums.degradation_flag import DegradationFlag
+        from signal_generator.domain.enums.model_status import ModelStatus
+        from signal_generator.domain.value_objects.model_diagnostics_snapshot import (
+            ModelDiagnosticsSnapshot,
+        )
+        from signal_generator.domain.value_objects.model_snapshot import ModelSnapshot
+        from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
+
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        generation = SignalGeneration(
+            identifier="01JTEST0000000000000000000",
+            feature_snapshot=_create_feature_snapshot(),
+            universe_count=100,
+            trace="01JTRACE000000000000000000",
+        )
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        model_snapshot = ModelSnapshot(
+            model_version="v1.0.0",
+            status=ModelStatus.APPROVED,
+            approved_at=processed_at,
+        )
+        generation.resolve_model(model_snapshot)
+        signal_artifact = SignalArtifact(
+            signal_version="sv-20260305",
+            storage_path="gs://signals/2026-03-05.parquet",
+            generated_count=100,
+            universe_count=100,
+        )
+        model_diagnostics = ModelDiagnosticsSnapshot(
+            degradation_flag=DegradationFlag.WARN,
+            requires_compliance_review=False,
+            cost_adjusted_return=0.05,
+            slippage_adjusted_sharpe=1.2,
+        )
+        generation.complete(signal_artifact, model_diagnostics, processed_at)
+
+        repository.persist(generation)
+
+        document_data = mock_document_reference.set.call_args[0][0]
+        assert document_data["modelDiagnosticsSnapshot"]["costAdjustedReturn"] == 0.05
+        assert document_data["modelDiagnosticsSnapshot"]["slippageAdjustedSharpe"] == 1.2
+
+    def test_persist_failed_includes_failure_detail(self) -> None:
+        """failed 状態の集約を永続化すると failureDetail が含まれる。"""
+        from signal_generator.domain.enums.reason_code import ReasonCode
+        from signal_generator.domain.value_objects.failure_detail import FailureDetail
+
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        generation = SignalGeneration(
+            identifier="01JTEST0000000000000000000",
+            feature_snapshot=_create_feature_snapshot(),
+            universe_count=100,
+            trace="01JTRACE000000000000000000",
+        )
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        failure_detail = FailureDetail(
+            reason_code=ReasonCode.MODEL_NOT_APPROVED,
+            retryable=False,
+            detail="No approved model found",
+        )
+        generation.fail(failure_detail, processed_at)
+
+        repository.persist(generation)
+
+        document_data = mock_document_reference.set.call_args[0][0]
+        assert document_data["status"] == "failed"
+        assert document_data["failureDetail"]["reasonCode"] == "MODEL_NOT_APPROVED"
+        assert document_data["failureDetail"]["retryable"] is False
+
+    def test_persist_model_snapshot_without_approved_at(self) -> None:
+        """approvedAt が None の ModelSnapshot を永続化する際に approvedAt が含まれない。"""
+        from signal_generator.domain.enums.degradation_flag import DegradationFlag
+        from signal_generator.domain.enums.model_status import ModelStatus
+        from signal_generator.domain.value_objects.model_diagnostics_snapshot import (
+            ModelDiagnosticsSnapshot,
+        )
+        from signal_generator.domain.value_objects.model_snapshot import ModelSnapshot
+        from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
+
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
+        generation = SignalGeneration(
+            identifier="01JTEST0000000000000000000",
+            feature_snapshot=_create_feature_snapshot(),
+            universe_count=100,
+            trace="01JTRACE000000000000000000",
+        )
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        # approved_at が None の approved モデル (テスト用)
+        model_snapshot = ModelSnapshot(
+            model_version="v1.0.0",
+            status=ModelStatus.APPROVED,
+            approved_at=None,
+        )
+        generation.resolve_model(model_snapshot)
+        signal_artifact = SignalArtifact(
+            signal_version="sv-20260305",
+            storage_path="gs://signals/2026-03-05.parquet",
+            generated_count=100,
+            universe_count=100,
+        )
+        model_diagnostics = ModelDiagnosticsSnapshot(
+            degradation_flag=DegradationFlag.NORMAL,
+            requires_compliance_review=False,
+        )
+        generation.complete(signal_artifact, model_diagnostics, processed_at)
+
+        repository.persist(generation)
+
+        document_data = mock_document_reference.set.call_args[0][0]
+        assert "approvedAt" not in document_data["modelSnapshot"]
