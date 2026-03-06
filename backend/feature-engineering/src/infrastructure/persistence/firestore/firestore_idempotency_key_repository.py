@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, cast
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client
@@ -60,7 +60,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             document_reference.create(base_data)
             return ReservationStatus.ACQUIRED
         except AlreadyExists:
-            snapshot = document_reference.get()
+            snapshot = cast(DocumentSnapshot, document_reference.get())
             if not snapshot.exists:
                 document_reference.set(base_data)
                 return ReservationStatus.ACQUIRED
@@ -101,7 +101,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
     def release(self, identifier: str, released_at: datetime.datetime) -> None:
         """Release the current lease so Pub/Sub redelivery can retry immediately."""
         document_reference = self._document_reference(identifier)
-        snapshot = document_reference.get()
+        snapshot = cast(DocumentSnapshot, document_reference.get())
         if not snapshot.exists:
             return
         document_reference.set(
@@ -123,7 +123,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
     def _get_snapshot(self, identifier: str) -> DocumentSnapshot:
         """Load the current document snapshot."""
-        return self._document_reference(identifier).get()
+        return cast(DocumentSnapshot, self._document_reference(identifier).get())
 
 
 def _extract_processed_at(data: dict[str, Any]) -> datetime.datetime | None:
