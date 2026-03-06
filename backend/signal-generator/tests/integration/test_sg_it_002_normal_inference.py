@@ -130,7 +130,7 @@ class TestNormalInferenceIntegration:
 
         document = cast(
             DocumentSnapshot,
-            firestore_client.collection("signal_generations").document("01ARZ3NDEKTSV4RRFFQ69G5FAC").get(),
+            firestore_client.collection("signal_runs").document("01ARZ3NDEKTSV4RRFFQ69G5FAC").get(),
         )
         assert document.exists
         document_data = document.to_dict()
@@ -151,7 +151,9 @@ class TestNormalInferenceIntegration:
 
         document = cast(
             DocumentSnapshot,
-            firestore_client.collection("signal_dispatches").document("01ARZ3NDEKTSV4RRFFQ69G5FAC").get(),
+            firestore_client.collection("idempotency_keys")
+            .document("signal-generator:01ARZ3NDEKTSV4RRFFQ69G5FAC")
+            .get(),
         )
         assert document.exists
         document_data = document.to_dict()

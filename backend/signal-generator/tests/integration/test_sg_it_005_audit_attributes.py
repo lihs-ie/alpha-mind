@@ -216,7 +216,7 @@ class TestAuditAttributesIntegration:
         subscriber_client: SubscriberClient,
         signal_generated_subscription: str,
     ) -> None:
-        """Firestore の signal_generations ドキュメントに監査属性が含まれる。"""
+        """Firestore の signal_runs ドキュメントに監査属性が含まれる。"""
         identifier = "01ARZ3NDEKTSV4RRFFQ69G5FA8"
         self._execute_normal_inference(
             client,
@@ -229,7 +229,7 @@ class TestAuditAttributesIntegration:
 
         document = cast(
             DocumentSnapshot,
-            firestore_client.collection("signal_generations").document(identifier).get(),
+            firestore_client.collection("signal_runs").document(identifier).get(),
         )
         assert document.exists
         document_data = document.to_dict()

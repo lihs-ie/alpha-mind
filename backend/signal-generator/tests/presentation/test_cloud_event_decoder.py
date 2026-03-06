@@ -275,13 +275,14 @@ class TestCloudEventOccurredAtValidation:
         with pytest.raises(CloudEventDecodeError, match="occurredAt"):
             decode_pubsub_push_message(message)
 
-    def test_non_utc_offset_raises_error(self) -> None:
-        """occurredAt が UTC でないオフセット付きの場合はエラーを送出する。"""
+    def test_non_utc_offset_is_accepted(self) -> None:
+        """occurredAt はタイムゾーン付き date-time であればオフセット付きでも受け入れる。"""
         cloud_event = _build_cloud_event(occurred_at="2026-03-05T09:00:00+09:00")
         message = _build_pubsub_message(cloud_event)
 
-        with pytest.raises(CloudEventDecodeError, match="must be UTC"):
-            decode_pubsub_push_message(message)
+        result = decode_pubsub_push_message(message)
+
+        assert result.occurred_at == "2026-03-05T09:00:00+09:00"
 
     def test_naive_occurred_at_raises_error(self) -> None:
         """occurredAt がタイムゾーン情報なしの場合はエラーを送出する。"""

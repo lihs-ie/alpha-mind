@@ -11,7 +11,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -185,10 +185,7 @@ def _require_ulid_field(data: dict[str, object], field_name: str) -> None:
 
 
 def _require_datetime_field(data: dict[str, object], field_name: str) -> None:
-    """フィールドが ISO8601 date-time 形式かつ UTC であることを検証する。
-
-    AsyncAPI EventEnvelope 契約により occurredAt は UTC 必須。
-    """
+    """フィールドが ISO8601 date-time 形式でありタイムゾーン情報を持つことを検証する。"""
     value = data[field_name]
     assert isinstance(value, str)
     try:
@@ -196,6 +193,4 @@ def _require_datetime_field(data: dict[str, object], field_name: str) -> None:
     except (ValueError, TypeError) as error:
         raise CloudEventDecodeError(f"Invalid date-time format for '{field_name}': '{value}'") from error
     if parsed.tzinfo is None:
-        raise CloudEventDecodeError(f"'{field_name}' must be timezone-aware (UTC required): '{value}'")
-    if parsed.utcoffset() != timedelta(0):
-        raise CloudEventDecodeError(f"'{field_name}' must be UTC (got offset: {parsed.utcoffset()}): '{value}'")
+        raise CloudEventDecodeError(f"'{field_name}' must be timezone-aware: '{value}'")

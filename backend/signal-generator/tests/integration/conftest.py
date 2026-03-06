@@ -107,8 +107,7 @@ TEST_MODEL_VERSION = "signal-model-v1"
 FIRESTORE_COLLECTIONS = [
     "idempotency_keys",
     "model_registry",
-    "signal_generations",
-    "signal_dispatches",
+    "signal_runs",
 ]
 
 
