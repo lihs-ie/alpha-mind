@@ -114,7 +114,7 @@ class FeatureGenerationService:
             lease_expires_at=lease_expires_at,
             trace=trace,
         )
-        if reservation != ReservationStatus.ACQUIRED:
+        if not _reservation_acquired(reservation):
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
@@ -459,3 +459,12 @@ class FeatureGenerationService:
             trace=generation.trace,
             occurred_at=generation.processed_at or now,
         )
+
+
+def _reservation_acquired(reservation: object) -> bool:
+    """Support both ReservationStatus and legacy bool-based test doubles."""
+    if isinstance(reservation, ReservationStatus):
+        return reservation == ReservationStatus.ACQUIRED
+    if isinstance(reservation, bool):
+        return reservation
+    return False
