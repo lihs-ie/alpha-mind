@@ -19,6 +19,9 @@ class TestMLflowModelLoader:
         mock_mlflow = _create_mock_mlflow()
         mock_model = MagicMock()
         mock_mlflow.pyfunc.load_model.return_value = mock_model
+        mock_version = MagicMock()
+        mock_version.version = "3"
+        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
             from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
@@ -30,11 +33,14 @@ class TestMLflowModelLoader:
 
             result = loader.load("my-model", "v1.0.0")
 
-            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/v1.0.0")
+            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/3")
             assert result is mock_model
 
     def test_load_raises_model_load_error_on_exception(self) -> None:
         mock_mlflow = _create_mock_mlflow()
+        mock_version = MagicMock()
+        mock_version.version = "1"
+        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
         mock_mlflow.pyfunc.load_model.side_effect = Exception("Model not found")
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
@@ -84,6 +90,9 @@ class TestMLflowModelLoader:
         mock_predictions = MagicMock()
         mock_model.predict.return_value = mock_predictions
         mock_mlflow.pyfunc.load_model.return_value = mock_model
+        mock_version = MagicMock()
+        mock_version.version = "1"
+        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
         mock_dataframe = MagicMock()
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):

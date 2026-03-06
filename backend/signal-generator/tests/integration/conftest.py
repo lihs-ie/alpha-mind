@@ -77,7 +77,7 @@ PROJECT_ID = os.environ.get("GCP_PROJECT", "alpha-mind-local")
 FIRESTORE_EMULATOR_HOST = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
 PUBSUB_EMULATOR_HOST = os.environ.get("PUBSUB_EMULATOR_HOST", "localhost:8085")
 FAKE_GCS_HOST = os.environ.get("STORAGE_EMULATOR_HOST", "http://localhost:4443")
-MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5050")
 
 # Pub/Sub トピック名
 TOPIC_FEATURES_GENERATED = "event-features-generated-v1"
@@ -288,10 +288,12 @@ def drain_subscription(
 @pytest.fixture(scope="session")
 def storage_client() -> StorageClient:
     """fake-gcs-server に接続する StorageClient。"""
-    client = StorageClient(project=PROJECT_ID)
-    http_transport = client._http
-    http_transport._auth_request = http_transport
-    return client
+    from google.auth.credentials import AnonymousCredentials
+
+    return StorageClient(
+        project=PROJECT_ID,
+        credentials=AnonymousCredentials(),
+    )
 
 
 @pytest.fixture(scope="session")
@@ -319,11 +321,14 @@ def _upload_test_feature_parquet(
 
 
 def _build_test_feature_dataframe(row_count: int = 100) -> pandas.DataFrame:
-    """テスト用の特徴量 DataFrame を構築する。"""
+    """テスト用の特徴量 DataFrame を構築する。
+
+    LightGBM は数値カラムのみ受け付けるため、文字列カラムは含めない。
+    学習時と同じカラム構成 (feature_1, feature_2, feature_3) にする。
+    """
     numpy.random.seed(42)
     return pandas.DataFrame(
         {
-            "ticker": [f"TICKER_{i:04d}" for i in range(row_count)],
             "feature_1": numpy.random.randn(row_count),
             "feature_2": numpy.random.randn(row_count),
             "feature_3": numpy.random.randn(row_count),

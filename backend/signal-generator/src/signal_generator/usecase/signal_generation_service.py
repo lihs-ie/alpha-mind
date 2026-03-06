@@ -4,6 +4,8 @@ import datetime
 import logging
 from collections.abc import Callable
 
+import pandas
+
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
 from signal_generator.domain.enums.degradation_flag import DegradationFlag
 from signal_generator.domain.enums.dispatch_status import DispatchStatus
@@ -205,7 +207,15 @@ class SignalGenerationService:
             )
 
             # Step 6: 推論実行
-            prediction_dataframe = model.predict(feature_dataframe)
+            prediction_result = model.predict(feature_dataframe)
+
+            # predict の戻り値が ndarray の場合は DataFrame に変換する
+            if isinstance(prediction_result, pandas.DataFrame):
+                prediction_dataframe = prediction_result
+            elif prediction_result is not None and hasattr(prediction_result, "__len__"):
+                prediction_dataframe = pandas.DataFrame(prediction_result, columns=["prediction"])
+            else:
+                raise TypeError(f"predict の戻り値が不正: {type(prediction_result)}")
 
             # Step 7 準備: predict 戻り値が異常な場合は同一 try 内で捕捉
             prediction_count = len(prediction_dataframe)

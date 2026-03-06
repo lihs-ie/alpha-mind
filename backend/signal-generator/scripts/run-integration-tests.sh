@@ -28,7 +28,7 @@ cd "$SERVICE_DIR"
 FIRESTORE_EMULATOR_HOST=localhost:8080 \
 PUBSUB_EMULATOR_HOST=localhost:8085 \
 STORAGE_EMULATOR_HOST=http://localhost:4443 \
-MLFLOW_TRACKING_URI=http://localhost:5000 \
+MLFLOW_TRACKING_URI=http://localhost:5050 \
 GCP_PROJECT=alpha-mind-local \
 python -m pytest tests/integration/ -v --tb=long "$@"
 
