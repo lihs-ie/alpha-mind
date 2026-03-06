@@ -161,11 +161,13 @@ class PubSubPushDecoder:
         encoded_data = message.get("data")
         if not isinstance(encoded_data, str) or not encoded_data:
             return DEFAULT_TRACE
+        # fmt: off
         try:
             envelope_bytes = base64.b64decode(encoded_data, validate=False)
             envelope_body = json.loads(envelope_bytes.decode("utf-8"))
         except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
             return DEFAULT_TRACE
+        # fmt: on
         if not isinstance(envelope_body, dict):
             return DEFAULT_TRACE
         trace = envelope_body.get("trace")

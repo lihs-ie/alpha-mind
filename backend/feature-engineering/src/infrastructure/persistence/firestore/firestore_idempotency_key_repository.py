@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, cast
+from typing import Any
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client
@@ -61,7 +61,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
             document_reference.create(base_data)
             return ReservationStatus.ACQUIRED
         except AlreadyExists:
-            snapshot = cast(DocumentSnapshot, document_reference.get())
+            snapshot = document_reference.get()
             if not snapshot.exists:
                 document_reference.set(base_data)
                 return ReservationStatus.ACQUIRED
@@ -102,7 +102,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
     def release(self, identifier: str, released_at: datetime.datetime) -> None:
         """Release the current lease so Pub/Sub redelivery can retry immediately."""
         document_reference = self._document_reference(identifier)
-        snapshot = cast(DocumentSnapshot, document_reference.get())
+        snapshot = document_reference.get()
         if not snapshot.exists:
             return
         document_reference.set(
@@ -120,11 +120,11 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
     def _document_reference(self, identifier: str) -> DocumentReference:
         """Return the Firestore document reference for the identifier."""
         document_identifier = self._document_identifier(identifier)
-        return cast(DocumentReference, self._client.collection(COLLECTION_NAME).document(document_identifier))
+        return self._client.collection(COLLECTION_NAME).document(document_identifier)
 
     def _get_snapshot(self, identifier: str) -> DocumentSnapshot:
         """Load the current document snapshot."""
-        return cast(DocumentSnapshot, self._document_reference(identifier).get())
+        return self._document_reference(identifier).get()
 
 
 def _extract_processed_at(data: dict[str, Any]) -> datetime.datetime | None:

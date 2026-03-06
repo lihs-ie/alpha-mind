@@ -218,6 +218,7 @@ def _wait_for_http_ok(url: str, timeout_seconds: int) -> None:
     """Poll an HTTP endpoint until it returns 200."""
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
+        # fmt: off
         try:
             with urllib.request.urlopen(url, timeout=5) as response:
                 if response.status == 200:
@@ -225,6 +226,7 @@ def _wait_for_http_ok(url: str, timeout_seconds: int) -> None:
         except (urllib.error.URLError, http.client.RemoteDisconnected, ConnectionResetError):
             time.sleep(2)
             continue
+        # fmt: on
         time.sleep(2)
     raise IntegrationError(f"Timed out waiting for {url}")
 
@@ -333,10 +335,12 @@ def _collect_messages(subscription_name: str, timeout_seconds: int) -> list[dict
 def _pull_messages(subscription_name: str) -> list[dict[str, Any]]:
     """Pull up to 10 messages and acknowledge them immediately."""
     url = f"{PUBSUB_URL}/v1/projects/{PROJECT_ID}/subscriptions/{subscription_name}:pull"
+    # fmt: off
     try:
         response = _request_json(url, {"maxMessages": 10})
     except (OSError, urllib.error.URLError, http.client.RemoteDisconnected):
         return []
+    # fmt: on
     received_messages = response.get("receivedMessages", [])
     if not isinstance(received_messages, list) or not received_messages:
         return []

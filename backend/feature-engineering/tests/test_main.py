@@ -487,9 +487,17 @@ def test_root_path_is_alias_for_pubsub_push() -> None:
 
 
 def test_missing_storage_path_publishes_failed_event_and_persists_failed_state() -> None:
-    app, generation_repository, dispatch_repository, _, _, _, outbox_repository, generated_publisher, failed_publisher = (
-        build_test_app()
-    )
+    (
+        app,
+        generation_repository,
+        dispatch_repository,
+        _,
+        _,
+        _,
+        outbox_repository,
+        generated_publisher,
+        failed_publisher,
+    ) = build_test_app()
 
     response = app.test_client().post(
         "/pubsub/push",
