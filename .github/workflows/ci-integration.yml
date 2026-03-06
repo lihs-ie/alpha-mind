@@ -147,7 +147,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          targets=("${SERVICE}")
+          targets=("firestore" "${SERVICE}")
           if [[ "${SERVICE}" == "bff" ]]; then
             targets+=("risk-guard")
           fi
