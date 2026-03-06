@@ -190,7 +190,7 @@
 
 1. 1イベント×1購読者ごとにsubscriptionを作成する。
 2. 各subscriptionに専用DLQ topicを作成する。
-3. `maxDeliveryAttempts`: `5`
+3. `maxDeliveryAttempts`: `3`
 4. `minimumBackoff`: `10s`
 5. `maximumBackoff`: `600s`
 6. `ackDeadlineSeconds`: `60`

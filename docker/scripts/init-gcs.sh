@@ -7,6 +7,8 @@
 set -euo pipefail
 
 GCS_HOST="${STORAGE_EMULATOR_HOST:-localhost:4443}"
+GCS_HOST="${GCS_HOST#http://}"
+GCS_HOST="${GCS_HOST#https://}"
 BASE_URL="http://${GCS_HOST}/storage/v1"
 
 # INF-003 に定義されたバケット一覧

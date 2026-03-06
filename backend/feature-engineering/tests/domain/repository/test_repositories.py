@@ -143,10 +143,20 @@ class TestIdempotencyKeyRepository:
 
         assert hasattr(IdempotencyKeyRepository, "find")
 
+    def test_has_reserve_method(self) -> None:
+        from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
+
+        assert hasattr(IdempotencyKeyRepository, "reserve")
+
     def test_has_persist_method(self) -> None:
         from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
 
         assert hasattr(IdempotencyKeyRepository, "persist")
+
+    def test_has_release_method(self) -> None:
+        from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
+
+        assert hasattr(IdempotencyKeyRepository, "release")
 
     def test_has_terminate_method(self) -> None:
         from domain.repository.idempotency_key_repository import IdempotencyKeyRepository

@@ -34,6 +34,8 @@ services:
       gcloud beta emulators pubsub start
       --host-port=0.0.0.0:8085
       --project=alpha-mind-local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8085:8085"
     networks:
@@ -41,7 +43,7 @@ services:
     environment:
       CLOUDSDK_CORE_PROJECT: alpha-mind-local
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/v1/projects/alpha-mind-local/topics"]
+      test: ["CMD", "curl", "--http1.1", "-f", "http://localhost:8085/v1/projects/alpha-mind-local/topics"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -80,8 +82,11 @@ services:
       GCP_PROJECT_ID: alpha-mind-local
       FIRESTORE_EMULATOR_HOST: firestore:8080
       PUBSUB_EMULATOR_HOST: pubsub:8085
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       FIRESTORE_DATABASE: "(default)"
+      PUBSUB_DEAD_LETTER_MAX_DELIVERY_ATTEMPTS: ${PUBSUB_DEAD_LETTER_MAX_DELIVERY_ATTEMPTS:-3}
+      PUBSUB_RETRY_MINIMUM_BACKOFF: ${PUBSUB_RETRY_MINIMUM_BACKOFF:-10s}
+      PUBSUB_RETRY_MAXIMUM_BACKOFF: ${PUBSUB_RETRY_MAXIMUM_BACKOFF:-600s}
     volumes:
       - ./scripts:/scripts:ro
     # jq が必要なため apt-get でインストールしてからスクリプトを実行する
@@ -186,7 +191,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       # 外部APIキーはローカルではプレースホルダーを使用する
       JQUANTS_API_KEY: "local-jquants-api-key-placeholder"
       ALPACA_API_KEY: "local-alpaca-api-key-placeholder"
@@ -221,10 +226,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
-      FEATURES_GENERATED_TOPIC: event-features-generated-v1
-      FEATURES_GENERATION_FAILED_TOPIC: event-features-generation-failed-v1
-      FEATURE_STORE_BUCKET: alpha-mind-feature-store-local
+      STORAGE_EMULATOR_HOST: http://gcs:4443
     depends_on:
       init:
         condition: service_completed_successfully
@@ -255,7 +257,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       MLFLOW_TRACKING_TOKEN: "local-mlflow-token-placeholder"
     depends_on:
       init:
@@ -405,7 +407,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       X_API_BEARER_TOKEN: "local-x-api-bearer-token-placeholder"
       YOUTUBE_API_KEY: "local-youtube-api-key-placeholder"
     depends_on:
@@ -437,7 +439,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       LLM_API_KEY: "local-llm-api-key-placeholder"
     depends_on:
       init:
@@ -469,7 +471,7 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
     depends_on:
       init:
         condition: service_completed_successfully
