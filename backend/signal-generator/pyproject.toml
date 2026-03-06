@@ -23,6 +23,7 @@ dev = [
     "pytest-cov",
     "mypy>=1.0",
     "ruff",
+    "flask>=3.0,<4",
     "google-cloud-firestore>=2.0,<3",
     "google-cloud-storage>=2.0,<3",
     "google-cloud-pubsub>=2.0,<3",
