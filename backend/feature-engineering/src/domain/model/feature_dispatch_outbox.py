@@ -38,7 +38,7 @@ class FeatureDispatchOutbox:
         if self.status == OutboxStatus.PUBLISHED and self.published_at is None:
             raise ValueError("published status requires published_at")
 
-    def mark_published(self, published_at: datetime.datetime) -> "FeatureDispatchOutbox":
+    def mark_published(self, published_at: datetime.datetime) -> FeatureDispatchOutbox:
         """Return a published copy of the outbox entry."""
         return FeatureDispatchOutbox(
             identifier=self.identifier,

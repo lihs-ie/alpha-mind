@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Callable, Mapping, Protocol
+from typing import Protocol
 
 from domain.event.domain_events import FeatureGenerationCompleted, FeatureGenerationFailed
 from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
@@ -13,14 +14,20 @@ from domain.model.feature_dispatch import FeatureDispatch
 from domain.model.feature_dispatch_outbox import FeatureDispatchOutbox, OutboxStatus
 from domain.model.feature_generation import FeatureGeneration
 from domain.repository.feature_artifact_repository import FeatureArtifactRepository
-from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
 from domain.repository.feature_dispatch_outbox_repository import FeatureDispatchOutboxRepository
+from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
 from domain.repository.feature_generation_repository import FeatureGenerationRepository
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository, ReservationStatus
 from domain.repository.insight_record_repository import InsightRecordRepository
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
 from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
-from domain.value_object.enums import DispatchStatus, FeatureGenerationStatus, PublishedEventType, ReasonCode, SourceStatusValue
+from domain.value_object.enums import (
+    DispatchStatus,
+    FeatureGenerationStatus,
+    PublishedEventType,
+    ReasonCode,
+    SourceStatusValue,
+)
 from domain.value_object.failure_detail import FailureDetail
 from domain.value_object.feature_artifact import FeatureArtifact
 from domain.value_object.insight_snapshot import InsightSnapshot
@@ -31,14 +38,14 @@ from domain.value_object.source_status import SourceStatus
 class CompletedEventPublisher(Protocol):
     """Publishes a completed feature generation event."""
 
-    def publish(self, event: FeatureGenerationCompleted) -> None:
+    def publish(self, event: FeatureGenerationCompleted) -> str | None:
         """Publish a completed event."""
 
 
 class FailedEventPublisher(Protocol):
     """Publishes a failed feature generation event."""
 
-    def publish(self, event: FeatureGenerationFailed) -> None:
+    def publish(self, event: FeatureGenerationFailed) -> str | None:
         """Publish a failed event."""
 
 
@@ -361,12 +368,12 @@ class FeatureGenerationService:
     ) -> None:
         processed_at = self._clock()
         if outbox_entry.published_event == PublishedEventType.FEATURES_GENERATED:
-            event = self._build_completed_event(generation)
-            self._features_generated_publisher.publish(event)
+            completed_event = self._build_completed_event(generation)
+            self._features_generated_publisher.publish(completed_event)
             dispatch.publish(PublishedEventType.FEATURES_GENERATED, processed_at)
         else:
-            event = self._build_failed_event(generation)
-            self._features_generation_failed_publisher.publish(event)
+            failed_event = self._build_failed_event(generation)
+            self._features_generation_failed_publisher.publish(failed_event)
             dispatch.publish(PublishedEventType.FEATURES_GENERATION_FAILED, processed_at)
         self._feature_dispatch_repository.persist(dispatch)
         self._feature_dispatch_outbox_repository.mark_published(generation.identifier, processed_at)

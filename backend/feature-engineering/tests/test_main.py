@@ -20,11 +20,10 @@ from domain.repository.idempotency_key_repository import ReservationStatus
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
 from domain.service.feature_version_generator import FeatureVersionGenerator
 from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
+from domain.value_object.enums import DispatchStatus, FeatureGenerationStatus, PublishedEventType, ReasonCode
 from domain.value_object.feature_artifact import FeatureArtifact
 from domain.value_object.insight_snapshot import InsightSnapshot
-from domain.value_object.enums import DispatchStatus, FeatureGenerationStatus, PublishedEventType, ReasonCode
 from main import create_app
-
 
 VALID_IDENTIFIER = "01ARZ3NDEKTSV4RRFFQ69G5FAA"
 VALID_TRACE = "01ARZ3NDEKTSV4RRFFQ69G5FAA"

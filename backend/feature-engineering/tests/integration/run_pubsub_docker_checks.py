@@ -8,16 +8,14 @@ import http.client
 import http.server
 import json
 import random
-import socket
-import string
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
-import threading
 
 PROJECT_ID = "alpha-mind-local"
 PUBSUB_URL = "http://localhost:8085"
@@ -26,7 +24,7 @@ FEATURE_ENGINEERING_URL = "http://localhost:3003"
 DOCKER_DIR = Path(__file__).resolve().parents[4] / "docker"
 
 
-class IntegrationFailure(Exception):
+class IntegrationError(Exception):
     """Raised when an integration assertion fails."""
 
 
@@ -228,7 +226,7 @@ def _wait_for_http_ok(url: str, timeout_seconds: int) -> None:
             time.sleep(2)
             continue
         time.sleep(2)
-    raise IntegrationFailure(f"Timed out waiting for {url}")
+    raise IntegrationError(f"Timed out waiting for {url}")
 
 
 def _wait_for_pubsub_topic(topic_name: str, timeout_seconds: int) -> None:
@@ -245,7 +243,7 @@ def _wait_for_pubsub_topic(topic_name: str, timeout_seconds: int) -> None:
             time.sleep(2)
             continue
         time.sleep(2)
-    raise IntegrationFailure(f"Timed out waiting for topic {topic_name}")
+    raise IntegrationError(f"Timed out waiting for topic {topic_name}")
 
 
 def _create_pull_subscription(subscription_name: str, topic_name: str) -> None:
@@ -337,7 +335,7 @@ def _pull_messages(subscription_name: str) -> list[dict[str, Any]]:
     url = f"{PUBSUB_URL}/v1/projects/{PROJECT_ID}/subscriptions/{subscription_name}:pull"
     try:
         response = _request_json(url, {"maxMessages": 10})
-    except (socket.timeout, urllib.error.URLError, http.client.RemoteDisconnected):
+    except (OSError, urllib.error.URLError, http.client.RemoteDisconnected):
         return []
     received_messages = response.get("receivedMessages", [])
     if not isinstance(received_messages, list) or not received_messages:
@@ -371,7 +369,7 @@ def _get_firestore_document(collection_name: str, document_id: str) -> dict[str,
         raw = json.loads(response.read().decode("utf-8"))
     fields = raw.get("fields", {})
     if not isinstance(fields, dict):
-        raise IntegrationFailure(f"Unexpected Firestore fields for {collection_name}/{document_id}")
+        raise IntegrationError(f"Unexpected Firestore fields for {collection_name}/{document_id}")
     return {key: _decode_firestore_value(value) for key, value in fields.items()}
 
 
@@ -400,7 +398,7 @@ def _decode_firestore_value(value: dict[str, Any]) -> Any:
     if "mapValue" in value:
         fields = value["mapValue"].get("fields", {})
         return {key: _decode_firestore_value(field_value) for key, field_value in fields.items()}
-    raise IntegrationFailure(f"Unsupported Firestore value: {value}")
+    raise IntegrationError(f"Unsupported Firestore value: {value}")
 
 
 def _field(document: dict[str, Any], field_name: str) -> Any:
@@ -431,9 +429,9 @@ def _new_ulid_like() -> str:
 
 
 def _assert(condition: bool, message: str) -> None:
-    """Raise IntegrationFailure when a condition is false."""
+    """Raise IntegrationError when a condition is false."""
     if not condition:
-        raise IntegrationFailure(message)
+        raise IntegrationError(message)
 
 
 class RetryProbeState:
@@ -462,7 +460,7 @@ def _retry_probe_server(port: int) -> Any:
     state = RetryProbeState()
 
     class RetryProbeHandler(http.server.BaseHTTPRequestHandler):
-        def do_POST(self) -> None:  # noqa: N802
+        def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             self.rfile.read(length)
             attempt = state.record_attempt(self.path)
@@ -473,7 +471,7 @@ def _retry_probe_server(port: int) -> Any:
             self.send_response(503)
             self.end_headers()
 
-        def log_message(self, format: str, *args: object) -> None:  # noqa: A003
+        def log_message(self, format: str, *args: object) -> None:
             return
 
     server = http.server.ThreadingHTTPServer(("0.0.0.0", port), RetryProbeHandler)
@@ -499,7 +497,7 @@ def _wait_for_probe_attempts(
         if probe.count(path) >= expected_attempts:
             return
         time.sleep(1)
-    raise IntegrationFailure(
+    raise IntegrationError(
         f"Timed out waiting for {path} attempts: expected {expected_attempts}, got {probe.count(path)}"
     )
 

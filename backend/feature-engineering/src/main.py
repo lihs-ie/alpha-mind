@@ -7,8 +7,8 @@ import datetime
 import json
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from flask import Flask, Response, request
 from google.cloud.firestore_v1 import Client as FirestoreClient
@@ -33,11 +33,11 @@ from infrastructure.messaging.pubsub.features_generation_failed_publisher import
 from infrastructure.persistence.cloud_storage.cloud_storage_feature_artifact_repository import (
     CloudStorageFeatureArtifactRepository,
 )
-from infrastructure.persistence.firestore.firestore_feature_dispatch_repository import (
-    FirestoreFeatureDispatchRepository,
-)
 from infrastructure.persistence.firestore.firestore_feature_dispatch_outbox_repository import (
     FirestoreFeatureDispatchOutboxRepository,
+)
+from infrastructure.persistence.firestore.firestore_feature_dispatch_repository import (
+    FirestoreFeatureDispatchRepository,
 )
 from infrastructure.persistence.firestore.firestore_feature_generation_repository import (
     FirestoreFeatureGenerationRepository,

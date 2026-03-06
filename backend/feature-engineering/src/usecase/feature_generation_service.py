@@ -18,7 +18,7 @@ from domain.model.feature_generation import FeatureGeneration
 from domain.repository.feature_artifact_repository import FeatureArtifactRepository
 from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
 from domain.repository.feature_generation_repository import FeatureGenerationRepository
-from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
+from domain.repository.idempotency_key_repository import IdempotencyKeyRepository, ReservationStatus
 from domain.repository.insight_record_repository import InsightRecordRepository
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
 from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
@@ -106,7 +106,15 @@ class FeatureGenerationService:
         # Step 1: Atomic idempotency reservation (RULE-FE-004).
         # reserve() atomically checks and claims the identifier, preventing
         # concurrent duplicate processing under parallel consumer/redelivery.
-        if not self._idempotency_key_repository.reserve(identifier=identifier, trace=trace):
+        leased_at = datetime.datetime.now(tz=datetime.UTC)
+        lease_expires_at = leased_at + datetime.timedelta(minutes=5)
+        reservation = self._idempotency_key_repository.reserve(
+            identifier=identifier,
+            leased_at=leased_at,
+            lease_expires_at=lease_expires_at,
+            trace=trace,
+        )
+        if reservation != ReservationStatus.ACQUIRED:
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 

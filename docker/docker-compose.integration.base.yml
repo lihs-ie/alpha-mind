@@ -29,6 +29,8 @@ services:
       gcloud beta emulators pubsub start
       --host-port=0.0.0.0:8085
       --project=alpha-mind-local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - alpha-mind-network
     ports:
@@ -36,7 +38,7 @@ services:
     environment:
       CLOUDSDK_CORE_PROJECT: alpha-mind-local
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/v1/projects/alpha-mind-local/topics"]
+      test: ["CMD", "curl", "--http1.1", "-f", "http://localhost:8085/v1/projects/alpha-mind-local/topics"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -71,8 +73,11 @@ services:
       GCP_PROJECT_ID: alpha-mind-local
       FIRESTORE_EMULATOR_HOST: firestore:8080
       PUBSUB_EMULATOR_HOST: pubsub:8085
-      STORAGE_EMULATOR_HOST: gcs:4443
+      STORAGE_EMULATOR_HOST: http://gcs:4443
       FIRESTORE_DATABASE: "(default)"
+      PUBSUB_DEAD_LETTER_MAX_DELIVERY_ATTEMPTS: ${PUBSUB_DEAD_LETTER_MAX_DELIVERY_ATTEMPTS:-5}
+      PUBSUB_RETRY_MINIMUM_BACKOFF: ${PUBSUB_RETRY_MINIMUM_BACKOFF:-10s}
+      PUBSUB_RETRY_MAXIMUM_BACKOFF: ${PUBSUB_RETRY_MAXIMUM_BACKOFF:-600s}
     volumes:
       - ./scripts:/scripts:ro
     entrypoint: >
