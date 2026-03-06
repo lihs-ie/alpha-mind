@@ -30,6 +30,7 @@ def _build_cloud_event(
             "targetDate": "2026-03-05",
             "featureVersion": "v1.0.0",
             "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            "universeCount": 100,
         }
     return {
         "identifier": identifier,
@@ -63,7 +64,6 @@ def application(mock_service: MagicMock) -> flask.Flask:
     application = flask.Flask(__name__)
     application.config["TESTING"] = True
     application.config["SIGNAL_GENERATION_SERVICE"] = mock_service
-    application.config["DEFAULT_UNIVERSE_COUNT"] = 100
     application.register_blueprint(subscriber_blueprint)
     return application
 
@@ -103,21 +103,7 @@ class TestSubscriberSuccess:
         assert command.storage_path == "gs://features/2026-03-05/v1.0.0.parquet"
         assert command.trace == "01JARQ0000BBBBBBBBBBBBBBBB"
 
-    def test_uses_default_universe_count_when_not_in_payload(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
-        mock_service.execute.return_value = GenerateSignalResult.success()
-        cloud_event = _build_cloud_event()
-        body = _build_pubsub_body(cloud_event)
-
-        client.post("/", json=body)
-
-        command = mock_service.execute.call_args[0][0]
-        assert command.universe_count == 100  # DEFAULT_UNIVERSE_COUNT
-
-    def test_uses_payload_universe_count_when_present(
-        self, client: flask.testing.FlaskClient, mock_service: MagicMock
-    ) -> None:
+    def test_uses_payload_universe_count(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         mock_service.execute.return_value = GenerateSignalResult.success()
         payload = {
             "targetDate": "2026-03-05",
@@ -175,6 +161,23 @@ class TestSubscriberValidationFailure:
 
     def test_returns_200_on_non_json_body(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
         response = client.post("/", data=b"not json", content_type="text/plain")
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_missing_universe_count_returns_200_ack(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """universeCount 欠損時は CloudEventDecodeError で 200 ack。"""
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
 
         assert response.status_code == 200
         mock_service.execute.assert_not_called()
@@ -350,6 +353,44 @@ class TestSubscriberStructuredLogging:
             for call in warning_calls:
                 extra = call.kwargs.get("extra", {})
                 assert extra.get("service") == "signal-generator"
+
+
+class TestSubscriberDecodeFailureEventPublishing:
+    """デコード失敗時に identifier/trace が取得可能な場合の failed イベント発行。"""
+
+    def test_decode_failure_with_identifiers_calls_handle_decode_failure(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """デコード失敗で identifier/trace が取れる場合に handle_decode_failure が呼ばれる。"""
+        # universeCount を欠損させるとデコードエラーになるが identifier/trace は取れる
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            # universeCount 欠損
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.handle_decode_failure.assert_called_once_with(
+            identifier="01JARQ0000AAAAAAAAAAAAAAAA",
+            trace="01JARQ0000BBBBBBBBBBBBBBBB",
+            detail=mock_service.handle_decode_failure.call_args.kwargs["detail"],
+        )
+
+    def test_decode_failure_without_identifiers_does_not_call_handle(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """identifier/trace が取れないデコード失敗では handle_decode_failure を呼ばない。"""
+        body: dict[str, object] = {"message": {"data": "!!invalid-base64!!"}}
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.handle_decode_failure.assert_not_called()
 
 
 class TestSubscriberNullReasonCodeSafety:

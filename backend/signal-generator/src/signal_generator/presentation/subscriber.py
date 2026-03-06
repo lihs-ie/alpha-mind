@@ -15,6 +15,7 @@ from signal_generator.domain.enums.reason_code import ReasonCode
 from signal_generator.presentation.cloud_event_decoder import (
     CloudEventDecodeError,
     decode_pubsub_push_message,
+    extract_envelope_identifiers,
 )
 from signal_generator.usecase.generate_signal_command import GenerateSignalCommand
 from signal_generator.usecase.generate_signal_result import GenerateSignalResult
@@ -56,13 +57,19 @@ def handle_pubsub_push() -> tuple[Response, int]:
             error,
             extra={"service": _SERVICE_NAME},
         )
+        # identifier/trace が取得できる場合は failed イベントを発行する
+        envelope_identifiers = extract_envelope_identifiers(body)
+        if envelope_identifiers is not None:
+            decode_failure_service: SignalGenerationService = current_app.config["SIGNAL_GENERATION_SERVICE"]
+            decode_failure_service.handle_decode_failure(
+                identifier=envelope_identifiers[0],
+                trace=envelope_identifiers[1],
+                detail=str(error),
+            )
         return jsonify({"status": "error", "error": str(error)}), 200
 
     # Step 3: GenerateSignalCommand の構築
     service: SignalGenerationService = current_app.config["SIGNAL_GENERATION_SERVICE"]
-    default_universe_count: int = current_app.config["DEFAULT_UNIVERSE_COUNT"]
-
-    universe_count = cloud_event_payload.universe_count or default_universe_count
 
     structured_extra = {
         "service": _SERVICE_NAME,
@@ -77,7 +84,7 @@ def handle_pubsub_push() -> tuple[Response, int]:
             target_date=cloud_event_payload.target_date,
             feature_version=cloud_event_payload.feature_version,
             storage_path=cloud_event_payload.storage_path,
-            universe_count=universe_count,
+            universe_count=cloud_event_payload.universe_count,
             trace=cloud_event_payload.trace,
         )
     except ValueError as error:

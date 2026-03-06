@@ -33,7 +33,7 @@ class TestFirestoreSignalDispatchRepository:
         result = repository.find("01JTEST0000000000000000000")
 
         assert result is None
-        mock_client.collection.assert_called_once_with("signal_dispatches")
+        mock_client.collection.assert_called_once_with("idempotency_keys")
 
     def test_persist_calls_set_with_document_data(self) -> None:
         mock_client = MagicMock()
@@ -47,7 +47,7 @@ class TestFirestoreSignalDispatchRepository:
         )
         repository.persist(dispatch)
 
-        mock_client.collection.assert_called_once_with("signal_dispatches")
+        mock_client.collection.assert_called_once_with("idempotency_keys")
         mock_client.collection.return_value.document.assert_called_once_with("01JTEST0000000000000000000")
         mock_document_reference.set.assert_called_once()
 
@@ -64,7 +64,7 @@ class TestFirestoreSignalDispatchRepository:
         repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
         repository.terminate("01JTEST0000000000000000000")
 
-        mock_client.collection.assert_called_once_with("signal_dispatches")
+        mock_client.collection.assert_called_once_with("idempotency_keys")
         mock_document_reference.delete.assert_called_once()
 
     def test_find_returns_pending_dispatch(self) -> None:

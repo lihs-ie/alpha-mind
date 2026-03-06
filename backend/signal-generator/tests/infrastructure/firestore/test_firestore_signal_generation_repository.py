@@ -44,7 +44,7 @@ class TestFirestoreSignalGenerationRepository:
         result = repository.find("01JTEST0000000000000000000")
 
         assert result is None
-        mock_client.collection.assert_called_once_with("signal_generations")
+        mock_client.collection.assert_called_once_with("signal_runs")
 
     def test_persist_calls_set_with_document_data(self) -> None:
         mock_client = MagicMock()
@@ -60,7 +60,7 @@ class TestFirestoreSignalGenerationRepository:
         )
         repository.persist(generation)
 
-        mock_client.collection.assert_called_once_with("signal_generations")
+        mock_client.collection.assert_called_once_with("signal_runs")
         mock_client.collection.return_value.document.assert_called_once_with("01JTEST0000000000000000000")
         mock_document_reference.set.assert_called_once()
 
@@ -78,7 +78,7 @@ class TestFirestoreSignalGenerationRepository:
         repository = FirestoreSignalGenerationRepository(firestore_client=mock_client)
         repository.terminate("01JTEST0000000000000000000")
 
-        mock_client.collection.assert_called_once_with("signal_generations")
+        mock_client.collection.assert_called_once_with("signal_runs")
         mock_document_reference.delete.assert_called_once()
 
     def test_find_by_status_queries_with_status_filter(self) -> None:
@@ -254,3 +254,6 @@ class TestFirestoreSignalGenerationRepository:
         assert document_data["status"] == "generated"
         assert "signalArtifact" in document_data
         assert "modelSnapshot" in document_data
+        assert "modelDiagnosticsSnapshot" in document_data
+        assert document_data["modelDiagnosticsSnapshot"]["degradationFlag"] == "normal"
+        assert document_data["modelDiagnosticsSnapshot"]["requiresComplianceReview"] is False

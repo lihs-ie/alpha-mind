@@ -12,7 +12,7 @@ from signal_generator.domain.repositories.signal_generation_repository import (
     SignalGenerationRepository,
 )
 
-_COLLECTION_NAME = "signal_generations"
+_COLLECTION_NAME = "signal_runs"
 
 
 class FirestoreSignalGenerationRepository(SignalGenerationRepository):
@@ -81,6 +81,17 @@ def _to_document_data(signal_generation: SignalGeneration) -> dict[str, Any]:
             "generatedCount": signal_generation.signal_artifact.generated_count,
             "universeCount": signal_generation.signal_artifact.universe_count,
         }
+    if signal_generation.model_diagnostics_snapshot is not None:
+        diagnostics = signal_generation.model_diagnostics_snapshot
+        diagnostics_data: dict[str, Any] = {
+            "degradationFlag": diagnostics.degradation_flag.value,
+            "requiresComplianceReview": diagnostics.requires_compliance_review,
+        }
+        if diagnostics.cost_adjusted_return is not None:
+            diagnostics_data["costAdjustedReturn"] = diagnostics.cost_adjusted_return
+        if diagnostics.slippage_adjusted_sharpe is not None:
+            diagnostics_data["slippageAdjustedSharpe"] = diagnostics.slippage_adjusted_sharpe
+        document_data["modelDiagnosticsSnapshot"] = diagnostics_data
     if signal_generation.failure_detail is not None:
         document_data["failureDetail"] = {
             "reasonCode": signal_generation.failure_detail.reason_code.value,

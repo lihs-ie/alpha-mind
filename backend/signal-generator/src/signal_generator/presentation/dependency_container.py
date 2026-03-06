@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_UNIVERSE_COUNT = 100
-
 
 def create_application(
     *,
@@ -39,10 +37,6 @@ def create_application(
     """
     application = flask.Flask(__name__)
 
-    # 環境変数から設定を読み込む
-    default_universe_count = int(os.environ.get("DEFAULT_UNIVERSE_COUNT", str(_DEFAULT_UNIVERSE_COUNT)))
-    application.config["DEFAULT_UNIVERSE_COUNT"] = default_universe_count
-
     # サービスの解決
     service = signal_generation_service if signal_generation_service is not None else _build_signal_generation_service()
 
@@ -52,10 +46,7 @@ def create_application(
     application.register_blueprint(health_blueprint)
     application.register_blueprint(subscriber_blueprint)
 
-    logger.info(
-        "Application created: default_universe_count=%d",
-        default_universe_count,
-    )
+    logger.info("Application created")
 
     return application
 
@@ -107,6 +98,7 @@ def _build_signal_generation_service() -> SignalGenerationService:
     from signal_generator.infrastructure.storage.cloud_storage_signal_writer import (
         CloudStorageSignalWriter,
     )
+    from signal_generator.usecase.signal_audit_writer import SignalAuditWriter
     from signal_generator.usecase.signal_generation_service import (
         SignalGenerationService,
     )
@@ -151,6 +143,7 @@ def _build_signal_generation_service() -> SignalGenerationService:
     feature_payload_integrity_specification = FeaturePayloadIntegritySpecification()
     approved_model_policy = ApprovedModelPolicy()
     inference_consistency_policy = InferenceConsistencyPolicy()
+    signal_audit_writer = SignalAuditWriter()
 
     return SignalGenerationService(
         idempotency_key_repository=idempotency_key_repository,
@@ -166,5 +159,6 @@ def _build_signal_generation_service() -> SignalGenerationService:
         feature_payload_integrity_specification=feature_payload_integrity_specification,
         approved_model_policy=approved_model_policy,
         inference_consistency_policy=inference_consistency_policy,
+        signal_audit_writer=signal_audit_writer,
         clock=lambda: datetime.datetime.now(datetime.UTC),
     )

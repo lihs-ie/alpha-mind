@@ -15,13 +15,11 @@ def _create_mock_mlflow() -> MagicMock:
 class TestMLflowModelLoader:
     """MLflowModelLoader のテスト。"""
 
-    def test_load_returns_model_from_registry(self) -> None:
+    def test_load_with_version_uses_version_directly(self) -> None:
+        """version 指定時は models:/{model_name}/{version} を直接使用する。"""
         mock_mlflow = _create_mock_mlflow()
         mock_model = MagicMock()
         mock_mlflow.pyfunc.load_model.return_value = mock_model
-        mock_version = MagicMock()
-        mock_version.version = "3"
-        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
             from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
@@ -33,14 +31,11 @@ class TestMLflowModelLoader:
 
             result = loader.load("my-model", "v1.0.0")
 
-            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/3")
+            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/v1.0.0")
             assert result is mock_model
 
     def test_load_raises_model_load_error_on_exception(self) -> None:
         mock_mlflow = _create_mock_mlflow()
-        mock_version = MagicMock()
-        mock_version.version = "1"
-        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
         mock_mlflow.pyfunc.load_model.side_effect = Exception("Model not found")
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
@@ -90,9 +85,6 @@ class TestMLflowModelLoader:
         mock_predictions = MagicMock()
         mock_model.predict.return_value = mock_predictions
         mock_mlflow.pyfunc.load_model.return_value = mock_model
-        mock_version = MagicMock()
-        mock_version.version = "1"
-        mock_mlflow.tracking.MlflowClient.return_value.search_model_versions.return_value = [mock_version]
         mock_dataframe = MagicMock()
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):

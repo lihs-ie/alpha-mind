@@ -40,19 +40,23 @@ class TestInputDeficiencyIntegration:
         drain_subscription(subscriber_client, signal_generated_subscription)
         drain_subscription(subscriber_client, signal_failed_subscription)
 
-    def test_missing_feature_version_returns_200_ack(
+    def test_missing_feature_version_returns_200_ack_and_publishes_failed(
         self,
         client: flask.testing.FlaskClient,
+        subscriber_client: SubscriberClient,
+        signal_failed_subscription: str,
     ) -> None:
-        """featureVersion 欠損時に HTTP 200 (ack) を返す。
+        """featureVersion 欠損時に HTTP 200 (ack) を返し、failed イベントを発行する。
 
         featureVersion が欠損した場合、CloudEvent デコーダーがバリデーション
         エラーを検出し、非再試行の ack (200) を返す。
+        identifier/trace が取得可能なため failed イベントが発行される。
         """
         payload: dict[str, object] = {
             "targetDate": "2026-03-05",
             # featureVersion を意図的に欠損させる
             "storagePath": TEST_FEATURE_STORAGE_PATH,
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier="01ARZ3NDEKTSV4RRFFQ69G5FAD",
@@ -68,6 +72,14 @@ class TestInputDeficiencyIntegration:
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data["status"] == "error"
+
+        # identifier/trace が取得可能なため failed イベントが発行される
+        messages = pull_messages(subscriber_client, signal_failed_subscription)
+        assert len(messages) == 1
+        failed_event = messages[0]
+        assert failed_event["eventType"] == "signal.generation.failed"
+        assert failed_event["identifier"] == "01ARZ3NDEKTSV4RRFFQ69G5FAD"
+        assert failed_event["payload"]["reasonCode"] == "REQUEST_VALIDATION_FAILED"
 
     def test_missing_storage_path_returns_200_ack(
         self,

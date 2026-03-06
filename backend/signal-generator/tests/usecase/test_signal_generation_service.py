@@ -45,6 +45,7 @@ from signal_generator.domain.specifications.feature_payload_integrity_specificat
 )
 from signal_generator.domain.value_objects.model_snapshot import ModelSnapshot
 from signal_generator.usecase.generate_signal_command import GenerateSignalCommand
+from signal_generator.usecase.signal_audit_writer import SignalAuditWriter
 from signal_generator.usecase.signal_generation_service import SignalGenerationService
 
 # --- Test fixtures ---
@@ -126,6 +127,7 @@ def _build_service(
         feature_payload_integrity_specification=FeaturePayloadIntegritySpecification(clock=lambda: _FIXED_TODAY),
         approved_model_policy=ApprovedModelPolicy(),
         inference_consistency_policy=InferenceConsistencyPolicy(),
+        signal_audit_writer=SignalAuditWriter(),
         clock=lambda: effective_clock_value,
     )
 

@@ -6,6 +6,7 @@ from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.firestore_v1 import Query
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 
+from signal_generator.domain.enums.degradation_flag import DegradationFlag
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.repositories.model_registry_repository import (
     ModelRegistryRepository,
@@ -60,8 +61,17 @@ def _to_model_snapshot(document_data: dict[str, Any] | None) -> ModelSnapshot:
     status = ModelStatus(document_data["status"])
     approved_at = decided_at if status == ModelStatus.APPROVED else None
 
+    # 診断フィールドの読み取り (なければデフォルト)
+    degradation_flag_raw = document_data.get("degradationFlag")
+    degradation_flag = DegradationFlag(degradation_flag_raw) if degradation_flag_raw else DegradationFlag.NORMAL
+    cost_adjusted_return = document_data.get("costAdjustedReturn")
+    slippage_adjusted_sharpe = document_data.get("slippageAdjustedSharpe")
+
     return ModelSnapshot(
         model_version=document_data["modelVersion"],
         status=status,
         approved_at=approved_at,
+        degradation_flag=degradation_flag,
+        cost_adjusted_return=cost_adjusted_return,
+        slippage_adjusted_sharpe=slippage_adjusted_sharpe,
     )

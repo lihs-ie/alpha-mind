@@ -36,6 +36,7 @@ def with_retry[T](
 ) -> T:
     """operation を指数バックオフで最大 max_retries 回再試行する。
 
+    初回実行 + 最大 max_retries 回リトライ = 計 (max_retries + 1) 回試行。
     一時障害(ServiceUnavailable, ConnectionError, TimeoutError)のみリトライする。
     恒久障害やバリデーション違反は即時再送出する。
     """

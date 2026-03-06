@@ -36,7 +36,7 @@ class CloudEventPayload:
     target_date: date
     feature_version: str
     storage_path: str
-    universe_count: int | None
+    universe_count: int
 
 
 def decode_pubsub_push_message(
@@ -114,16 +114,8 @@ def decode_pubsub_push_message(
     except (ValueError, TypeError) as error:
         raise CloudEventDecodeError(f"Invalid targetDate format: '{target_date_string}'") from error
 
-    # universeCount はオプション
-    universe_count_raw = payload.get("universeCount")
-    universe_count: int | None = None
-    if universe_count_raw is not None:
-        if isinstance(universe_count_raw, int):
-            universe_count = universe_count_raw
-        else:
-            raise CloudEventDecodeError(
-                f"Invalid universeCount type: expected int, got {type(universe_count_raw).__name__}"
-            )
+    # universeCount は必須 (AsyncAPI スキーマ準拠)
+    universe_count = _require_integer_field(payload, "universeCount")
 
     return CloudEventPayload(
         identifier=cloud_event["identifier"],
@@ -136,6 +128,45 @@ def decode_pubsub_push_message(
         storage_path=payload["storagePath"],
         universe_count=universe_count,
     )
+
+
+def extract_envelope_identifiers(
+    push_message: dict[str, object],
+) -> tuple[str, str] | None:
+    """Pub/Sub push body から identifier と trace をベストエフォートで抽出する。
+
+    デコード失敗時に failed イベントを発行するための部分抽出関数。
+    identifier/trace が ULID 形式で取得できる場合のみタプルを返し、
+    取得できない場合は None を返す。
+    """
+    try:
+        message = push_message.get("message")
+        if not isinstance(message, dict):
+            return None
+        data_encoded = message.get("data")
+        if not isinstance(data_encoded, str):
+            return None
+        data_bytes = base64.b64decode(data_encoded, validate=True)
+        cloud_event = json.loads(data_bytes)
+        if not isinstance(cloud_event, dict):
+            return None
+        identifier = cloud_event.get("identifier")
+        trace = cloud_event.get("trace")
+        if not isinstance(identifier, str) or not isinstance(trace, str):
+            return None
+        if not _ULID_PATTERN.match(identifier) or not _ULID_PATTERN.match(trace):
+            return None
+        return (identifier, trace)
+    except Exception:
+        return None
+
+
+def _require_integer_field(data: dict[str, object], field_name: str) -> int:
+    """dict に指定のフィールドが存在し、整数であることを検証する。"""
+    value = data.get(field_name)
+    if not isinstance(value, int):
+        raise CloudEventDecodeError(f"Missing or invalid required field: '{field_name}' (expected int)")
+    return value
 
 
 def _require_string_field(data: dict[str, object], field_name: str) -> None:

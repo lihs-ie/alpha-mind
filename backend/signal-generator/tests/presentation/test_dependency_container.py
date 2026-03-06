@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import flask
@@ -40,23 +39,6 @@ class TestCreateApplication:
     def test_signal_generation_service_in_config(self) -> None:
         application = _create_test_application()
         assert "SIGNAL_GENERATION_SERVICE" in application.config
-
-    def test_default_universe_count_in_config(self) -> None:
-        application = _create_test_application()
-        assert "DEFAULT_UNIVERSE_COUNT" in application.config
-        assert isinstance(application.config["DEFAULT_UNIVERSE_COUNT"], int)
-        assert application.config["DEFAULT_UNIVERSE_COUNT"] > 0
-
-    @patch.dict(os.environ, {"DEFAULT_UNIVERSE_COUNT": "250"})
-    def test_universe_count_from_environment(self) -> None:
-        application = _create_test_application()
-        assert application.config["DEFAULT_UNIVERSE_COUNT"] == 250
-
-    def test_default_universe_count_fallback(self) -> None:
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("DEFAULT_UNIVERSE_COUNT", None)
-            application = _create_test_application()
-            assert application.config["DEFAULT_UNIVERSE_COUNT"] == 100
 
 
 class TestCreateApplicationWithOverrides:

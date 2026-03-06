@@ -30,6 +30,7 @@ def _build_cloud_event(
             "targetDate": "2026-03-05",
             "featureVersion": "v1.0.0",
             "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            "universeCount": 100,
         }
     return {
         "identifier": identifier,
@@ -71,6 +72,7 @@ class TestDecodeValidMessage:
         assert result.target_date == date(2026, 3, 5)
         assert result.feature_version == "v1.0.0"
         assert result.storage_path == "gs://features/2026-03-05/v1.0.0.parquet"
+        assert result.universe_count == 100
 
     def test_decodes_payload_with_universe_count(self) -> None:
         payload = {
@@ -86,13 +88,18 @@ class TestDecodeValidMessage:
 
         assert result.universe_count == 500
 
-    def test_universe_count_defaults_to_none(self) -> None:
-        cloud_event = _build_cloud_event()
+    def test_missing_universe_count_raises_error(self) -> None:
+        """universeCount が欠損した場合に CloudEventDecodeError が発生する。"""
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+        }
+        cloud_event = _build_cloud_event(payload=payload)
         message = _build_pubsub_message(cloud_event)
 
-        result = decode_pubsub_push_message(message)
-
-        assert result.universe_count is None
+        with pytest.raises(CloudEventDecodeError, match="universeCount"):
+            decode_pubsub_push_message(message)
 
     def test_occurred_at_is_preserved(self) -> None:
         cloud_event = _build_cloud_event(occurred_at="2026-01-15T14:30:00Z")
@@ -366,12 +373,8 @@ class TestUniverseCountRequiredByAsyncApiSchema:
 
         assert result.universe_count == 200
 
-    def test_universe_count_none_when_absent(self) -> None:
-        """後方互換: universeCount がない場合は None を返す。
-
-        AsyncAPI では required だが、デコーダは既存パブリッシャーとの
-        後方互換のために None を許容する。デフォルト値は subscriber 側で補完する。
-        """
+    def test_universe_count_absent_raises_error(self) -> None:
+        """AsyncAPI スキーマ準拠: universeCount 欠損時にエラーを送出する。"""
         payload: dict[str, object] = {
             "targetDate": "2026-03-05",
             "featureVersion": "v1.0.0",
@@ -380,9 +383,8 @@ class TestUniverseCountRequiredByAsyncApiSchema:
         cloud_event = _build_cloud_event(payload=payload)
         message = _build_pubsub_message(cloud_event)
 
-        result = decode_pubsub_push_message(message)
-
-        assert result.universe_count is None
+        with pytest.raises(CloudEventDecodeError, match="universeCount"):
+            decode_pubsub_push_message(message)
 
 
 class TestPubsubPushMessageTypeValidation:
