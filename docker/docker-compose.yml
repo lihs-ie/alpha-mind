@@ -222,6 +222,9 @@ services:
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
       STORAGE_EMULATOR_HOST: gcs:4443
+      FEATURES_GENERATED_TOPIC: event-features-generated-v1
+      FEATURES_GENERATION_FAILED_TOPIC: event-features-generation-failed-v1
+      FEATURE_STORE_BUCKET: alpha-mind-feature-store-local
     depends_on:
       init:
         condition: service_completed_successfully
