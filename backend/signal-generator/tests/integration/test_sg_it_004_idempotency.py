@@ -126,9 +126,7 @@ class TestIdempotencyIntegration:
         assert document.exists
 
         # コレクション全体を検索して identifier が重複していないことを確認
-        all_documents = list(
-            firestore_client.collection("signal_runs").where("identifier", "==", identifier).stream()
-        )
+        all_documents = list(firestore_client.collection("signal_runs").where("identifier", "==", identifier).stream())
         assert len(all_documents) == 1
 
     def test_dispatch_count_remains_one_after_duplicate(

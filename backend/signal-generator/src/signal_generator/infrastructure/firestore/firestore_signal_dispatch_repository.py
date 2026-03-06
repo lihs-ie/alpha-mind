@@ -41,7 +41,9 @@ class FirestoreSignalDispatchRepository(SignalDispatchRepository):
         document_reference.set(document_data, merge=True)
 
     def terminate(self, identifier: str) -> None:
-        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(_document_identifier(identifier))
+        document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(
+            _document_identifier(identifier)
+        )
         document_reference.delete()
 
 
