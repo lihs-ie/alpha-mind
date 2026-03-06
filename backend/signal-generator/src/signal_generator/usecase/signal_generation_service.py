@@ -206,7 +206,6 @@ class SignalGenerationService:
             # Step 5: モデルロード
             model = self._model_loader.load(
                 model_name=model_snapshot.model_version,
-                version=model_snapshot.model_version,
             )
 
             # Step 6: 推論実行

@@ -499,7 +499,6 @@ class TestHappyPath:
         # ModelLoader が approved モデルで呼ばれたか
         model_loader.load.assert_called_once_with(
             model_name=_MODEL_VERSION,
-            version=_MODEL_VERSION,
         )
 
         # SignalWriter が呼ばれたか
@@ -1230,7 +1229,6 @@ class TestModelVersionVerification:
         assert result.is_success is True
         model_loader.load.assert_called_once_with(
             model_name="model-v2.5.0",
-            version="model-v2.5.0",
         )
 
     def test_model_version_included_in_completed_event(self) -> None:
