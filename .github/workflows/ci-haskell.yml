@@ -74,6 +74,7 @@ jobs:
 
       - name: Test
         working-directory: backend
+        # Integration test-suite を追加する場合は CI Integration (Docker) 側で実行する。
         run: cabal test all
 
   lint:

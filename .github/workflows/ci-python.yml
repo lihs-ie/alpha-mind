@@ -224,7 +224,7 @@ jobs:
           PUBSUB_EMULATOR_HOST: localhost:8085
           STORAGE_EMULATOR_HOST: localhost:4443
           FIRESTORE_DATABASE: "(default)"
-        run: pytest
+        run: pytest -m "not integration"
 
       - name: Stop emulators (Docker)
         if: always()
