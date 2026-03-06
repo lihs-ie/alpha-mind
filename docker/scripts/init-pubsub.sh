@@ -9,6 +9,9 @@ set -euo pipefail
 PUBSUB_HOST="${PUBSUB_EMULATOR_HOST:-localhost:8085}"
 PROJECT_ID="${GCP_PROJECT_ID:-alpha-mind-local}"
 BASE_URL="http://${PUBSUB_HOST}"
+DEAD_LETTER_MAX_DELIVERY_ATTEMPTS="${PUBSUB_DEAD_LETTER_MAX_DELIVERY_ATTEMPTS:-3}"
+RETRY_MINIMUM_BACKOFF="${PUBSUB_RETRY_MINIMUM_BACKOFF:-10s}"
+RETRY_MAXIMUM_BACKOFF="${PUBSUB_RETRY_MAXIMUM_BACKOFF:-600s}"
 
 # サービスのDockerネットワーク内部ポート（各サービスはコンテナ内で8080をリッスン）
 BFF_URL="http://bff:8080"
@@ -22,11 +25,6 @@ AUDIT_LOG_URL="http://audit-log:8080"
 INSIGHT_COLLECTOR_URL="http://insight-collector:8080"
 AGENT_ORCHESTRATOR_URL="http://agent-orchestrator:8080"
 HYPOTHESIS_LAB_URL="http://hypothesis-lab:8080"
-
-curl_status() {
-  curl -sS --retry 10 --retry-delay 1 --retry-connrefused \
-    -o /dev/null -w "%{http_code}" "$@" || echo "000"
-}
 
 # イベント配線: event_type_dash => "subscriber1 subscriber2 ..."
 # Terraform modules/pubsub/main.tf の event_subscribers と完全一致
@@ -83,7 +81,7 @@ create_topic() {
   local topic_name="$1"
   local url="${BASE_URL}/v1/projects/${PROJECT_ID}/topics/${topic_name}"
   local http_status
-  http_status=$(curl_status -X PUT \
+  http_status=$(curl --http1.1 -s -o /dev/null -w "%{http_code}" -X PUT \
     -H "Content-Type: application/json" \
     "${url}")
   if [[ "${http_status}" == "200" ]]; then
@@ -100,6 +98,7 @@ create_subscription() {
   local subscription_name="$1"
   local topic_name="$2"
   local push_endpoint="$3"  # 空文字列の場合は pull subscription（pushConfig なし）
+  local dead_letter_topic_name="${4:-}"
   local url="${BASE_URL}/v1/projects/${PROJECT_ID}/subscriptions/${subscription_name}"
   local body
   if [[ -n "${push_endpoint}" ]]; then
@@ -108,6 +107,14 @@ create_subscription() {
   "topic": "projects/${PROJECT_ID}/topics/${topic_name}",
   "ackDeadlineSeconds": 60,
   "messageRetentionDuration": "604800s",
+  "deadLetterPolicy": {
+    "deadLetterTopic": "projects/${PROJECT_ID}/topics/${dead_letter_topic_name}",
+    "maxDeliveryAttempts": ${DEAD_LETTER_MAX_DELIVERY_ATTEMPTS}
+  },
+  "retryPolicy": {
+    "minimumBackoff": "${RETRY_MINIMUM_BACKOFF}",
+    "maximumBackoff": "${RETRY_MAXIMUM_BACKOFF}"
+  },
   "pushConfig": {
     "pushEndpoint": "${push_endpoint}"
   }
@@ -126,7 +133,7 @@ JSON
 )
   fi
   local http_status
-  http_status=$(curl_status -X PUT \
+  http_status=$(curl --http1.1 -s -o /tmp/pubsub-subscription-response.json -w "%{http_code}" -X PUT \
     -H "Content-Type: application/json" \
     -d "${body}" \
     "${url}")
@@ -140,6 +147,7 @@ JSON
     echo "  [exists]  subscription: ${subscription_name}"
   else
     echo "  [ERROR]   subscription: ${subscription_name} (HTTP ${http_status})" >&2
+    cat /tmp/pubsub-subscription-response.json >&2 || true
     return 1
   fi
 }
@@ -174,7 +182,7 @@ for event_type in "${!EVENT_SUBSCRIBERS[@]}"; do
     create_topic "${dlq_topic_name}"
 
     # メインサブスクリプションを作成する
-    create_subscription "${sub_name}" "${topic_name}" "${push_endpoint}"
+    create_subscription "${sub_name}" "${topic_name}" "${push_endpoint}" "${dlq_topic_name}"
 
     # DLQサブスクリプション（手動検査・再送用）はpush endpointなし
     create_subscription "${dlq_sub_name}" "${dlq_topic_name}" ""

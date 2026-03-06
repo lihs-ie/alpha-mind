@@ -1,5 +1,7 @@
 """Infrastructure layer exceptions."""
 
+from __future__ import annotations
+
 
 class InfrastructureDataFormatError(Exception):
     """Raised when data from an external store cannot be deserialized into a domain object.

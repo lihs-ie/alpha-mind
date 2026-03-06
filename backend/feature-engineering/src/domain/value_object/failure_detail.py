@@ -1,5 +1,7 @@
 """FailureDetail value object - failure information with reason code."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from domain.value_object.enums import ReasonCode

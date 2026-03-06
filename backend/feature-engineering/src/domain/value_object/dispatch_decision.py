@@ -1,5 +1,7 @@
 """DispatchDecision value object - result of a dispatch operation."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from domain.value_object.enums import DispatchStatus, PublishedEventType, ReasonCode
