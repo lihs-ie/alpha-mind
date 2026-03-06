@@ -21,7 +21,12 @@ class FeaturesGeneratedPublisher:
         self._client = client
         self._topic_path = topic_path
 
-    def publish(self, event: FeatureGenerationCompleted) -> None:
+    def publish(self, event: FeatureGenerationCompleted) -> str:
+        """Publish a FeatureGenerationCompleted event to Pub/Sub.
+
+        Returns:
+            The message ID assigned by Pub/Sub.
+        """
         envelope = DomainToIntegrationEventMapper.map(event)
         data = json.dumps(envelope).encode("utf-8")
 
@@ -37,5 +42,6 @@ class FeaturesGeneratedPublisher:
                 "ce-time": envelope["occurredAt"],
             },
         )
-        # Block until the message is delivered
-        future.result()
+        # Block until the message is delivered and return the message ID
+        message_id: str = future.result()
+        return message_id

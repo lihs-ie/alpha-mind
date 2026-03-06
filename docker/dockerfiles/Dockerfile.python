@@ -66,6 +66,7 @@ COPY --from=deps /opt/venv /opt/venv
 COPY backend/${SERVICE_NAME}/src/ /app/src/
 
 ENV PATH="/opt/venv/bin:${PATH}"
+ENV PYTHONPATH="/app/src"
 RUN chown -R appuser:appgroup /app
 
 USER appuser
@@ -78,4 +79,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD curl -f "http://localhost:${PORT}/healthz" || exit 1
 
-CMD ["python", "-m", "src.main"]
+CMD ["python", "-m", "main"]

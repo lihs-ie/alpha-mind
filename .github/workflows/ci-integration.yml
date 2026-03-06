@@ -285,6 +285,76 @@ jobs:
             cat /tmp/health.out
           '
 
+      - name: Detect service integration tests
+        id: service_integration
+        run: |
+          set -euo pipefail
+
+          tests_dir="backend/${SERVICE}/tests/integration"
+          has_python_integration=false
+
+          if [[ -d "${tests_dir}" ]] && { [[ -f "backend/${SERVICE}/pyproject.toml" ]] || [[ -f "backend/${SERVICE}/requirements.txt" ]]; }; then
+            has_python_integration=true
+          fi
+
+          echo "has_python_integration=${has_python_integration}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Python for service integration tests
+        if: steps.service_integration.outputs.has_python_integration == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+          cache: pip
+          cache-dependency-path: |
+            backend/${{ matrix.service }}/pyproject.toml
+            backend/${{ matrix.service }}/requirements.txt
+
+      - name: Install integration test dependencies
+        if: steps.service_integration.outputs.has_python_integration == 'true'
+        run: |
+          set -euo pipefail
+
+          cd "backend/${SERVICE}"
+          python -m pip install --upgrade pip
+          if [[ -f pyproject.toml ]]; then
+            pip install -e ".[dev]"
+          elif [[ -f requirements.txt ]]; then
+            pip install -r requirements.txt pytest
+          else
+            echo "No dependency manifest found for ${SERVICE}"
+            exit 1
+          fi
+
+      - name: Run service integration tests
+        if: steps.service_integration.outputs.has_python_integration == 'true'
+        run: |
+          set -euo pipefail
+
+          compose() {
+            docker compose --env-file docker/.env.local \
+              -f docker/docker-compose.integration.base.yml \
+              -f docker/docker-compose.integration.${SERVICE}.yml \
+              -f docker/docker-compose.integration.cache.yml "$@"
+          }
+
+          firestore_endpoint="$(compose port firestore 8080 | tail -n 1)"
+          pubsub_endpoint="$(compose port pubsub 8085 | tail -n 1)"
+          gcs_endpoint="$(compose port gcs 4443 | tail -n 1)"
+
+          if [[ -z "${firestore_endpoint}" || -z "${pubsub_endpoint}" || -z "${gcs_endpoint}" ]]; then
+            echo "Failed to resolve emulator ports for ${SERVICE}"
+            exit 1
+          fi
+
+          export FIRESTORE_EMULATOR_HOST="${firestore_endpoint}"
+          export PUBSUB_EMULATOR_HOST="${pubsub_endpoint}"
+          export STORAGE_EMULATOR_HOST="http://${gcs_endpoint}"
+          export GCP_PROJECT_ID="alpha-mind-local"
+
+          cd "backend/${SERVICE}"
+          pytest tests/integration -q
+
       - name: Collect compose logs
         if: always()
         working-directory: docker

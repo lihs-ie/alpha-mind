@@ -18,7 +18,7 @@ from domain.model.feature_generation import FeatureGeneration
 from domain.repository.feature_artifact_repository import FeatureArtifactRepository
 from domain.repository.feature_dispatch_repository import FeatureDispatchRepository
 from domain.repository.feature_generation_repository import FeatureGenerationRepository
-from domain.repository.idempotency_key_repository import IdempotencyKeyRepository
+from domain.repository.idempotency_key_repository import IdempotencyKeyRepository, ReservationStatus
 from domain.repository.insight_record_repository import InsightRecordRepository
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
 from domain.service.point_in_time_join_policy import PointInTimeJoinPolicy
@@ -36,6 +36,14 @@ from usecase.event_publisher import EventPublisher
 from usecase.feature_audit_writer import FeatureAuditWriter
 
 logger = logging.getLogger(__name__)
+
+
+class RetryableFeatureGenerationError(Exception):
+    """Raised when feature generation fails with a retryable condition.
+
+    The presentation layer should translate this into an HTTP 500 response
+    so that Pub/Sub redelivers the message for retry.
+    """
 
 
 class FeatureGenerationService:
@@ -98,7 +106,15 @@ class FeatureGenerationService:
         # Step 1: Atomic idempotency reservation (RULE-FE-004).
         # reserve() atomically checks and claims the identifier, preventing
         # concurrent duplicate processing under parallel consumer/redelivery.
-        if not self._idempotency_key_repository.reserve(identifier=identifier, trace=trace):
+        leased_at = datetime.datetime.now(tz=datetime.UTC)
+        lease_expires_at = leased_at + datetime.timedelta(minutes=5)
+        reservation = self._idempotency_key_repository.reserve(
+            identifier=identifier,
+            leased_at=leased_at,
+            lease_expires_at=lease_expires_at,
+            trace=trace,
+        )
+        if not _reservation_acquired(reservation):
             self._feature_audit_writer.write_duplicate(identifier=identifier, trace=trace)
             return
 
@@ -107,6 +123,10 @@ class FeatureGenerationService:
         # even when an unexpected error occurs at any step.
         try:
             self._process_after_reservation(identifier, market, trace)
+        except RetryableFeatureGenerationError:
+            # Idempotency key already terminated in _dispatch_and_finalize.
+            # Re-raise so the presentation layer returns 500 for Pub/Sub retry.
+            raise
         except Exception:
             logger.exception(
                 "Unhandled error after reservation; releasing reservation for identifier=%s",
@@ -210,6 +230,13 @@ class FeatureGenerationService:
         # Steps 9-13: Dispatch, persist, and audit
         self._dispatch_and_finalize(generation)
 
+        # After dispatch, if the failure is retryable, re-raise so the
+        # presentation layer returns 500 and Pub/Sub retries the message.
+        if generation.failure_detail is not None and generation.failure_detail.retryable:
+            raise RetryableFeatureGenerationError(
+                generation.failure_detail.detail or generation.failure_detail.reason_code.value
+            )
+
     def _process_feature_generation(self, generation: FeatureGeneration) -> None:
         """Steps 4-8: Insight check, leakage detection, join validation, artifact creation."""
         target_date = generation.market.target_date
@@ -310,9 +337,12 @@ class FeatureGenerationService:
         # Step 12: Persist generation state
         self._feature_generation_repository.persist(generation)
 
-        # Step 13: Persist idempotency key (only on successful dispatch) and write audit log.
-        # On dispatch failure, release the reservation to allow retry.
-        if dispatch.dispatch_status == DispatchStatus.PUBLISHED:
+        # Step 13: Persist idempotency key (only on successful non-retryable dispatch)
+        # and write audit log.
+        # On dispatch failure or retryable generation failure, release the
+        # reservation to allow Pub/Sub redelivery.
+        retryable_failure = generation.failure_detail is not None and generation.failure_detail.retryable
+        if dispatch.dispatch_status == DispatchStatus.PUBLISHED and not retryable_failure:
             self._idempotency_key_repository.persist(
                 identifier=generation.identifier,
                 processed_at=now,
@@ -429,3 +459,12 @@ class FeatureGenerationService:
             trace=generation.trace,
             occurred_at=generation.processed_at or now,
         )
+
+
+def _reservation_acquired(reservation: object) -> bool:
+    """Support both ReservationStatus and legacy bool-based test doubles."""
+    if isinstance(reservation, ReservationStatus):
+        return reservation == ReservationStatus.ACQUIRED
+    if isinstance(reservation, bool):
+        return reservation
+    return False

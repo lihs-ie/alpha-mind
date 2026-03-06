@@ -1,7 +1,7 @@
 """Tests for FirestoreInsightRecordRepository."""
 
 import datetime
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from domain.value_object.insight_snapshot import InsightSnapshot
 from infrastructure.persistence.firestore.firestore_insight_record_repository import (
@@ -74,16 +74,21 @@ class TestFirestoreInsightRecordRepositorySearch:
         mock_collection.where.return_value = mock_query
         mock_query.stream.return_value = []
 
-        repository = FirestoreInsightRecordRepository(client=mock_client)
-        repository.search(target_date=datetime.date(2026, 1, 15))
+        with patch(
+            "infrastructure.persistence.firestore.firestore_insight_record_repository.FieldFilter"
+        ) as mock_field_filter_class:
+            mock_field_filter_class.return_value = MagicMock()
+            mock_collection.where.return_value = mock_query
 
-        # Verify FieldFilter uses "<" operator with 2026-01-16T00:00:00 UTC
-        call_args = mock_collection.where.call_args
-        field_filter = call_args.kwargs["filter"]
-        assert field_filter.field_path == "collectedAt"
-        assert field_filter.op_string == "<"
-        expected_end = datetime.datetime(2026, 1, 16, 0, 0, 0, tzinfo=datetime.UTC)
-        assert field_filter.value == expected_end
+            repository = FirestoreInsightRecordRepository(client=mock_client)
+            repository.search(target_date=datetime.date(2026, 1, 15))
+
+            # Verify FieldFilter constructor was called with "<" and start of next day
+            mock_field_filter_class.assert_called_once_with(
+                "collectedAt",
+                "<",
+                datetime.datetime(2026, 1, 16, 0, 0, 0, tzinfo=datetime.UTC),
+            )
 
     def test_search_returns_empty_when_no_records(self) -> None:
         mock_client = MagicMock()

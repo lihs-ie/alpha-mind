@@ -1,5 +1,7 @@
 """Domain service for feature leakage detection."""
 
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
 
