@@ -7,8 +7,7 @@ from typing import Any
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client
-from google.cloud.firestore_v1.base_document import DocumentSnapshot
-from google.cloud.firestore_v1.document import DocumentReference
+from google.cloud.firestore_v1.base_document import BaseDocumentReference, DocumentSnapshot
 
 from domain.repository.idempotency_key_repository import IdempotencyKeyRepository, ReservationStatus
 from infrastructure.error import InfrastructureDataFormatError
@@ -117,7 +116,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         """Delete the idempotency document."""
         self._document_reference(identifier).delete()
 
-    def _document_reference(self, identifier: str) -> DocumentReference:
+    def _document_reference(self, identifier: str) -> BaseDocumentReference:
         """Return the Firestore document reference for the identifier."""
         document_identifier = self._document_identifier(identifier)
         return self._client.collection(COLLECTION_NAME).document(document_identifier)
