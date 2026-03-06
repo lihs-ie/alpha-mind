@@ -21,6 +21,11 @@ BUCKETS=(
   "demo-artifacts"
 )
 
+curl_status() {
+  curl -sS --retry 10 --retry-delay 1 --retry-connrefused \
+    -o /dev/null -w "%{http_code}" "$@" || echo "000"
+}
+
 create_bucket() {
   local purpose="$1"
   local bucket_name="alpha-mind-${purpose}-local"
@@ -28,7 +33,7 @@ create_bucket() {
   local body="{\"name\": \"${bucket_name}\"}"
 
   local http_status
-  http_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+  http_status=$(curl_status -X POST \
     -H "Content-Type: application/json" \
     -d "${body}" \
     "${url}")

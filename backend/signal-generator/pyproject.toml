@@ -34,6 +34,9 @@ dev = [
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: tests that require emulators or external infrastructure",
+]
 
 [tool.mypy]
 python_version = "3.14"

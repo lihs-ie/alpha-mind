@@ -1,0 +1,6 @@
+services:
+  audit-log:
+    extends:
+      file: ./docker-compose.yml
+      service: audit-log
+    ports: !reset []

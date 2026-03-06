@@ -1,0 +1,6 @@
+services:
+  signal-generator:
+    extends:
+      file: ./docker-compose.yml
+      service: signal-generator
+    ports: !reset []

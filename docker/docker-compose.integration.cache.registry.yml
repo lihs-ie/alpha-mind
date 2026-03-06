@@ -1,0 +1,56 @@
+services:
+  bff:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:bff
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:bff,mode=max
+
+  data-collector:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:data-collector
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:data-collector,mode=max
+
+  portfolio-planner:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:portfolio-planner
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:portfolio-planner,mode=max
+
+  risk-guard:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:risk-guard
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:risk-guard,mode=max
+
+  execution:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:execution
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:execution,mode=max
+
+  audit-log:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:audit-log
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:audit-log,mode=max
+
+  insight-collector:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:insight-collector
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:insight-collector,mode=max
+
+  agent-orchestrator:
+    build:
+      cache_from:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:agent-orchestrator
+      cache_to:
+        - type=registry,ref=${REGISTRY_CACHE_REPO}/integration-cache:agent-orchestrator,mode=max

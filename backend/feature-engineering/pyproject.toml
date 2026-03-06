@@ -29,7 +29,7 @@ pythonpath = ["src", "."]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 markers = [
-    "integration: Integration tests requiring Docker emulators (Firestore, Pub/Sub, GCS)",
+    "integration: tests that require emulators or external infrastructure",
 ]
 
 [tool.mypy]

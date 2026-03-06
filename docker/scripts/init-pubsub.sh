@@ -23,6 +23,11 @@ INSIGHT_COLLECTOR_URL="http://insight-collector:8080"
 AGENT_ORCHESTRATOR_URL="http://agent-orchestrator:8080"
 HYPOTHESIS_LAB_URL="http://hypothesis-lab:8080"
 
+curl_status() {
+  curl -sS --retry 10 --retry-delay 1 --retry-connrefused \
+    -o /dev/null -w "%{http_code}" "$@" || echo "000"
+}
+
 # イベント配線: event_type_dash => "subscriber1 subscriber2 ..."
 # Terraform modules/pubsub/main.tf の event_subscribers と完全一致
 declare -A EVENT_SUBSCRIBERS=(
@@ -78,7 +83,7 @@ create_topic() {
   local topic_name="$1"
   local url="${BASE_URL}/v1/projects/${PROJECT_ID}/topics/${topic_name}"
   local http_status
-  http_status=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+  http_status=$(curl_status -X PUT \
     -H "Content-Type: application/json" \
     "${url}")
   if [[ "${http_status}" == "200" ]]; then
@@ -121,7 +126,7 @@ JSON
 )
   fi
   local http_status
-  http_status=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+  http_status=$(curl_status -X PUT \
     -H "Content-Type: application/json" \
     -d "${body}" \
     "${url}")

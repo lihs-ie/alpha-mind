@@ -3,6 +3,10 @@ name: CI Python
 on:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: read
@@ -13,20 +17,62 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       python: ${{ steps.filter.outputs.python }}
+      has_services: ${{ steps.set-matrix.outputs.has_services }}
+      services_json: ${{ steps.set-matrix.outputs.services_json }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Detect file changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v3.0.2
         id: filter
         with:
           filters: |
             python:
+              - ".github/workflows/ci-python.yml"
+              - "backend/pyproject.toml"
               - "backend/feature-engineering/**"
               - "backend/signal-generator/**"
               - "backend/hypothesis-lab/**"
+            common:
+              - ".github/workflows/ci-python.yml"
               - "backend/pyproject.toml"
+              - "docker/Makefile"
+              - "docker/docker-compose.yml"
+              - "docker/dockerfiles/Dockerfile.firestore-emulator"
+              - "docker/scripts/**"
+            feature_engineering:
+              - "backend/feature-engineering/**"
+            signal_generator:
+              - "backend/signal-generator/**"
+            hypothesis_lab:
+              - "backend/hypothesis-lab/**"
+
+      - name: Build service matrix
+        id: set-matrix
+        run: |
+          set -euo pipefail
+
+          all_services=(feature-engineering signal-generator hypothesis-lab)
+          services=()
+
+          if [[ "${{ steps.filter.outputs.common }}" == "true" ]]; then
+            services=("${all_services[@]}")
+          else
+            [[ "${{ steps.filter.outputs.feature_engineering }}" == "true" ]] && services+=("feature-engineering")
+            [[ "${{ steps.filter.outputs.signal_generator }}" == "true" ]] && services+=("signal-generator")
+            [[ "${{ steps.filter.outputs.hypothesis_lab }}" == "true" ]] && services+=("hypothesis-lab")
+          fi
+
+          if [[ ${#services[@]} -eq 0 ]]; then
+            echo "has_services=false" >> "$GITHUB_OUTPUT"
+            echo 'services_json=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          services_json="$(printf '%s\n' "${services[@]}" | sort -u | jq -R . | jq -cs .)"
+          echo "has_services=true" >> "$GITHUB_OUTPUT"
+          echo "services_json=${services_json}" >> "$GITHUB_OUTPUT"
 
   lint-and-format:
     name: Lint and Format (ruff)
@@ -35,13 +81,55 @@ jobs:
     if: needs.detect-changes.outputs.python == 'true'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
           allow-prereleases: true
+          cache: "pip"
+          cache-dependency-path: |
+            backend/pyproject.toml
+            backend/feature-engineering/pyproject.toml
+            backend/feature-engineering/requirements.txt
+            backend/signal-generator/pyproject.toml
+            backend/signal-generator/requirements.txt
+            backend/hypothesis-lab/requirements.txt
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint (ruff check)
+        working-directory: backend
+        run: ruff check .
+
+      - name: Format check (ruff format)
+        working-directory: backend
+        run: ruff format --check .
+
+  lint-and-format-retry:
+    name: Lint and Format Retry (ruff)
+    runs-on: ubuntu-latest
+    needs: [detect-changes, lint-and-format]
+    if: needs.detect-changes.outputs.python == 'true' && needs.lint-and-format.result == 'failure'
+
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+          cache: "pip"
+          cache-dependency-path: |
+            backend/pyproject.toml
+            backend/feature-engineering/pyproject.toml
+            backend/feature-engineering/requirements.txt
+            backend/signal-generator/pyproject.toml
+            backend/signal-generator/requirements.txt
+            backend/hypothesis-lab/requirements.txt
 
       - name: Install ruff
         run: pip install ruff
@@ -58,20 +146,24 @@ jobs:
     name: Check and Test (${{ matrix.service }})
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.python == 'true'
+    if: needs.detect-changes.outputs.has_services == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service: [feature-engineering, signal-generator, hypothesis-lab]
+        service: ${{ fromJson(needs.detect-changes.outputs.services_json) }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.14"
           allow-prereleases: true
+          cache: "pip"
+          cache-dependency-path: |
+            backend/${{ matrix.service }}/pyproject.toml
+            backend/${{ matrix.service }}/requirements.txt
 
       - name: Install dependencies
         working-directory: backend/${{ matrix.service }}
@@ -82,27 +174,94 @@ jobs:
             pip install mypy pytest -r requirements.txt
           fi
 
+      - name: Prepare tool cache directories
+        run: |
+          mkdir -p backend/${{ matrix.service }}/.mypy_cache
+          mkdir -p backend/${{ matrix.service }}/.pytest_cache
+
+      - name: Cache mypy cache
+        uses: actions/cache@v5.0.3
+        with:
+          path: backend/${{ matrix.service }}/.mypy_cache
+          key: mypy-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}
+          restore-keys: |
+            mypy-${{ runner.os }}-${{ matrix.service }}-
+
+      - name: Cache pytest cache
+        uses: actions/cache@v5.0.3
+        with:
+          path: backend/${{ matrix.service }}/.pytest_cache
+          key: pytest-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}
+          restore-keys: |
+            pytest-${{ runner.os }}-${{ matrix.service }}-
+
       - name: Type check (mypy)
         working-directory: backend/${{ matrix.service }}
         run: mypy src/
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Build Firestore emulator image (cache)
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: docker
+          file: docker/dockerfiles/Dockerfile.firestore-emulator
+          tags: alpha-mind-local-firestore:latest
+          load: true
+          cache-from: type=gha,scope=firestore-emulator
+          cache-to: type=gha,scope=firestore-emulator,mode=max
+
+      - name: Start emulators (Docker)
+        working-directory: docker
+        run: make init
+
       - name: Test (pytest)
         working-directory: backend/${{ matrix.service }}
-        run: pytest
+        env:
+          GCP_PROJECT_ID: alpha-mind-local
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          PUBSUB_EMULATOR_HOST: localhost:8085
+          STORAGE_EMULATOR_HOST: localhost:4443
+          FIRESTORE_DATABASE: "(default)"
+        run: pytest -m "not integration"
+
+      - name: Stop emulators (Docker)
+        if: always()
+        working-directory: docker
+        run: make down
 
   ci-python-result:
     name: CI Python Result
     runs-on: ubuntu-latest
-    needs: [detect-changes, lint-and-format, check-and-test]
+    needs: [detect-changes, lint-and-format, lint-and-format-retry, check-and-test]
     if: always()
     steps:
       - name: Check result
         run: |
-          results=("${{ needs.detect-changes.result }}" "${{ needs.lint-and-format.result }}" "${{ needs.check-and-test.result }}")
-          for result in "${results[@]}"; do
-            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
-              echo "CI Python failed"
+          detect="${{ needs.detect-changes.result }}"
+          lint_primary="${{ needs.lint-and-format.result }}"
+          lint_retry="${{ needs.lint-and-format-retry.result }}"
+          check_and_test="${{ needs.check-and-test.result }}"
+
+          if [[ "$detect" == "failure" || "$detect" == "cancelled" ]]; then
+            echo "CI Python failed (detect-changes)"
+            exit 1
+          fi
+
+          if [[ "$check_and_test" == "failure" || "$check_and_test" == "cancelled" ]]; then
+            echo "CI Python failed (check-and-test)"
+            exit 1
+          fi
+
+          if [[ "$lint_primary" == "failure" ]]; then
+            if [[ "$lint_retry" != "success" ]]; then
+              echo "CI Python failed (lint retry did not recover)"
               exit 1
             fi
-          done
+          elif [[ "$lint_primary" == "cancelled" ]]; then
+            echo "CI Python failed (lint cancelled)"
+            exit 1
+          fi
+
           echo "CI Python passed (or skipped)"
