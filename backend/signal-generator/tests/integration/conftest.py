@@ -10,16 +10,6 @@ Firestore emulator, Pub/Sub emulator, fake-gcs-server, MLflow server に
 
 from __future__ import annotations
 
-import pytest
-
-
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """tests/integration/ 配下の全テストに integration マーカーを自動適用する。"""
-    integration_marker = pytest.mark.integration
-    for item in items:
-        if "/integration/" in str(item.fspath):
-            item.add_marker(integration_marker)
-
 import base64
 import contextlib
 import datetime
@@ -78,6 +68,15 @@ from signal_generator.infrastructure.storage.cloud_storage_signal_writer import 
 )
 from signal_generator.presentation.dependency_container import create_application
 from signal_generator.usecase.signal_generation_service import SignalGenerationService
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """tests/integration/ 配下の全テストに integration マーカーを自動適用する。"""
+    integration_marker = pytest.mark.integration
+    for item in items:
+        if "/integration/" in str(item.fspath):
+            item.add_marker(integration_marker)
+
 
 # ---------------------------------------------------------------------------
 # 環境設定
