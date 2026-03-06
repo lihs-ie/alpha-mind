@@ -6,6 +6,7 @@ dependencies = []
 
 [project.optional-dependencies]
 runtime = [
+    "fastparquet>=2024.11.0,<2026",
     "flask>=3.0,<4",
     "numpy>=2.0,<3",
     "pandas>=2.2,<4",
@@ -15,7 +16,6 @@ runtime = [
     "google-cloud-storage>=2.0,<3",
     "google-cloud-pubsub>=2.0,<3",
     "mlflow-skinny>=2.0,<3",
-    "pyarrow>=15.0,<20",
     "python-ulid>=3.0,<4",
 ]
 dev = [
@@ -31,9 +31,9 @@ dev = [
     "numpy>=2.0,<3",
 ]
 integration = [
+    "fastparquet>=2024.11.0,<2026",
     "lightgbm>=4.5,<5",
     "mlflow-skinny>=2.0,<3",
-    "pyarrow>=15.0,<20",
     "scikit-learn>=1.5,<2",
 ]
 
