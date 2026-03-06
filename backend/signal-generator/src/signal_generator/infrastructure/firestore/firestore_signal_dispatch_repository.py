@@ -26,12 +26,18 @@ class FirestoreSignalDispatchRepository(SignalDispatchRepository):
         self._firestore_client = firestore_client
 
     def find(self, identifier: str) -> SignalDispatch | None:
-        for document_identifier in (_document_identifier(identifier), identifier):
+        fallback_dispatch: SignalDispatch | None = None
+        for document_identifier in _lookup_document_identifiers(identifier):
             document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(document_identifier)
             document_snapshot = cast(DocumentSnapshot, document_reference.get())
             if document_snapshot.exists:
-                return _to_signal_dispatch(document_snapshot.to_dict())
-        return None
+                document_data = document_snapshot.to_dict()
+                dispatch = _to_signal_dispatch(document_data)
+                if _has_dispatch_status(document_data):
+                    return dispatch
+                if fallback_dispatch is None:
+                    fallback_dispatch = dispatch
+        return fallback_dispatch
 
     def persist(self, signal_dispatch: SignalDispatch) -> None:
         document_data = _to_document_data(signal_dispatch)
@@ -96,3 +102,22 @@ def _document_identifier(identifier: str) -> str:
     if identifier.startswith(f"{_SERVICE_NAME}:"):
         return identifier
     return f"{_SERVICE_NAME}:{identifier}"
+
+
+def _lookup_document_identifiers(identifier: str) -> tuple[str, ...]:
+    """互換読み取りに使用するドキュメントID候補を返す。"""
+    raw_identifier = _raw_identifier(identifier)
+    candidates = (raw_identifier, _document_identifier(raw_identifier))
+    return tuple(dict.fromkeys(candidates))
+
+
+def _raw_identifier(identifier: str) -> str:
+    """service prefix を除去した生の identifier を返す。"""
+    if identifier.startswith(f"{_SERVICE_NAME}:"):
+        return identifier.partition(":")[2]
+    return identifier
+
+
+def _has_dispatch_status(document_data: dict[str, Any] | None) -> bool:
+    """document_data が dispatch 状態を保持しているか判定する。"""
+    return bool(document_data and "dispatchStatus" in document_data)

@@ -720,6 +720,7 @@ class TestFailurePath:
         idempotency_repository.terminate.assert_called_once_with(
             f"signal-generator:{_IDENTIFIER}",
         )
+        service._signal_dispatch_repository.persist.assert_not_called()
 
     def test_publisher_value_error_is_retryable_and_terminates_idempotency_key(self) -> None:
         """Phase2でpublisherがValueErrorを投げた場合、retryableなINTERNAL_ERRORで失敗し冪等性キーを解放する。"""
@@ -758,10 +759,9 @@ class TestFailurePath:
 
         assert result.is_success is False
         assert result.reason_code == ReasonCode.INTERNAL_ERROR
+        signal_dispatch_repository.persist.assert_not_called()
         # retryable なので terminate が呼ばれて冪等性キーが解放される
         idempotency_repository.terminate.assert_called_once()
-        # dispatch.fail() で失敗状態が永続化される
-        signal_dispatch_repository.persist.assert_called_once()
 
     def test_timeout_error_maps_to_dependency_timeout(self) -> None:
         """TimeoutError は DEPENDENCY_TIMEOUT にマッピングされる。"""
@@ -909,6 +909,7 @@ class TestFailurePath:
 
         assert result.is_success is False
         assert result.reason_code == ReasonCode.DEPENDENCY_UNAVAILABLE
+        service._signal_dispatch_repository.persist.assert_not_called()
         # SignalGeneration は failed 状態で永続化されている
         signal_generation_repository.persist.assert_called_once()
 
@@ -1967,8 +1968,8 @@ class TestFailedDispatchPersistExceptionAbsorbed:
         assert result.reason_code == ReasonCode.MODEL_NOT_APPROVED
         event_publisher.publish_signal_generation_failed.assert_called_once()
 
-    def test_persist_failed_dispatch_exception_absorbed(self) -> None:
-        """_persist_failed_dispatch 内の例外は吸収される。"""
+    def test_generated_publish_failure_does_not_persist_failed_dispatch(self) -> None:
+        """signal.generated publish 失敗時に failed dispatch を確定しない。"""
         idempotency_repository = MagicMock(spec=IdempotencyKeyRepository)
         idempotency_repository.persist.return_value = True
 
@@ -1986,8 +1987,6 @@ class TestFailedDispatchPersistExceptionAbsorbed:
 
         signal_dispatch_repository = MagicMock(spec=SignalDispatchRepository)
         signal_dispatch_repository.find.return_value = None
-        signal_dispatch_repository.persist.side_effect = ConnectionError("Firestore unavailable")
-
         event_publisher = MagicMock(spec=SignalEventPublisher)
         event_publisher.publish_signal_generated.side_effect = ValueError("invalid envelope")
 
@@ -2006,6 +2005,7 @@ class TestFailedDispatchPersistExceptionAbsorbed:
 
         assert result.is_success is False
         assert result.reason_code == ReasonCode.INTERNAL_ERROR
+        signal_dispatch_repository.persist.assert_not_called()
 
 
 class TestHandleDecodeFailure:

@@ -23,17 +23,17 @@ class TestFirestoreSignalDispatchRepository:
 
     def test_find_returns_none_when_document_does_not_exist(self) -> None:
         mock_client = MagicMock()
-        prefixed_document_reference = MagicMock()
-        prefixed_document_snapshot = MagicMock()
-        prefixed_document_snapshot.exists = False
-        prefixed_document_reference.get.return_value = prefixed_document_snapshot
         legacy_document_reference = MagicMock()
         legacy_document_snapshot = MagicMock()
         legacy_document_snapshot.exists = False
         legacy_document_reference.get.return_value = legacy_document_snapshot
+        prefixed_document_reference = MagicMock()
+        prefixed_document_snapshot = MagicMock()
+        prefixed_document_snapshot.exists = False
+        prefixed_document_reference.get.return_value = prefixed_document_snapshot
         mock_client.collection.return_value.document.side_effect = [
-            prefixed_document_reference,
             legacy_document_reference,
+            prefixed_document_reference,
         ]
 
         repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
@@ -106,17 +106,24 @@ class TestFirestoreSignalDispatchRepository:
 
     def test_find_returns_pending_dispatch_from_idempotency_document(self) -> None:
         mock_client = MagicMock()
-        mock_document_reference = MagicMock()
-        mock_document_snapshot = MagicMock()
-        mock_document_snapshot.exists = True
-        mock_document_snapshot.to_dict.return_value = {
+        legacy_document_reference = MagicMock()
+        legacy_document_snapshot = MagicMock()
+        legacy_document_snapshot.exists = False
+        legacy_document_reference.get.return_value = legacy_document_snapshot
+        prefixed_document_reference = MagicMock()
+        prefixed_document_snapshot = MagicMock()
+        prefixed_document_snapshot.exists = True
+        prefixed_document_snapshot.to_dict.return_value = {
             "identifier": "signal-generator:01JTEST0000000000000000000",
             "service": "signal-generator",
             "trace": "01JTRACE000000000000000000",
             "processedAt": None,
         }
-        mock_document_reference.get.return_value = mock_document_snapshot
-        mock_client.collection.return_value.document.return_value = mock_document_reference
+        prefixed_document_reference.get.return_value = prefixed_document_snapshot
+        mock_client.collection.return_value.document.side_effect = [
+            legacy_document_reference,
+            prefixed_document_reference,
+        ]
 
         repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
         result = repository.find("01JTEST0000000000000000000")
@@ -127,6 +134,64 @@ class TestFirestoreSignalDispatchRepository:
         from signal_generator.domain.enums.dispatch_status import DispatchStatus
 
         assert result.dispatch_status == DispatchStatus.PENDING
+
+    def test_find_prefers_legacy_dispatch_document_over_prefixed_pending_document(self) -> None:
+        import datetime
+
+        mock_client = MagicMock()
+        legacy_document_reference = MagicMock()
+        legacy_document_snapshot = MagicMock()
+        legacy_document_snapshot.exists = True
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        legacy_document_snapshot.to_dict.return_value = {
+            "identifier": "01JTEST0000000000000000000",
+            "trace": "01JTRACE000000000000000000",
+            "dispatchStatus": "published",
+            "processedAt": processed_at,
+            "publishedEvent": "signal.generated",
+        }
+        legacy_document_reference.get.return_value = legacy_document_snapshot
+        prefixed_document_reference = MagicMock()
+        prefixed_document_snapshot = MagicMock()
+        prefixed_document_snapshot.exists = True
+        prefixed_document_snapshot.to_dict.return_value = {
+            "identifier": "signal-generator:01JTEST0000000000000000000",
+            "service": "signal-generator",
+            "trace": "01JTRACE000000000000000000",
+            "processedAt": None,
+        }
+        prefixed_document_reference.get.return_value = prefixed_document_snapshot
+        mock_client.collection.return_value.document.side_effect = [
+            legacy_document_reference,
+            prefixed_document_reference,
+        ]
+
+        repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
+        result = repository.find("01JTEST0000000000000000000")
+
+        assert result is not None
+        assert result.dispatch_status.value == "published"
+
+    def test_find_with_prefixed_identifier_does_not_read_same_document_twice(self) -> None:
+        mock_client = MagicMock()
+        legacy_document_reference = MagicMock()
+        legacy_document_snapshot = MagicMock()
+        legacy_document_snapshot.exists = False
+        legacy_document_reference.get.return_value = legacy_document_snapshot
+        prefixed_document_reference = MagicMock()
+        prefixed_document_snapshot = MagicMock()
+        prefixed_document_snapshot.exists = False
+        prefixed_document_reference.get.return_value = prefixed_document_snapshot
+        mock_client.collection.return_value.document.side_effect = [
+            legacy_document_reference,
+            prefixed_document_reference,
+        ]
+
+        repository = FirestoreSignalDispatchRepository(firestore_client=mock_client)
+        result = repository.find("signal-generator:01JTEST0000000000000000000")
+
+        assert result is None
+        assert mock_client.collection.return_value.document.call_count == 2
 
     def test_find_returns_published_dispatch(self) -> None:
         import datetime
