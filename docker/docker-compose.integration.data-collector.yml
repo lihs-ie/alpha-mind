@@ -1,0 +1,6 @@
+services:
+  data-collector:
+    extends:
+      file: ./docker-compose.yml
+      service: data-collector
+    ports: !reset []

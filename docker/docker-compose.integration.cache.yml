@@ -1,0 +1,84 @@
+services:
+  firestore:
+    build:
+      cache_from:
+        - type=gha,scope=integration-firestore-emulator
+      cache_to:
+        - type=gha,scope=integration-firestore-emulator,mode=max
+
+  bff:
+    build:
+      cache_from:
+        - type=gha,scope=integration-bff
+      cache_to:
+        - type=gha,scope=integration-bff,mode=max
+
+  data-collector:
+    build:
+      cache_from:
+        - type=gha,scope=integration-data-collector
+      cache_to:
+        - type=gha,scope=integration-data-collector,mode=max
+
+  feature-engineering:
+    build:
+      cache_from:
+        - type=gha,scope=integration-feature-engineering
+      cache_to:
+        - type=gha,scope=integration-feature-engineering,mode=max
+
+  signal-generator:
+    build:
+      cache_from:
+        - type=gha,scope=integration-signal-generator
+      cache_to:
+        - type=gha,scope=integration-signal-generator,mode=max
+
+  portfolio-planner:
+    build:
+      cache_from:
+        - type=gha,scope=integration-portfolio-planner
+      cache_to:
+        - type=gha,scope=integration-portfolio-planner,mode=max
+
+  risk-guard:
+    build:
+      cache_from:
+        - type=gha,scope=integration-risk-guard
+      cache_to:
+        - type=gha,scope=integration-risk-guard,mode=max
+
+  execution:
+    build:
+      cache_from:
+        - type=gha,scope=integration-execution
+      cache_to:
+        - type=gha,scope=integration-execution,mode=max
+
+  audit-log:
+    build:
+      cache_from:
+        - type=gha,scope=integration-audit-log
+      cache_to:
+        - type=gha,scope=integration-audit-log,mode=max
+
+  insight-collector:
+    build:
+      cache_from:
+        - type=gha,scope=integration-insight-collector
+      cache_to:
+        - type=gha,scope=integration-insight-collector,mode=max
+
+  agent-orchestrator:
+    build:
+      cache_from:
+        - type=gha,scope=integration-agent-orchestrator
+      cache_to:
+        - type=gha,scope=integration-agent-orchestrator,mode=max
+
+  hypothesis-lab:
+    build:
+      cache_from:
+        - type=gha,scope=integration-hypothesis-lab
+      cache_to:
+        - type=gha,scope=integration-hypothesis-lab,mode=max

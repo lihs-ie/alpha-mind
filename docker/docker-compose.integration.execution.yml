@@ -1,0 +1,6 @@
+services:
+  execution:
+    extends:
+      file: ./docker-compose.yml
+      service: execution
+    ports: !reset []
