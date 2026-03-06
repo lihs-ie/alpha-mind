@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  agent-orchestrator:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: agent-orchestrator
     ports: !reset []

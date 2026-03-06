@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  hypothesis-lab:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: hypothesis-lab
     ports: !reset []

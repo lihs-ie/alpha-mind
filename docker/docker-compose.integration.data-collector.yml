@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  data-collector:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: data-collector
     ports: !reset []

@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  audit-log:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: audit-log
     ports: !reset []

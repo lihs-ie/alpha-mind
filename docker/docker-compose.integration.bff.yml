@@ -1,0 +1,13 @@
+services:
+  bff:
+    extends:
+      file: ./docker-compose.yml
+      service: bff
+    ports: !reset []
+
+  # bff の approve/reject 経路の統合検証で利用
+  risk-guard:
+    extends:
+      file: ./docker-compose.yml
+      service: risk-guard
+    ports: !reset []

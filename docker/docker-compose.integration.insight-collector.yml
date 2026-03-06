@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  insight-collector:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: insight-collector
     ports: !reset []

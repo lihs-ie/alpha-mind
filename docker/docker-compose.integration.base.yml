@@ -1,12 +1,7 @@
-# docker/docker-compose.integration.base.yml
-# 統合テスト用の共通エミュレーター定義。
-# サービス別オーバーレイと合成して使用する:
-#   docker compose -f docker-compose.integration.base.yml -f docker-compose.integration.signal-generator.yml up -d
-
 name: alpha-mind-integration
 
 networks:
-  integration-network:
+  alpha-mind-network:
     driver: bridge
 
 services:
@@ -14,10 +9,8 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/Dockerfile.firestore-emulator
-    ports:
-      - "8080:8080"
     networks:
-      - integration-network
+      - alpha-mind-network
     environment:
       CLOUDSDK_CORE_PROJECT: alpha-mind-local
       GCP_PROJECT_ID: alpha-mind-local
@@ -34,10 +27,8 @@ services:
       gcloud beta emulators pubsub start
       --host-port=0.0.0.0:8085
       --project=alpha-mind-local
-    ports:
-      - "8085:8085"
     networks:
-      - integration-network
+      - alpha-mind-network
     environment:
       CLOUDSDK_CORE_PROJECT: alpha-mind-local
     healthcheck:
@@ -50,10 +41,8 @@ services:
   gcs:
     image: fsouza/fake-gcs-server:1.54.0
     command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
-    ports:
-      - "4443:4443"
     networks:
-      - integration-network
+      - alpha-mind-network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:4443/storage/v1/b"]
       interval: 5s
@@ -71,7 +60,7 @@ services:
       gcs:
         condition: service_healthy
     networks:
-      - integration-network
+      - alpha-mind-network
     environment:
       GCP_PROJECT_ID: alpha-mind-local
       FIRESTORE_EMULATOR_HOST: firestore:8080

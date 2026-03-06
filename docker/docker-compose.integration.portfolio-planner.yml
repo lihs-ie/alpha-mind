@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  portfolio-planner:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: portfolio-planner
     ports: !reset []

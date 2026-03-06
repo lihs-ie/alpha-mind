@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  risk-guard:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: risk-guard
     ports: !reset []

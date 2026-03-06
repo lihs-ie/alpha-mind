@@ -1,6 +1,6 @@
 services:
-  signal-generator:
+  feature-engineering:
     extends:
       file: ./docker-compose.yml
-      service: signal-generator
+      service: feature-engineering
     ports: !reset []

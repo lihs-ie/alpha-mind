@@ -2,36 +2,40 @@
 name = "signal-generator"
 version = "0.1.0"
 requires-python = ">=3.14"
-dependencies = [
-    "flask>=3.1,<4",
-    "numpy>=2.4,<3",
-    "pandas>=2.2,<3",
-    "scikit-learn>=1.8,<2",
-    "lightgbm>=4.6,<5",
-    "google-cloud-firestore>=2.23,<3",
-    "google-cloud-storage>=3.9,<4",
-    "google-cloud-pubsub>=2.35,<3",
-    "mlflow>=3.10,<4",
-    "pyarrow>=23.0,<24",
-    "python-ulid>=3.1,<4",
-]
+dependencies = []
 
 [project.optional-dependencies]
+runtime = [
+    "flask>=3.0,<4",
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<4",
+    "scikit-learn>=1.5,<2",
+    "lightgbm>=4.5,<5",
+    "google-cloud-firestore>=2.0,<3",
+    "google-cloud-storage>=2.0,<3",
+    "google-cloud-pubsub>=2.0,<3",
+    "mlflow>=2.0,<3",
+    "pyarrow>=15.0,<20",
+    "python-ulid>=3.0,<4",
+]
 dev = [
-    "pytest>=8.0,<9",
-    "pytest-cov>=6.0,<7",
-    "mypy>=1.19,<2",
-    "ruff>=0.15,<1",
-    "pandas-stubs>=2.2,<3",
+    "pytest>=8.0",
+    "pytest-cov",
+    "mypy>=1.0",
+    "ruff",
+    "google-cloud-firestore>=2.0,<3",
+    "google-cloud-storage>=2.0,<3",
+    "google-cloud-pubsub>=2.0,<3",
+    "pandas>=2.2,<4",
+    "numpy>=2.0,<3",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 markers = [
-    "integration: 統合テスト (エミュレーター起動が必要)",
+    "integration: tests that require emulators or external infrastructure",
 ]
 
 [tool.mypy]
@@ -48,27 +52,14 @@ module = [
     "sklearn.*",
     "ulid.*",
     "mlflow.*",
-]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = [
     "google.cloud.storage.*",
     "google.cloud.pubsub_v1.*",
+    "pandas.*",
 ]
 ignore_missing_imports = true
 
-[tool.ruff]
-target-version = "py314"
-line-length = 120
-src = ["src"]
-
-[tool.ruff.lint]
-select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501"]
-
 [build-system]
-requires = ["setuptools>=82"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
