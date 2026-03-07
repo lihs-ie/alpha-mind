@@ -11,8 +11,9 @@ import datetime
 import logging
 import uuid
 
-from google.cloud import firestore, storage  # type: ignore[attr-defined]
+from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.pubsub_v1 import PublisherClient
+from google.cloud.storage import Client as StorageClient
 
 from alpha_mind_backend_common.runtime.env import require_env
 from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
@@ -65,8 +66,8 @@ class DependencyContainer:
         self._features_generation_failed_topic = require_env("FEATURES_GENERATION_FAILED_TOPIC")
         self._feature_store_bucket = require_env("FEATURE_STORE_BUCKET")
 
-        self._firestore_client = firestore.Client(project=self._gcp_project_id)
-        self._storage_client = storage.Client(project=self._gcp_project_id)
+        self._firestore_client = FirestoreClient(project=self._gcp_project_id)
+        self._storage_client = StorageClient(project=self._gcp_project_id)
         self._publisher_client = PublisherClient()
 
         self._feature_generation_service_instance: FeatureGenerationService | None = None
