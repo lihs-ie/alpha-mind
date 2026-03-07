@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import datetime
 import logging
-import os
 import uuid
 
-from google.cloud import firestore, storage  # type: ignore[attr-defined]
+from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.pubsub_v1 import PublisherClient
+from google.cloud.storage import Client as StorageClient
 
+from alpha_mind_backend_common.runtime.env import require_env
 from domain.factory.feature_dispatch_factory import FeatureDispatchFactory
 from domain.factory.feature_generation_factory import FeatureGenerationFactory
 from domain.service.feature_leakage_policy import FeatureLeakagePolicy
@@ -60,13 +61,13 @@ class DependencyContainer:
     """
 
     def __init__(self) -> None:
-        self._gcp_project_id = _require_env("GCP_PROJECT_ID")
-        self._features_generated_topic = _require_env("FEATURES_GENERATED_TOPIC")
-        self._features_generation_failed_topic = _require_env("FEATURES_GENERATION_FAILED_TOPIC")
-        self._feature_store_bucket = _require_env("FEATURE_STORE_BUCKET")
+        self._gcp_project_id = require_env("GCP_PROJECT_ID")
+        self._features_generated_topic = require_env("FEATURES_GENERATED_TOPIC")
+        self._features_generation_failed_topic = require_env("FEATURES_GENERATION_FAILED_TOPIC")
+        self._feature_store_bucket = require_env("FEATURE_STORE_BUCKET")
 
-        self._firestore_client = firestore.Client(project=self._gcp_project_id)
-        self._storage_client = storage.Client(project=self._gcp_project_id)
+        self._firestore_client = FirestoreClient(project=self._gcp_project_id)
+        self._storage_client = StorageClient(project=self._gcp_project_id)
         self._publisher_client = PublisherClient()
 
         self._feature_generation_service_instance: FeatureGenerationService | None = None
@@ -142,11 +143,3 @@ class DependencyContainer:
         )
 
         return self._feature_generation_service_instance
-
-
-def _require_env(name: str) -> str:
-    """Read a required environment variable or raise EnvironmentError."""
-    value = os.environ.get(name)
-    if not value:
-        raise OSError(f"Required environment variable '{name}' is not set")
-    return value

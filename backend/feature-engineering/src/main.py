@@ -15,6 +15,8 @@ from google.cloud.firestore_v1 import Client as FirestoreClient
 from google.cloud.pubsub_v1 import PublisherClient
 from google.cloud.storage import Client as StorageClient
 
+from alpha_mind_backend_common.messaging.cloud_events import CloudEventDecodeError
+from alpha_mind_backend_common.messaging.pubsub_push import decode_pubsub_push_envelope
 from application.feature_generation_service import (
     EventEnvelope,
     FeatureGenerationService,
@@ -109,48 +111,25 @@ class PubSubPushDecoder:
             raise self._invalid_envelope("Request body must be a JSON object.", DEFAULT_TRACE)
 
         trace = self._extract_trace(request_body)
-        message = request_body.get("message")
-        if not isinstance(message, dict):
-            raise self._invalid_envelope("Pub/Sub push request must include message.", trace)
-
-        encoded_data = message.get("data")
-        if not isinstance(encoded_data, str) or not encoded_data:
-            raise self._invalid_envelope("Pub/Sub message.data is required.", trace)
-
         try:
-            envelope_bytes = base64.b64decode(encoded_data, validate=True)
-            envelope_body = json.loads(envelope_bytes.decode("utf-8"))
-        except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise self._invalid_envelope("Pub/Sub message.data must be base64-encoded JSON.", trace) from error
+            envelope = decode_pubsub_push_envelope(request_body, expected_event_type=EXPECTED_EVENT_TYPE)
+        except CloudEventDecodeError as error:
+            raise self._invalid_envelope(str(error), trace) from error
 
-        if not isinstance(envelope_body, dict):
-            raise self._invalid_envelope("Event envelope must be a JSON object.", trace)
-
-        identifier = self._require_ulid(envelope_body.get("identifier"), "identifier", trace)
-        event_type = self._require_string(envelope_body.get("eventType"), "eventType", trace)
-        if event_type != EXPECTED_EVENT_TYPE:
-            raise self._invalid_envelope(f"eventType must be '{EXPECTED_EVENT_TYPE}'.", trace)
-
-        occurred_at = self._parse_occurred_at(envelope_body.get("occurredAt"), trace)
-        normalized_trace = self._require_ulid(envelope_body.get("trace"), "trace", trace)
-
-        schema_version = self._require_string(envelope_body.get("schemaVersion"), "schemaVersion", normalized_trace)
-        if schema_version != EXPECTED_SCHEMA_VERSION:
+        normalized_trace = envelope.trace
+        if envelope.schema_version != EXPECTED_SCHEMA_VERSION:
             raise self._invalid_envelope(
                 f"schemaVersion must be '{EXPECTED_SCHEMA_VERSION}'.",
                 normalized_trace,
             )
-
-        payload = envelope_body.get("payload")
-        if not isinstance(payload, dict):
-            raise self._invalid_envelope("payload must be an object.", normalized_trace)
+        occurred_at = self._parse_occurred_at(envelope.occurred_at, normalized_trace)
 
         return EventEnvelope(
-            identifier=identifier,
-            event_type=event_type,
+            identifier=envelope.identifier,
+            event_type=envelope.event_type,
             occurred_at=occurred_at,
             trace=normalized_trace,
-            payload=payload,
+            payload=envelope.payload,
         )
 
     def _extract_trace(self, request_body: Mapping[str, object]) -> str:

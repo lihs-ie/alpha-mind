@@ -1,0 +1,19 @@
+[project]
+name = "alpha-mind-backend-common"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "google-api-core>=2.25,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0,<10",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

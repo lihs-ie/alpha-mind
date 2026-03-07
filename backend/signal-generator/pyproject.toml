@@ -39,6 +39,7 @@ integration = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src", "../common/python/src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 markers = [
@@ -47,7 +48,7 @@ markers = [
 
 [tool.mypy]
 python_version = "3.14"
-mypy_path = "src"
+mypy_path = "src:../common/python/src"
 explicit_package_bases = true
 strict = true
 warn_return_any = true
