@@ -90,6 +90,7 @@ class TestInputDeficiencyIntegration:
             "targetDate": "2026-03-05",
             "featureVersion": "feature-v1",
             # storagePath を意図的に欠損させる
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier="01ARZ3NDEKTSV4RRFFQ69G5FAE",
@@ -113,6 +114,7 @@ class TestInputDeficiencyIntegration:
             # targetDate を意図的に欠損させる
             "featureVersion": "feature-v1",
             "storagePath": TEST_FEATURE_STORAGE_PATH,
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier="01ARZ3NDEKTSV4RRFFQ69G5FAF",
@@ -143,6 +145,7 @@ class TestInputDeficiencyIntegration:
             "targetDate": "2026-03-05",
             "featureVersion": "feature-v1",
             "storagePath": "invalid://path/to/features.parquet",
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier="01ARZ3NDEKTSV4RRFFQ69G5FAG",
@@ -200,6 +203,7 @@ class TestInputDeficiencyIntegration:
             "targetDate": "2026-03-05",
             "featureVersion": "feature-v1",
             "storagePath": "invalid://path/features.parquet",
+            "universeCount": 100,
         }
         cloud_event = build_cloud_event(
             identifier="01ARZ3NDEKTSV4RRFFQ69G5FAJ",

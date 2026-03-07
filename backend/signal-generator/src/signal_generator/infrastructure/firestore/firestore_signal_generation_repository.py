@@ -16,7 +16,7 @@ _COLLECTION_NAME = "signal_runs"
 
 
 class FirestoreSignalGenerationRepository(SignalGenerationRepository):
-    """signal_generations コレクションを使った SignalGeneration 永続化リポジトリ。"""
+    """signal_runs コレクションを使った SignalGeneration 永続化リポジトリ。"""
 
     def __init__(self, firestore_client: FirestoreClient) -> None:
         self._firestore_client = firestore_client

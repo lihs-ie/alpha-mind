@@ -185,10 +185,12 @@ def _require_ulid_field(data: dict[str, object], field_name: str) -> None:
 
 
 def _require_datetime_field(data: dict[str, object], field_name: str) -> None:
-    """フィールドが ISO8601 date-time 形式であることを検証する。"""
+    """フィールドが ISO8601 date-time 形式でありタイムゾーン情報を持つことを検証する。"""
     value = data[field_name]
     assert isinstance(value, str)
     try:
-        datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except (ValueError, TypeError) as error:
         raise CloudEventDecodeError(f"Invalid date-time format for '{field_name}': '{value}'") from error
+    if parsed.tzinfo is None:
+        raise CloudEventDecodeError(f"'{field_name}' must be timezone-aware: '{value}'")

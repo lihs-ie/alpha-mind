@@ -106,7 +106,7 @@ class TestIdempotencyIntegration:
         client: flask.testing.FlaskClient,
         firestore_client: FirestoreClient,
     ) -> None:
-        """重複送信後も signal_generations コレクションのドキュメントは1件のまま。"""
+        """重複送信後も signal_runs コレクションのドキュメントは1件のまま。"""
         identifier = "01ARZ3NDEKTSV4RRFFQ69G5FAS"
         cloud_event = build_cloud_event(
             identifier=identifier,
@@ -121,14 +121,12 @@ class TestIdempotencyIntegration:
 
         document = cast(
             DocumentSnapshot,
-            firestore_client.collection("signal_generations").document(identifier).get(),
+            firestore_client.collection("signal_runs").document(identifier).get(),
         )
         assert document.exists
 
         # コレクション全体を検索して identifier が重複していないことを確認
-        all_documents = list(
-            firestore_client.collection("signal_generations").where("identifier", "==", identifier).stream()
-        )
+        all_documents = list(firestore_client.collection("signal_runs").where("identifier", "==", identifier).stream())
         assert len(all_documents) == 1
 
     def test_dispatch_count_remains_one_after_duplicate(
@@ -136,7 +134,7 @@ class TestIdempotencyIntegration:
         client: flask.testing.FlaskClient,
         firestore_client: FirestoreClient,
     ) -> None:
-        """重複送信後も signal_dispatches コレクションのドキュメントは1件のまま。"""
+        """重複送信後も idempotency_keys コレクションの該当ドキュメントは1件のまま。"""
         identifier = "01ARZ3NDEKTSV4RRFFQ69G5FAT"
         cloud_event = build_cloud_event(
             identifier=identifier,
@@ -151,12 +149,12 @@ class TestIdempotencyIntegration:
 
         document = cast(
             DocumentSnapshot,
-            firestore_client.collection("signal_dispatches").document(identifier).get(),
+            firestore_client.collection("idempotency_keys").document(f"signal-generator:{identifier}").get(),
         )
         assert document.exists
 
         all_documents = list(
-            firestore_client.collection("signal_dispatches").where("identifier", "==", identifier).stream()
+            firestore_client.collection("idempotency_keys").where("identifier", "==", identifier).stream()
         )
         assert len(all_documents) == 1
 
