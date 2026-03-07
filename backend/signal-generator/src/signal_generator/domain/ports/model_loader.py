@@ -16,4 +16,7 @@ class ModelLoader(abc.ABC):
         version: str | None = None,
         stage: str | None = None,
     ) -> Any:
-        """モデルをロードして返す。version または stage のいずれかを指定する。"""
+        """モデルをロードして返す。
+
+        version または stage が省略された場合は、model_name に紐づく最新登録版を解決する。
+        """

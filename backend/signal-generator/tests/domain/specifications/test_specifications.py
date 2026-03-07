@@ -93,6 +93,17 @@ class TestFeaturePayloadIntegritySpecification:
         )
         assert spec.is_satisfied_by(feature) is False
 
+    def test_non_string_feature_version_does_not_satisfy(self) -> None:
+        """feature_version が str でない場合は不合格。"""
+        fixed_date = datetime.date(2026, 3, 15)
+        spec = FeaturePayloadIntegritySpecification(clock=lambda: fixed_date)
+        # feature_version に整数を渡す (型チェックをバイパス)
+        feature = FeatureSnapshot.__new__(FeatureSnapshot)
+        object.__setattr__(feature, "target_date", datetime.date(2026, 1, 1))
+        object.__setattr__(feature, "feature_version", 12345)  # type: ignore[arg-type]
+        object.__setattr__(feature, "storage_path", "gs://feature_store/2026-01-01/features.parquet")
+        assert spec.is_satisfied_by(feature) is False
+
     @pytest.mark.parametrize(
         "malicious_version",
         [

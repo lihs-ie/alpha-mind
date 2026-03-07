@@ -27,20 +27,48 @@ class MLflowModelLoader(ModelLoader):
     ) -> Any:
         """モデルを MLflow Registry からロードして返す。
 
-        version または stage のいずれかを指定する必要がある。
+        version または stage が未指定の場合は、登録済みの最新 version を解決して使用する。
         """
         import mlflow
 
-        if version is None and stage is None:
-            raise ValueError("version または stage のいずれかを指定する必要がある")
-
-        model_identifier = version if version is not None else stage
-        model_uri = f"models:/{model_name}/{model_identifier}"
-
         try:
+            model_uri = self._build_model_uri(
+                mlflow=mlflow,
+                model_name=model_name,
+                version=version,
+                stage=stage,
+            )
             return mlflow.pyfunc.load_model(model_uri=model_uri)
         except Exception as error:
             sanitized_message = str(error)[:200]
-            raise ModelLoadError(
-                f"モデル '{model_name}' (uri={model_uri}) のロードに失敗: {sanitized_message}"
-            ) from error
+            raise ModelLoadError(f"モデル '{model_name}' のロードに失敗: {sanitized_message}") from error
+
+    def _build_model_uri(
+        self,
+        mlflow: Any,
+        model_name: str,
+        version: str | None,
+        stage: str | None,
+    ) -> str:
+        """MLflow model URI を組み立てる。"""
+        if version is not None:
+            return f"models:/{model_name}/{version}"
+
+        if stage is not None:
+            return f"models:/{model_name}/{stage}"
+
+        latest_version = self._resolve_latest_version(mlflow=mlflow, model_name=model_name)
+        return f"models:/{model_name}/{latest_version}"
+
+    def _resolve_latest_version(self, mlflow: Any, model_name: str) -> str:
+        """登録モデル名に紐づく最新 version を解決する。"""
+        client = mlflow.MlflowClient()
+        model_versions = list(client.search_model_versions(filter_string=f"name = '{model_name}'"))
+        if not model_versions:
+            raise ValueError(f"登録モデル '{model_name}' が見つかりません")
+
+        latest_model_version = max(
+            model_versions,
+            key=lambda model_version: int(str(model_version.version)),
+        )
+        return str(latest_model_version.version)

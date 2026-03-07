@@ -1,6 +1,7 @@
 """Firestore implementation of IdempotencyKeyRepository."""
 
 import datetime
+from typing import cast
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud.firestore_v1 import Client as FirestoreClient
@@ -26,7 +27,7 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
 
     def find(self, identifier: str) -> bool:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
-        document_snapshot: DocumentSnapshot = document_reference.get()  # type: ignore[assignment]
+        document_snapshot = cast(DocumentSnapshot, document_reference.get())
         return bool(document_snapshot.exists)
 
     def persist(
@@ -36,12 +37,14 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
         trace: str,
     ) -> bool:
         expires_at = processed_at + datetime.timedelta(days=_TTL_DAYS)
+        service_name, event_identifier = _split_identifier(identifier)
         document_data = {
-            "identifier": identifier,
-            "service": _SERVICE_NAME,
+            "identifier": event_identifier,
+            "service": service_name,
             "processedAt": processed_at,
             "trace": trace,
             "expiresAt": expires_at,
+            "updatedAt": processed_at,
         }
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         try:
@@ -53,3 +56,11 @@ class FirestoreIdempotencyKeyRepository(IdempotencyKeyRepository):
     def terminate(self, identifier: str) -> None:
         document_reference = self._firestore_client.collection(_COLLECTION_NAME).document(identifier)
         document_reference.delete()
+
+
+def _split_identifier(identifier: str) -> tuple[str, str]:
+    """ドキュメントIDから service と生のイベント identifier を抽出する。"""
+    if ":" not in identifier:
+        return (_SERVICE_NAME, identifier)
+    service_name, _, event_identifier = identifier.partition(":")
+    return (service_name or _SERVICE_NAME, event_identifier)

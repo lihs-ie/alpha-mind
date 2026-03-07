@@ -3,6 +3,7 @@ required:
 - targetDate
 - featureVersion
 - storagePath
+- universeCount
 properties:
   targetDate:
     type: string
@@ -11,7 +12,11 @@ properties:
     type: string
   storagePath:
     type: string
+  universeCount:
+    type: integer
+    description: ユニバース銘柄数。GenerateSignalCommand で必須のため、特徴量生成側で確定した値を伝播する。
 example:
   targetDate: '2026-01-15'
   featureVersion: string
   storagePath: string
+  universeCount: 100

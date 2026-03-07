@@ -79,6 +79,7 @@ class TestFirestoreIdempotencyKeyRepository:
         assert document_data["service"] == "signal-generator"
         assert document_data["processedAt"] == processed_at
         assert document_data["trace"] == "01JTRACE000000000000000000"
+        assert document_data["updatedAt"] == processed_at
 
     def test_persist_sets_expires_at_with_30_day_ttl(self) -> None:
         mock_client = MagicMock()
@@ -119,3 +120,20 @@ class TestFirestoreIdempotencyKeyRepository:
 
         result = repository.persist("01JTEST0000000000000000000", processed_at, trace="01JTRACE000000000000000000")
         assert result is False
+
+    def test_persist_prefixed_document_identifier_stores_raw_identifier_and_service(self) -> None:
+        mock_client = MagicMock()
+        mock_document_reference = MagicMock()
+        mock_client.collection.return_value.document.return_value = mock_document_reference
+
+        repository = FirestoreIdempotencyKeyRepository(firestore_client=mock_client)
+        processed_at = datetime.datetime(2026, 3, 5, 10, 0, 0, tzinfo=datetime.UTC)
+        repository.persist(
+            "signal-generator:01JTEST0000000000000000000",
+            processed_at,
+            trace="01JTRACE000000000000000000",
+        )
+
+        document_data = mock_document_reference.create.call_args[0][0]
+        assert document_data["identifier"] == "01JTEST0000000000000000000"
+        assert document_data["service"] == "signal-generator"

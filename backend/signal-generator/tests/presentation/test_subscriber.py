@@ -1,0 +1,414 @@
+"""Tests for Pub/Sub subscriber endpoint."""
+
+from __future__ import annotations
+
+import base64
+import json
+from datetime import date
+from unittest.mock import MagicMock, patch
+
+import flask
+import pytest
+
+from signal_generator.domain.enums.reason_code import ReasonCode
+from signal_generator.presentation.subscriber import subscriber_blueprint
+from signal_generator.usecase.generate_signal_command import GenerateSignalCommand
+from signal_generator.usecase.generate_signal_result import GenerateSignalResult
+
+
+def _build_cloud_event(
+    *,
+    identifier: str = "01JARQ0000AAAAAAAAAAAAAAAA",
+    event_type: str = "features.generated",
+    occurred_at: str = "2026-03-05T09:00:00Z",
+    trace: str = "01JARQ0000BBBBBBBBBBBBBBBB",
+    schema_version: str = "1.0.0",
+    payload: dict[str, object] | None = None,
+) -> dict[str, object]:
+    if payload is None:
+        payload = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            "universeCount": 100,
+        }
+    return {
+        "identifier": identifier,
+        "eventType": event_type,
+        "occurredAt": occurred_at,
+        "trace": trace,
+        "schemaVersion": schema_version,
+        "payload": payload,
+    }
+
+
+def _build_pubsub_body(cloud_event: dict[str, object]) -> dict[str, object]:
+    encoded = base64.b64encode(json.dumps(cloud_event).encode()).decode()
+    return {
+        "message": {
+            "data": encoded,
+            "messageId": "msg-001",
+            "publishTime": "2026-03-05T09:00:00Z",
+        },
+        "subscription": "projects/test/subscriptions/signal-generator-sub",
+    }
+
+
+@pytest.fixture()
+def mock_service() -> MagicMock:
+    return MagicMock()
+
+
+@pytest.fixture()
+def application(mock_service: MagicMock) -> flask.Flask:
+    application = flask.Flask(__name__)
+    application.config["TESTING"] = True
+    application.config["SIGNAL_GENERATION_SERVICE"] = mock_service
+    application.register_blueprint(subscriber_blueprint)
+    return application
+
+
+@pytest.fixture()
+def client(application: flask.Flask) -> flask.testing.FlaskClient:
+    return application.test_client()
+
+
+class TestSubscriberSuccess:
+    """POST / with valid message and successful usecase."""
+
+    def test_returns_200_on_success(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+
+    def test_calls_service_with_correct_command(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        client.post("/", json=body)
+
+        mock_service.execute.assert_called_once()
+        command = mock_service.execute.call_args[0][0]
+        assert isinstance(command, GenerateSignalCommand)
+        assert command.identifier == "01JARQ0000AAAAAAAAAAAAAAAA"
+        assert command.target_date == date(2026, 3, 5)
+        assert command.feature_version == "v1.0.0"
+        assert command.storage_path == "gs://features/2026-03-05/v1.0.0.parquet"
+        assert command.trace == "01JARQ0000BBBBBBBBBBBBBBBB"
+
+    def test_uses_payload_universe_count(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        payload = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            "universeCount": 500,
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        client.post("/", json=body)
+
+        command = mock_service.execute.call_args[0][0]
+        assert command.universe_count == 500
+
+    def test_returns_200_on_duplicate(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.duplicate()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+
+
+class TestSubscriberValidationFailure:
+    """POST / with invalid messages - should return 200 (ack, non-retryable)."""
+
+    def test_returns_200_on_invalid_event_type(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        cloud_event = _build_cloud_event(event_type="data.collected")
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_returns_200_on_missing_fields(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        cloud_event = _build_cloud_event()
+        del cloud_event["identifier"]
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_returns_200_on_empty_body(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        response = client.post("/", json={})
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_returns_200_on_non_json_body(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        response = client.post("/", data=b"not json", content_type="text/plain")
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_missing_universe_count_returns_200_ack(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """universeCount 欠損時は CloudEventDecodeError で 200 ack。"""
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+    def test_returns_200_on_command_validation_failure(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """GenerateSignalCommand の __post_init__ バリデーション失敗は 200 で ack。"""
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            "universeCount": -1,
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.execute.assert_not_called()
+
+
+class TestSubscriberUsecaseFailure:
+    """POST / when usecase returns failure."""
+
+    def test_returns_500_on_retryable_failure(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.failure(
+            reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
+            detail="Firestore unavailable",
+        )
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 500
+
+    def test_returns_200_on_non_retryable_failure(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.failure(
+            reason_code=ReasonCode.MODEL_NOT_APPROVED,
+            detail="No approved model found",
+        )
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+
+    def test_returns_500_on_unhandled_exception(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        mock_service.execute.side_effect = RuntimeError("unexpected")
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 500
+
+
+class TestSubscriberResponseBody:
+    """Response body format validation."""
+
+    def test_success_response_contains_status(self, client: flask.testing.FlaskClient, mock_service: MagicMock) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+        data = json.loads(response.data)
+
+        assert data["status"] == "ok"
+
+    def test_validation_error_response_contains_error(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        cloud_event = _build_cloud_event(event_type="wrong.type")
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+        data = json.loads(response.data)
+
+        assert "error" in data
+
+    def test_retryable_failure_response_contains_error(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        mock_service.execute.return_value = GenerateSignalResult.failure(
+            reason_code=ReasonCode.DEPENDENCY_TIMEOUT,
+        )
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+        data = json.loads(response.data)
+
+        assert "error" in data
+
+
+class TestSubscriberStructuredLogging:
+    """構造化ログの検証: 全ログに service, identifier, trace, eventType を含める。"""
+
+    def test_success_log_contains_structured_fields(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """成功時のログに構造化フィールドが含まれる。"""
+        mock_service.execute.return_value = GenerateSignalResult.success()
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            # info ログが呼ばれていることを確認
+            info_calls = mock_logger.info.call_args_list
+            assert len(info_calls) >= 1
+            # extra に構造化フィールドが含まれる
+            for call in info_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+                assert extra.get("identifier") == "01JARQ0000AAAAAAAAAAAAAAAA"
+                assert extra.get("trace") == "01JARQ0000BBBBBBBBBBBBBBBB"
+                assert extra.get("eventType") == "features.generated"
+
+    def test_decode_failure_log_contains_service_field(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """デコード失敗時のログに service フィールドが含まれる。"""
+        cloud_event = _build_cloud_event(event_type="wrong.type")
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 1
+            for call in warning_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+
+    def test_unhandled_exception_log_contains_structured_fields(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """未ハンドル例外のログに構造化フィールドが含まれる。"""
+        mock_service.execute.side_effect = RuntimeError("unexpected")
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", json=body)
+
+            exception_calls = mock_logger.exception.call_args_list
+            assert len(exception_calls) >= 1
+            for call in exception_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+                assert extra.get("identifier") == "01JARQ0000AAAAAAAAAAAAAAAA"
+                assert extra.get("trace") == "01JARQ0000BBBBBBBBBBBBBBBB"
+
+    def test_invalid_body_log_contains_service_field(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """不正ボディ時のログに service フィールドが含まれる。"""
+        with patch("signal_generator.presentation.subscriber.logger") as mock_logger:
+            client.post("/", data=b"not json", content_type="text/plain")
+
+            warning_calls = mock_logger.warning.call_args_list
+            assert len(warning_calls) >= 1
+            for call in warning_calls:
+                extra = call.kwargs.get("extra", {})
+                assert extra.get("service") == "signal-generator"
+
+
+class TestSubscriberDecodeFailureEventPublishing:
+    """デコード失敗時に identifier/trace が取得可能な場合の failed イベント発行。"""
+
+    def test_decode_failure_with_identifiers_calls_handle_decode_failure(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """デコード失敗で identifier/trace が取れる場合に handle_decode_failure が呼ばれる。"""
+        # universeCount を欠損させるとデコードエラーになるが identifier/trace は取れる
+        payload: dict[str, object] = {
+            "targetDate": "2026-03-05",
+            "featureVersion": "v1.0.0",
+            "storagePath": "gs://features/2026-03-05/v1.0.0.parquet",
+            # universeCount 欠損
+        }
+        cloud_event = _build_cloud_event(payload=payload)
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.handle_decode_failure.assert_called_once_with(
+            identifier="01JARQ0000AAAAAAAAAAAAAAAA",
+            trace="01JARQ0000BBBBBBBBBBBBBBBB",
+            detail=mock_service.handle_decode_failure.call_args.kwargs["detail"],
+        )
+
+    def test_decode_failure_without_identifiers_does_not_call_handle(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """identifier/trace が取れないデコード失敗では handle_decode_failure を呼ばない。"""
+        body: dict[str, object] = {"message": {"data": "!!invalid-base64!!"}}
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 200
+        mock_service.handle_decode_failure.assert_not_called()
+
+
+class TestSubscriberNullReasonCodeSafety:
+    """reason_code が None の失敗結果に対する安全側のデフォルト動作。"""
+
+    def test_failure_with_none_reason_code_returns_500(
+        self, client: flask.testing.FlaskClient, mock_service: MagicMock
+    ) -> None:
+        """reason_code が None の失敗時は安全側で 500 (nack) を返す。"""
+        mock_service.execute.return_value = GenerateSignalResult(
+            is_success=False,
+            is_duplicate=False,
+            reason_code=None,
+            detail="Unknown failure",
+        )
+        cloud_event = _build_cloud_event()
+        body = _build_pubsub_body(cloud_event)
+
+        response = client.post("/", json=body)
+
+        assert response.status_code == 500

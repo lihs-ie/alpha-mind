@@ -1,34 +1,45 @@
-"""Signal Generator service - minimal skeleton for Docker build verification."""
+"""Signal Generator service entry point.
 
+Flask アプリケーションの作成と起動を行う。
+Cloud Run 上では gunicorn 等の WSGI サーバーから create_app() を呼び出す。
+"""
+
+from __future__ import annotations
+
+import logging
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
+
+from signal_generator.presentation.dependency_container import create_application
 
 
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler with /healthz endpoint."""
+def create_app() -> Any:
+    """Flask アプリケーションファクトリ。
 
-    def do_GET(self) -> None:
-        if self.path == "/healthz":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"ok")
-        else:
-            self.send_response(404)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"not found")
+    WSGI サーバー (gunicorn, Cloud Run) から呼び出されるエントリーポイント。
+    flask がランタイム依存のため、型は Any として返す。
+    """
+    _configure_logging()
+    return create_application()
 
-    def log_message(self, format: str, *args: object) -> None:
-        print(f"[signal-generator] {args[0]}")
+
+def _configure_logging() -> None:
+    """構造化ログの設定。"""
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
 
 
 def main() -> None:
+    """開発用のスタンドアロン起動。"""
     port = int(os.environ.get("PORT", "8080"))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    print(f"Signal Generator starting on port {port}")
-    server.serve_forever()
+    application = create_app()
+    logger = logging.getLogger(__name__)
+    logger.info("Signal Generator starting on port %d", port)
+    application.run(host="0.0.0.0", port=port)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

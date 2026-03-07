@@ -4,10 +4,12 @@ import datetime
 import logging
 from collections.abc import Callable
 
+import pandas
+
 from signal_generator.domain.aggregates.signal_generation import SignalGeneration
-from signal_generator.domain.enums.degradation_flag import DegradationFlag
 from signal_generator.domain.enums.dispatch_status import DispatchStatus
 from signal_generator.domain.enums.event_type import EventType
+from signal_generator.domain.enums.generation_status import GenerationStatus
 from signal_generator.domain.enums.model_status import ModelStatus
 from signal_generator.domain.enums.reason_code import ReasonCode
 from signal_generator.domain.events.signal_generation_completed_event import (
@@ -50,6 +52,7 @@ from signal_generator.domain.value_objects.model_snapshot import ModelSnapshot
 from signal_generator.domain.value_objects.signal_artifact import SignalArtifact
 from signal_generator.usecase.generate_signal_command import GenerateSignalCommand
 from signal_generator.usecase.generate_signal_result import GenerateSignalResult
+from signal_generator.usecase.signal_audit_writer import AuditEntry, SignalAuditWriter
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,7 @@ class SignalGenerationService:
         feature_payload_integrity_specification: FeaturePayloadIntegritySpecification,
         approved_model_policy: ApprovedModelPolicy,
         inference_consistency_policy: InferenceConsistencyPolicy,
+        signal_audit_writer: SignalAuditWriter,
         clock: Callable[[], datetime.datetime],
     ) -> None:
         self._idempotency_key_repository = idempotency_key_repository
@@ -92,6 +96,7 @@ class SignalGenerationService:
         self._feature_payload_integrity_specification = feature_payload_integrity_specification
         self._approved_model_policy = approved_model_policy
         self._inference_consistency_policy = inference_consistency_policy
+        self._signal_audit_writer = signal_audit_writer
         self._clock = clock
 
     def execute(self, command: GenerateSignalCommand) -> GenerateSignalResult:
@@ -125,7 +130,7 @@ class SignalGenerationService:
             )
         if not acquired:
             logger.info("重複イベント検出: identifier=%s", command.identifier)
-            return GenerateSignalResult.duplicate()
+            return self._handle_duplicate_event(command)
 
         # Step 2: 入力検証 (RULE-SG-001)
         feature_snapshot = FeatureSnapshot(
@@ -201,11 +206,18 @@ class SignalGenerationService:
             # Step 5: モデルロード
             model = self._model_loader.load(
                 model_name=model_snapshot.model_version,
-                version=model_snapshot.model_version,
             )
 
             # Step 6: 推論実行
-            prediction_dataframe = model.predict(feature_dataframe)
+            prediction_result = model.predict(feature_dataframe)
+
+            # predict の戻り値が ndarray の場合は DataFrame に変換する
+            if isinstance(prediction_result, pandas.DataFrame):
+                prediction_dataframe = prediction_result
+            elif prediction_result is not None and hasattr(prediction_result, "__len__"):
+                prediction_dataframe = pandas.DataFrame(prediction_result, columns=["prediction"])
+            else:
+                raise TypeError(f"predict の戻り値が不正: {type(prediction_result)}")
 
             # Step 7 準備: predict 戻り値が異常な場合は同一 try 内で捕捉
             prediction_count = len(prediction_dataframe)
@@ -253,7 +265,7 @@ class SignalGenerationService:
         )
 
         # ModelDiagnosticsSnapshot 構築 (RULE-SG-006, RULE-SG-007)
-        model_diagnostics = self._build_model_diagnostics()
+        model_diagnostics = self._build_model_diagnostics(model_snapshot)
 
         # Step 8: signal_store へ保存 (RULE-SG-005: 保存後にのみイベント発行)
         try:
@@ -326,7 +338,7 @@ class SignalGenerationService:
             logger.exception("イベント発行バリデーション失敗: identifier=%s", command.identifier)
             return self._finalize_failure(
                 command=command,
-                retryable=False,
+                retryable=True,
                 reason_code=ReasonCode.INTERNAL_ERROR,
                 detail="イベント発行に失敗しました",
             )
@@ -339,7 +351,13 @@ class SignalGenerationService:
                 detail="イベント発行に失敗しました",
             )
 
-        # publish 成功後の dispatch 永続化 — publish 済みなので retryable=False
+        # 監査ログ記録
+        try:
+            audit_entry = self._signal_audit_writer.build_audit_entry(generation)
+            self._record_audit_log(audit_entry)
+        except Exception:
+            logger.warning("監査ログ記録失敗: identifier=%s", command.identifier, exc_info=True)
+
         try:
             dispatch = self._signal_dispatch_factory.from_signal_generation(
                 identifier=command.identifier,
@@ -351,9 +369,10 @@ class SignalGenerationService:
             logger.exception("dispatch 永続化失敗: identifier=%s", command.identifier)
             return self._finalize_failure(
                 command=command,
-                retryable=False,
+                retryable=True,
                 reason_code=ReasonCode.DEPENDENCY_UNAVAILABLE,
                 detail="dispatch 永続化に失敗しました",
+                release_idempotency_key=False,
             )
 
         return GenerateSignalResult.success()
@@ -410,6 +429,12 @@ class SignalGenerationService:
             self._signal_generation_repository.persist(generation)
         except Exception:
             logger.exception("失敗集約永続化失敗: identifier=%s", command.identifier)
+        # 監査ログ記録
+        try:
+            audit_entry = self._signal_audit_writer.build_audit_entry(generation)
+            self._record_audit_log(audit_entry)
+        except Exception:
+            logger.warning("監査ログ記録失敗: identifier=%s", command.identifier, exc_info=True)
         try:
             self._publish_failed_event_and_dispatch(command, now, reason_code, detail)
         except Exception:
@@ -488,15 +513,50 @@ class SignalGenerationService:
         except Exception:
             logger.exception("失敗 dispatch 永続化失敗: identifier=%s", command.identifier)
 
+    def _handle_duplicate_event(self, command: GenerateSignalCommand) -> GenerateSignalResult:
+        """重複イベント受信時に pending dispatch を再確定する。"""
+        try:
+            existing_dispatch = self._signal_dispatch_repository.find(command.identifier)
+        except Exception:
+            logger.exception("重複イベントの dispatch 読み取り失敗: identifier=%s", command.identifier)
+            return GenerateSignalResult.duplicate()
+
+        if existing_dispatch is None or existing_dispatch.dispatch_status != DispatchStatus.PENDING:
+            return GenerateSignalResult.duplicate()
+
+        try:
+            generation = self._signal_generation_repository.find(command.identifier)
+        except Exception:
+            logger.exception("重複イベントの generation 読み取り失敗: identifier=%s", command.identifier)
+            return GenerateSignalResult.duplicate()
+
+        if generation is None or generation.processed_at is None:
+            return GenerateSignalResult.duplicate()
+
+        try:
+            if generation.status == GenerationStatus.GENERATED:
+                existing_dispatch.publish(EventType.SIGNAL_GENERATED, generation.processed_at)
+            elif generation.status == GenerationStatus.FAILED:
+                existing_dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, generation.processed_at)
+            else:
+                return GenerateSignalResult.duplicate()
+            self._signal_dispatch_repository.persist(existing_dispatch)
+        except Exception:
+            logger.exception("重複イベントの dispatch 再確定失敗: identifier=%s", command.identifier)
+
+        return GenerateSignalResult.duplicate()
+
     def _finalize_failure(
         self,
         command: GenerateSignalCommand,
         retryable: bool,
         reason_code: ReasonCode,
         detail: str | None = None,
+        *,
+        release_idempotency_key: bool = True,
     ) -> GenerateSignalResult:
         """失敗結果を返す。retryable な場合は冪等性キーを terminate して再処理を許可する。"""
-        if retryable:
+        if retryable and release_idempotency_key:
             idempotency_key = f"{_SERVICE_PREFIX}:{command.identifier}"
             try:
                 self._idempotency_key_repository.terminate(idempotency_key)
@@ -512,17 +572,60 @@ class SignalGenerationService:
         """推論結果の保存パスを構築する。"""
         return f"gs://signal-store/{command.target_date.isoformat()}/{signal_version}.parquet"
 
-    def _build_model_diagnostics(self) -> ModelDiagnosticsSnapshot:
-        """ModelDiagnosticsSnapshot を構築する (RULE-SG-006, RULE-SG-007)。
+    def _build_model_diagnostics(self, model_snapshot: ModelSnapshot) -> ModelDiagnosticsSnapshot:
+        """ModelDiagnosticsSnapshot を ModelSnapshot の診断フィールドから構築する (RULE-SG-006, RULE-SG-007)。
 
-        RULE-SG-007: 現時点では NORMAL 固定。将来的にモデル診断結果から動的に構築する。
         degradationFlag=block の場合は requiresComplianceReview=true が必須であり、
         ModelDiagnosticsSnapshot.__post_init__ と InferenceConsistencyPolicy で保護されている。
         """
         return ModelDiagnosticsSnapshot(
-            degradation_flag=DegradationFlag.NORMAL,
-            requires_compliance_review=False,
+            degradation_flag=model_snapshot.degradation_flag,
+            requires_compliance_review=model_snapshot.requires_compliance_review,
+            cost_adjusted_return=model_snapshot.cost_adjusted_return,
+            slippage_adjusted_sharpe=model_snapshot.slippage_adjusted_sharpe,
         )
+
+    def _record_audit_log(self, audit_entry: AuditEntry) -> None:
+        """SignalGenerationAudit を Cloud Logging 向け構造化ログで記録する。"""
+        logger.info(
+            "Signal generation audit",
+            extra={
+                "service": _SERVICE_PREFIX,
+                "trace": audit_entry.trace,
+                "identifier": audit_entry.identifier,
+                "result": "success" if audit_entry.status == GenerationStatus.GENERATED else "failed",
+                "reasonCode": audit_entry.reason_code.value if audit_entry.reason_code is not None else None,
+                "modelVersion": audit_entry.model_version,
+                "signalVersion": audit_entry.signal_version,
+                "processedAt": audit_entry.processed_at.isoformat() if audit_entry.processed_at is not None else None,
+            },
+        )
+
+    def handle_decode_failure(self, identifier: str, trace: str, detail: str) -> None:
+        """CloudEventDecodeError 時に identifier/trace が取得できた場合の failed イベント発行。"""
+        now = self._clock()
+        reason_code = ReasonCode.REQUEST_VALIDATION_FAILED
+        try:
+            failed_event = SignalGenerationFailedEvent(
+                identifier=identifier,
+                reason_code=reason_code,
+                trace=trace,
+                occurred_at=now,
+                detail=detail,
+            )
+            self._signal_event_publisher.publish_signal_generation_failed(failed_event)
+        except Exception:
+            logger.exception("デコード失敗イベント発行失敗: identifier=%s", identifier)
+            return
+        try:
+            dispatch = self._signal_dispatch_factory.from_signal_generation(
+                identifier=identifier,
+                trace=trace,
+            )
+            dispatch.publish(EventType.SIGNAL_GENERATION_FAILED, now)
+            self._signal_dispatch_repository.persist(dispatch)
+        except Exception:
+            logger.exception("デコード失敗 dispatch 永続化失敗: identifier=%s", identifier)
 
     def _classify_exception_reason_code(self, error: Exception) -> ReasonCode:
         """例外の種別からReasonCodeを分類する。"""

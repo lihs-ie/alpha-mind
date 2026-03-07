@@ -169,6 +169,40 @@ class TestFirestoreModelRegistryRepository:
         assert result.status == ModelStatus.CANDIDATE
         assert result.approved_at is None
 
+    def test_search_empty_criteria_returns_all_documents(self) -> None:
+        """criteria が空の場合は全ドキュメントを返す。"""
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_document = MagicMock()
+        mock_document.to_dict.return_value = {
+            "modelVersion": "v1.0.0",
+            "status": "approved",
+            "decidedAt": datetime.datetime(2026, 3, 1, 12, 0, 0, tzinfo=datetime.UTC),
+        }
+        mock_collection.limit.return_value.stream.return_value = iter([mock_document])
+        mock_client.collection.return_value = mock_collection
+
+        repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
+        results = repository.search({})
+
+        assert len(results) == 1
+        assert results[0].model_version == "v1.0.0"
+
+    def test_search_multiple_criteria_chains_where_clauses(self) -> None:
+        """criteria に複数条件がある場合は where を連鎖する。"""
+        mock_client = MagicMock()
+        mock_query = MagicMock()
+        mock_query.where.return_value = mock_query
+        mock_query.limit.return_value.stream.return_value = iter([])
+        mock_collection = MagicMock()
+        mock_collection.where.return_value = mock_query
+        mock_client.collection.return_value = mock_collection
+
+        repository = FirestoreModelRegistryRepository(firestore_client=mock_client)
+        results = repository.search({"status": "approved", "featureVersion": "fv-20260301"})
+
+        assert results == []
+
     def test_find_raises_value_error_when_document_data_is_none(self) -> None:
         mock_client = MagicMock()
         mock_document_snapshot = MagicMock()

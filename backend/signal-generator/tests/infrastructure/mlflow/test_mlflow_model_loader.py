@@ -5,6 +5,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
+    MLflowModelLoader,
+    ModelLoadError,
+)
+
 
 def _create_mock_mlflow() -> MagicMock:
     """テスト用の mlflow モックモジュールを作成する。"""
@@ -15,16 +20,13 @@ def _create_mock_mlflow() -> MagicMock:
 class TestMLflowModelLoader:
     """MLflowModelLoader のテスト。"""
 
-    def test_load_returns_model_from_registry(self) -> None:
+    def test_load_with_version_uses_version_directly(self) -> None:
+        """version 指定時は models:/{model_name}/{version} を直接使用する。"""
         mock_mlflow = _create_mock_mlflow()
         mock_model = MagicMock()
         mock_mlflow.pyfunc.load_model.return_value = mock_model
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
-            from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
-                MLflowModelLoader,
-            )
-
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
             mock_mlflow.set_tracking_uri.assert_called_once_with("http://localhost:5000")
 
@@ -38,11 +40,6 @@ class TestMLflowModelLoader:
         mock_mlflow.pyfunc.load_model.side_effect = Exception("Model not found")
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
-            from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
-                MLflowModelLoader,
-                ModelLoadError,
-            )
-
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
 
             with pytest.raises(ModelLoadError, match="my-model"):
@@ -54,27 +51,41 @@ class TestMLflowModelLoader:
         mock_mlflow.pyfunc.load_model.return_value = mock_model
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
-            from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
-                MLflowModelLoader,
-            )
-
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
             result = loader.load("my-model", stage="Production")
 
             mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/Production")
             assert result is mock_model
 
-    def test_load_raises_value_error_when_no_version_or_stage(self) -> None:
+    def test_load_without_version_or_stage_uses_latest_registered_version(self) -> None:
         mock_mlflow = _create_mock_mlflow()
+        mock_model = MagicMock()
+        mock_mlflow.pyfunc.load_model.return_value = mock_model
+        mock_mlflow.MlflowClient.return_value.search_model_versions.return_value = [
+            MagicMock(version="1"),
+            MagicMock(version="3"),
+            MagicMock(version="2"),
+        ]
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
-            from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
-                MLflowModelLoader,
-            )
+            loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
+            result = loader.load("my-model")
 
+            mock_mlflow.MlflowClient.assert_called_once_with()
+            mock_mlflow.MlflowClient.return_value.search_model_versions.assert_called_once_with(
+                filter_string="name = 'my-model'"
+            )
+            mock_mlflow.pyfunc.load_model.assert_called_once_with(model_uri="models:/my-model/3")
+            assert result is mock_model
+
+    def test_load_raises_model_load_error_when_latest_registered_version_missing(self) -> None:
+        mock_mlflow = _create_mock_mlflow()
+        mock_mlflow.MlflowClient.return_value.search_model_versions.return_value = []
+
+        with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
 
-            with pytest.raises(ValueError, match=r"version.*stage"):
+            with pytest.raises(ModelLoadError, match="my-model"):
                 loader.load("my-model")
 
     def test_predict_delegates_to_loaded_model(self) -> None:
@@ -87,10 +98,6 @@ class TestMLflowModelLoader:
         mock_dataframe = MagicMock()
 
         with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
-            from signal_generator.infrastructure.mlflow.mlflow_model_loader import (
-                MLflowModelLoader,
-            )
-
             loader = MLflowModelLoader(tracking_uri="http://localhost:5000")
             model = loader.load("my-model", "v1.0.0")
             result = model.predict(mock_dataframe)
