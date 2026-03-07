@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from alpha_mind_backend_common.runtime.env import require_env

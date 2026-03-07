@@ -22,27 +22,27 @@ def _install_google_api_core_mocks() -> None:
     class GoogleAPICallError(Exception):
         """Fallback Google API base exception for tests."""
 
-    class ServiceUnavailable(GoogleAPICallError):
+    class ServiceUnavailableError(GoogleAPICallError):
         """Fallback ServiceUnavailable exception for tests."""
 
     class InternalServerError(GoogleAPICallError):
         """Fallback InternalServerError exception for tests."""
 
-    class DeadlineExceeded(GoogleAPICallError):
+    class DeadlineExceededError(GoogleAPICallError):
         """Fallback DeadlineExceeded exception for tests."""
 
-    class TooManyRequests(GoogleAPICallError):
+    class TooManyRequestsError(GoogleAPICallError):
         """Fallback TooManyRequests exception for tests."""
 
-    class NotFound(GoogleAPICallError):
+    class NotFoundError(GoogleAPICallError):
         """Fallback NotFound exception for tests."""
 
     exceptions_module.GoogleAPICallError = GoogleAPICallError
-    exceptions_module.ServiceUnavailable = ServiceUnavailable
+    exceptions_module.ServiceUnavailable = ServiceUnavailableError
     exceptions_module.InternalServerError = InternalServerError
-    exceptions_module.DeadlineExceeded = DeadlineExceeded
-    exceptions_module.TooManyRequests = TooManyRequests
-    exceptions_module.NotFound = NotFound
+    exceptions_module.DeadlineExceeded = DeadlineExceededError
+    exceptions_module.TooManyRequests = TooManyRequestsError
+    exceptions_module.NotFound = NotFoundError
 
     api_core_module.exceptions = exceptions_module
     google_module.api_core = api_core_module

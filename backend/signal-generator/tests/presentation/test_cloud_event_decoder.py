@@ -8,6 +8,7 @@ from datetime import date
 
 import pytest
 
+from signal_generator.presentation import cloud_event_decoder
 from signal_generator.presentation.cloud_event_decoder import (
     CloudEventDecodeError,
     CloudEventPayload,
@@ -73,6 +74,9 @@ class TestDecodeValidMessage:
         assert result.feature_version == "v1.0.0"
         assert result.storage_path == "gs://features/2026-03-05/v1.0.0.parquet"
         assert result.universe_count == 100
+
+    def test_module_explicitly_re_exports_cloud_event_decode_error(self) -> None:
+        assert "CloudEventDecodeError" in cloud_event_decoder.__all__
 
     def test_decodes_payload_with_universe_count(self) -> None:
         payload = {

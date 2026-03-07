@@ -30,7 +30,7 @@ _RETRYABLE_EXCEPTIONS = (
 )
 
 
-def with_retry(
+def with_retry(  # noqa: UP047
     operation: Callable[[], T],
     max_retries: int = _MAX_RETRIES,
     base_delay: float = _BASE_DELAY_SECONDS,

@@ -20,6 +20,12 @@ from alpha_mind_backend_common.messaging.pubsub_push import (
 logger = logging.getLogger(__name__)
 
 _EXPECTED_EVENT_TYPE = "features.generated"
+__all__ = [
+    "CloudEventDecodeError",
+    "CloudEventPayload",
+    "decode_pubsub_push_message",
+    "extract_envelope_identifiers",
+]
 
 
 @dataclass(frozen=True)

@@ -9,10 +9,10 @@ from unittest.mock import MagicMock
 def _ensure_google_cloud_mocks() -> None:
     """Install mock Google SDK modules when real packages are unavailable."""
     try:
-        import google.cloud.firestore_v1  # noqa: F401
-        import google.cloud.pubsub_v1  # noqa: F401
+        import google.api_core.exceptions
+        import google.cloud.firestore_v1
+        import google.cloud.pubsub_v1
         import google.cloud.storage  # noqa: F401
-        import google.api_core.exceptions  # noqa: F401
 
         return
     except ImportError:

@@ -9,6 +9,7 @@ import json
 import pytest
 
 from domain.value_object.enums import SourceStatusValue
+from presentation import cloud_event_decoder
 from presentation.cloud_event_decoder import CloudEventDecodeError, decode_pubsub_push_message
 
 
@@ -57,6 +58,9 @@ class TestDecodePubsubPushMessage:
         assert market.storage_path == "gs://bucket/path/to/data"
         assert market.source_status.jp == SourceStatusValue.OK
         assert market.source_status.us == SourceStatusValue.OK
+
+    def test_module_explicitly_re_exports_cloud_event_decode_error(self) -> None:
+        assert "CloudEventDecodeError" in cloud_event_decoder.__all__
 
     def test_decode_missing_message_key_raises_error(self) -> None:
         with pytest.raises(CloudEventDecodeError, match="message"):
