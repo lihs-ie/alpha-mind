@@ -64,9 +64,10 @@ WORKDIR /app
 # venv と該当サービスのアプリケーションコードをコピーする
 COPY --from=deps /opt/venv /opt/venv
 COPY backend/${SERVICE_NAME}/src/ /app/src/
+COPY backend/common/python/src/ /app/python-common-src/
 
 ENV PATH="/opt/venv/bin:${PATH}"
-ENV PYTHONPATH="/app/src"
+ENV PYTHONPATH="/app/src:/app/python-common-src"
 RUN chown -R appuser:appgroup /app
 
 USER appuser
