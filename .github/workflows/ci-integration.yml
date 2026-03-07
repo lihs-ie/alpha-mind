@@ -32,70 +32,89 @@ jobs:
               - ".github/workflows/ci-integration.yml"
               - "docker/Makefile"
               - "docker/docker-compose.yml"
-              - "docker/docker-compose.integration*.yml"
-              - "docker/dockerfiles/**"
+              - "docker/docker-compose.integration.base.yml"
+              - "docker/docker-compose.integration.cache.yml"
+              - "docker/docker-compose.integration.cache.registry.yml"
+              - "docker/dockerfiles/Dockerfile.firestore-emulator"
               - "docker/README.integration.md"
               - "docker/scripts/**"
+            haskell_common:
               - "backend/cabal.project"
+              - "docker/dockerfiles/Dockerfile.haskell"
+            python_common:
               - "backend/pyproject.toml"
-              - "backend/**"
-              - "!backend/bff/**"
-              - "!backend/data-collector/**"
-              - "!backend/feature-engineering/**"
-              - "!backend/signal-generator/**"
-              - "!backend/portfolio-planner/**"
-              - "!backend/risk-guard/**"
-              - "!backend/execution/**"
-              - "!backend/audit-log/**"
-              - "!backend/insight-collector/**"
-              - "!backend/agent-orchestrator/**"
-              - "!backend/hypothesis-lab/**"
+              - "docker/dockerfiles/Dockerfile.python"
             bff:
               - "backend/bff/**"
+              - "docker/docker-compose.integration.bff.yml"
             data_collector:
               - "backend/data-collector/**"
+              - "docker/docker-compose.integration.data-collector.yml"
             feature_engineering:
               - "backend/feature-engineering/**"
+              - "docker/docker-compose.integration.feature-engineering.yml"
             signal_generator:
               - "backend/signal-generator/**"
+              - "docker/docker-compose.integration.signal-generator.yml"
             portfolio_planner:
               - "backend/portfolio-planner/**"
+              - "docker/docker-compose.integration.portfolio-planner.yml"
             risk_guard:
               - "backend/risk-guard/**"
+              - "docker/docker-compose.integration.risk-guard.yml"
             execution:
               - "backend/execution/**"
+              - "docker/docker-compose.integration.execution.yml"
             audit_log:
               - "backend/audit-log/**"
+              - "docker/docker-compose.integration.audit-log.yml"
             insight_collector:
               - "backend/insight-collector/**"
+              - "docker/docker-compose.integration.insight-collector.yml"
             agent_orchestrator:
               - "backend/agent-orchestrator/**"
+              - "docker/docker-compose.integration.agent-orchestrator.yml"
             hypothesis_lab:
               - "backend/hypothesis-lab/**"
+              - "docker/docker-compose.integration.hypothesis-lab.yml"
 
       - name: Build service matrix
         id: set-matrix
         run: |
           set -euo pipefail
 
-          all_services=(
+          haskell_services=(
             bff
             data-collector
-            feature-engineering
-            signal-generator
             portfolio-planner
             risk-guard
             execution
             audit-log
             insight-collector
             agent-orchestrator
+          )
+          python_services=(
+            feature-engineering
+            signal-generator
             hypothesis-lab
+          )
+          all_services=(
+            "${haskell_services[@]}"
+            "${python_services[@]}"
           )
           services=()
 
           if [[ "${{ steps.filter.outputs.common }}" == "true" ]]; then
             services=("${all_services[@]}")
           else
+            if [[ "${{ steps.filter.outputs.haskell_common }}" == "true" ]]; then
+              services+=("${haskell_services[@]}")
+            fi
+
+            if [[ "${{ steps.filter.outputs.python_common }}" == "true" ]]; then
+              services+=("${python_services[@]}")
+            fi
+
             [[ "${{ steps.filter.outputs.bff }}" == "true" ]] && services+=("bff")
             [[ "${{ steps.filter.outputs.data_collector }}" == "true" ]] && services+=("data-collector")
             [[ "${{ steps.filter.outputs.feature_engineering }}" == "true" ]] && services+=("feature-engineering")
