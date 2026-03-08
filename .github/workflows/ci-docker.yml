@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build (bff — smoke test)
         uses: docker/build-push-action@v6
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build (feature-engineering — smoke test)
         uses: docker/build-push-action@v6
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build frontend
         uses: docker/build-push-action@v6
