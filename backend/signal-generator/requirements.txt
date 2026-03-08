@@ -7,4 +7,4 @@ lightgbm>=4.5,<5
 google-cloud-firestore>=2.0,<3
 google-cloud-storage>=2.0,<3
 google-cloud-pubsub>=2.0,<3
-mlflow-skinny>=2.0,<3
+mlflow-skinny>=2.0,<4

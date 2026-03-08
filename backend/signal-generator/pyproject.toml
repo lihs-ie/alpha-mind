@@ -15,7 +15,7 @@ runtime = [
     "google-cloud-firestore>=2.0,<3",
     "google-cloud-storage>=2.0,<3",
     "google-cloud-pubsub>=2.0,<3",
-    "mlflow-skinny>=2.0,<3",
+    "mlflow-skinny>=2.0,<4",
     "python-ulid>=3.0,<4",
 ]
 dev = [
@@ -33,7 +33,7 @@ dev = [
 integration = [
     "fastparquet>=2024.11.0,<2026",
     "lightgbm>=4.5,<5",
-    "mlflow-skinny>=2.0,<3",
+    "mlflow-skinny>=2.0,<4",
     "scikit-learn>=1.5,<2",
 ]
 
