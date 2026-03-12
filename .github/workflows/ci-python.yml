@@ -203,7 +203,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build Firestore emulator image (cache)
-        uses: docker/build-push-action@v7.0.0
+        uses: docker/build-push-action@v7
         with:
           context: docker
           file: docker/dockerfiles/Dockerfile.firestore-emulator

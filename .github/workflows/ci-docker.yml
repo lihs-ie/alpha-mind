@@ -60,7 +60,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build (bff — smoke test)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/dockerfiles/Dockerfile.haskell
@@ -83,7 +83,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build (feature-engineering — smoke test)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/dockerfiles/Dockerfile.python
@@ -106,7 +106,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/dockerfiles/Dockerfile.frontend
