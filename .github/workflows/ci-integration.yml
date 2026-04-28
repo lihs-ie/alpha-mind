@@ -41,9 +41,11 @@ jobs:
             haskell_common:
               - "backend/cabal.project"
               - "docker/dockerfiles/Dockerfile.haskell"
+              - "backend/common/haskell/**"
             python_common:
               - "backend/pyproject.toml"
               - "docker/dockerfiles/Dockerfile.python"
+              - "backend/common/python/**"
             bff:
               - "backend/bff/**"
               - "docker/docker-compose.integration.bff.yml"
@@ -83,50 +85,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          haskell_services=(
-            bff
-            data-collector
-            portfolio-planner
-            risk-guard
-            execution
-            audit-log
-            insight-collector
-            agent-orchestrator
-          )
-          python_services=(
+          integration_test_services=(
             feature-engineering
             signal-generator
-            hypothesis-lab
-          )
-          all_services=(
-            "${haskell_services[@]}"
-            "${python_services[@]}"
           )
           services=()
 
+          # Shared integration infra changes should exercise services that have
+          # real integration tests. Haskell common/Dockerfile coverage belongs
+          # to CI Haskell and CI Docker, not this compose-based matrix.
           if [[ "${{ steps.filter.outputs.common }}" == "true" ]]; then
-            services=("${all_services[@]}")
-          else
-            if [[ "${{ steps.filter.outputs.haskell_common }}" == "true" ]]; then
-              services+=("${haskell_services[@]}")
-            fi
-
-            if [[ "${{ steps.filter.outputs.python_common }}" == "true" ]]; then
-              services+=("${python_services[@]}")
-            fi
-
-            [[ "${{ steps.filter.outputs.bff }}" == "true" ]] && services+=("bff")
-            [[ "${{ steps.filter.outputs.data_collector }}" == "true" ]] && services+=("data-collector")
-            [[ "${{ steps.filter.outputs.feature_engineering }}" == "true" ]] && services+=("feature-engineering")
-            [[ "${{ steps.filter.outputs.signal_generator }}" == "true" ]] && services+=("signal-generator")
-            [[ "${{ steps.filter.outputs.portfolio_planner }}" == "true" ]] && services+=("portfolio-planner")
-            [[ "${{ steps.filter.outputs.risk_guard }}" == "true" ]] && services+=("risk-guard")
-            [[ "${{ steps.filter.outputs.execution }}" == "true" ]] && services+=("execution")
-            [[ "${{ steps.filter.outputs.audit_log }}" == "true" ]] && services+=("audit-log")
-            [[ "${{ steps.filter.outputs.insight_collector }}" == "true" ]] && services+=("insight-collector")
-            [[ "${{ steps.filter.outputs.agent_orchestrator }}" == "true" ]] && services+=("agent-orchestrator")
-            [[ "${{ steps.filter.outputs.hypothesis_lab }}" == "true" ]] && services+=("hypothesis-lab")
+            services+=("${integration_test_services[@]}")
           fi
+
+          if [[ "${{ steps.filter.outputs.haskell_common }}" == "true" ]]; then
+            echo "Haskell common changes are covered by CI Haskell and CI Docker."
+          fi
+
+          if [[ "${{ steps.filter.outputs.python_common }}" == "true" ]]; then
+            services+=("${integration_test_services[@]}")
+          fi
+
+          [[ "${{ steps.filter.outputs.bff }}" == "true" ]] && services+=("bff")
+          [[ "${{ steps.filter.outputs.data_collector }}" == "true" ]] && services+=("data-collector")
+          [[ "${{ steps.filter.outputs.feature_engineering }}" == "true" ]] && services+=("feature-engineering")
+          [[ "${{ steps.filter.outputs.signal_generator }}" == "true" ]] && services+=("signal-generator")
+          [[ "${{ steps.filter.outputs.portfolio_planner }}" == "true" ]] && services+=("portfolio-planner")
+          [[ "${{ steps.filter.outputs.risk_guard }}" == "true" ]] && services+=("risk-guard")
+          [[ "${{ steps.filter.outputs.execution }}" == "true" ]] && services+=("execution")
+          [[ "${{ steps.filter.outputs.audit_log }}" == "true" ]] && services+=("audit-log")
+          [[ "${{ steps.filter.outputs.insight_collector }}" == "true" ]] && services+=("insight-collector")
+          [[ "${{ steps.filter.outputs.agent_orchestrator }}" == "true" ]] && services+=("agent-orchestrator")
+          [[ "${{ steps.filter.outputs.hypothesis_lab }}" == "true" ]] && services+=("hypothesis-lab")
 
           if [[ ${#services[@]} -eq 0 ]]; then
             echo "has_services=false" >> "$GITHUB_OUTPUT"
@@ -186,7 +176,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p /tmp/integration-logs/${SERVICE}
+          mkdir -p "/tmp/integration-logs/${SERVICE}"
 
           targets=("firestore" "${SERVICE}")
           if [[ "${SERVICE}" == "bff" ]]; then
@@ -202,14 +192,14 @@ jobs:
 
           compose_files=(
             -f docker-compose.integration.base.yml
-            -f docker-compose.integration.${SERVICE}.yml
+            -f "docker-compose.integration.${SERVICE}.yml"
             -f docker-compose.integration.cache.yml
           )
 
           if [[ "${ENABLE_REGISTRY_CACHE}" == "true" && "${is_haskell_service}" == "true" ]]; then
             export REGISTRY_CACHE_REPO
             REGISTRY_CACHE_REPO="$(echo "ghcr.io/${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-            compose_files+=(-f docker-compose.integration.cache.registry.yml)
+            compose_files+=(-f "docker-compose.integration.cache.registry.yml")
             echo "Registry cache enabled: ${REGISTRY_CACHE_REPO}/integration-cache:*"
           else
             echo "Registry cache disabled (fork PR or non-Haskell service)."
@@ -218,7 +208,7 @@ jobs:
           docker compose --env-file .env.local \
             "${compose_files[@]}" \
             build --progress=plain --builder "${BUILDX_BUILDER}" "${targets[@]}" \
-            | tee /tmp/integration-logs/${SERVICE}/build.log
+            | tee "/tmp/integration-logs/${SERVICE}/build.log"
 
       - name: Start integration stack
         working-directory: docker
@@ -232,7 +222,7 @@ jobs:
 
           docker compose --env-file .env.local \
             -f docker-compose.integration.base.yml \
-            -f docker-compose.integration.${SERVICE}.yml \
+            -f "docker-compose.integration.${SERVICE}.yml" \
             -f docker-compose.integration.cache.yml \
             up -d --no-build --remove-orphans "${targets[@]}"
 
@@ -244,7 +234,7 @@ jobs:
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml \
+              -f "docker-compose.integration.${SERVICE}.yml" \
               -f docker-compose.integration.cache.yml "$@"
           }
 
@@ -290,7 +280,7 @@ jobs:
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml \
+              -f "docker-compose.integration.${SERVICE}.yml" \
               -f docker-compose.integration.cache.yml "$@"
           }
 
@@ -353,7 +343,7 @@ jobs:
           compose() {
             docker compose --env-file docker/.env.local \
               -f docker/docker-compose.integration.base.yml \
-              -f docker/docker-compose.integration.${SERVICE}.yml \
+              -f "docker/docker-compose.integration.${SERVICE}.yml" \
               -f docker/docker-compose.integration.cache.yml "$@"
           }
 
@@ -379,17 +369,17 @@ jobs:
         working-directory: docker
         run: |
           set -euo pipefail
-          mkdir -p /tmp/integration-logs/${SERVICE}
+          mkdir -p "/tmp/integration-logs/${SERVICE}"
 
           compose() {
             docker compose --env-file .env.local \
               -f docker-compose.integration.base.yml \
-              -f docker-compose.integration.${SERVICE}.yml \
+              -f "docker-compose.integration.${SERVICE}.yml" \
               -f docker-compose.integration.cache.yml "$@"
           }
 
-          compose ps -a > /tmp/integration-logs/${SERVICE}/ps.txt || true
-          compose logs --no-color > /tmp/integration-logs/${SERVICE}/compose.log || true
+          compose ps -a > "/tmp/integration-logs/${SERVICE}/ps.txt" || true
+          compose logs --no-color > "/tmp/integration-logs/${SERVICE}/compose.log" || true
 
       - name: Upload logs
         if: always()

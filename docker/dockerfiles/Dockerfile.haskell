@@ -58,6 +58,7 @@ FROM toolchain AS deps
 # 全 8 サービスの .cabal ファイルと共有 cabal.project をコピーする
 # cabal.project が全サービスを列挙しているため、依存解決が一括で行われる
 COPY backend/cabal.project /workspace/cabal.project
+COPY backend/common/haskell/shared.cabal                 /workspace/common/haskell/
 COPY backend/agent-orchestrator/agent-orchestrator.cabal /workspace/agent-orchestrator/
 COPY backend/audit-log/audit-log.cabal                   /workspace/audit-log/
 COPY backend/bff/bff.cabal                               /workspace/bff/
@@ -78,11 +79,12 @@ FROM deps AS builder
 ARG SERVICE_NAME
 RUN test -n "${SERVICE_NAME}" || (echo "ERROR: SERVICE_NAME build arg is required" >&2 && exit 1)
 
-# 該当サービスのソースコードのみコピーしてビルドする
-# cabal.project を対象サービスのみに絞る（他サービスのソースは存在しないため）
+# 該当サービスと共通パッケージのソースコードのみコピーしてビルドする
+# cabal.project を対象サービスと共通パッケージに絞る（他サービスのソースは存在しないため）
 # deps ステージでビルド済みの依存は dist-newstyle に残っておりそのまま利用される
+COPY backend/common/haskell/ /workspace/common/haskell/
 COPY backend/${SERVICE_NAME}/ /workspace/${SERVICE_NAME}/
-RUN echo "packages: ${SERVICE_NAME}/" > /workspace/cabal.project && \
+RUN printf "packages:\n  common/haskell/\n  %s/\n" "${SERVICE_NAME}" > /workspace/cabal.project && \
     cabal build -O2 "exe:${SERVICE_NAME}"
 
 # 実行ファイルをステージングディレクトリへコピーする
