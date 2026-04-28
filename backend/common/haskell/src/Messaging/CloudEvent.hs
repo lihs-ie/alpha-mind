@@ -8,7 +8,19 @@ module Messaging.CloudEvent (
 where
 
 import Control.Monad
-import Data.Aeson (FromJSON (parseJSON), Result (..), ToJSON (toJSON), Value, eitherDecode, encode, fromJSON, object, withObject, (.:), (.=))
+import Data.Aeson (
+  FromJSON (parseJSON),
+  Result (..),
+  ToJSON (toJSON),
+  Value,
+  eitherDecode,
+  encode,
+  fromJSON,
+  object,
+  withObject,
+  (.:),
+  (.=),
+ )
 import Data.ByteString.Lazy (ByteString)
 import Data.Text qualified as Text
 import Data.Time (UTCTime)

@@ -8,8 +8,8 @@ import Data.ULID (ULID)
 import Gogol (DateTime (..))
 import Gogol.FireStore (Value (..), Value_NullValue (..), newValue)
 import Persistence.Firestore (
-  FromFirestore (..),
   FirestoreError (..),
+  FromFirestore (..),
   ToFirestore (..),
   ToFirestoreValue (..),
   requireField,
