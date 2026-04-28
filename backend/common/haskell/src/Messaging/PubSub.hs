@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
 {-# OPTIONS_GHC -fno-hpc #-}
 
 module Messaging.PubSub (
@@ -59,11 +58,12 @@ instance FromJSON PubSubPushEnvelope where
 instance ToJSON PubSubPushEnvelope where
   toJSON envelope =
     object
-      [ "message" .= object
-          [ "messageId" .= envelope.messageId
-          , "publishTime" .= envelope.publishTime
-          , "data" .= envelope.dataBase64
-          ]
+      [ "message"
+          .= object
+            [ "messageId" .= envelope.messageId
+            , "publishTime" .= envelope.publishTime
+            , "data" .= envelope.dataBase64
+            ]
       ]
 
 data PubSubError

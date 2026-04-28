@@ -55,7 +55,7 @@ spec =
         , ("K_REVISION", Nothing)
         , ("LOG_LEVEL", Just "warning")
         ]
-        (gcpProjectId <$> loadCommonRuntimeEnv "portfolio" >>= (`shouldBe` "fallback-project"))
+        (loadCommonRuntimeEnv "portfolio" >>= (`shouldBe` "fallback-project") . gcpProjectId)
 
     it "rejects invalid PORT values instead of silently defaulting" $
       withEnvVars

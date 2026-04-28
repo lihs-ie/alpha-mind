@@ -29,7 +29,7 @@ import Network.HTTP.Media qualified as Media
 import Network.HTTP.Types (Status (statusCode))
 import Resilience.Retry (RetryPolicyConfig, defaultRetryPolicyConfig, withRetry)
 
-data GcsContext = GcsContext
+newtype GcsContext = GcsContext
   { retryPolicyConfig :: RetryPolicyConfig
   }
   deriving stock (Eq, Show)
@@ -125,7 +125,7 @@ uploadParsedBody :: GcsObjectRef -> Text -> GcsMetadata -> Gogol.GBody -> IO (Ei
 uploadParsedBody ref contentType metadata body =
   newGcsEnv
     >>= \environment ->
-      (first toGcsError . void)
+      first toGcsError . void
         <$> Gogol.runResourceT
           (Gogol.uploadEither environment (uploadRequest ref contentType metadata) body)
 

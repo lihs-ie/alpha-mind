@@ -176,7 +176,7 @@ upsertDocumentOnce context collection documentID value = do
             { Document.createTime = Nothing
             , Document.updateTime = Nothing
             , Document.name = Just path
-            , Document.fields = (Just (Document.Document_Fields{Document.additional = fieldMap}))
+            , Document.fields = Just (Document.Document_Fields{Document.additional = fieldMap})
             }
         request = Document.newFireStoreProjectsDatabasesDocumentsPatch path document
     result <- sendEither environment request

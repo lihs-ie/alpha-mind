@@ -38,5 +38,4 @@ expectedProblem =
     ]
 
 expectationFailure :: String -> IO ()
-expectationFailure message =
-  fail message
+expectationFailure = fail

@@ -1,5 +1,6 @@
 module RetrySpec (spec) where
 
+import Data.Functor (($>))
 import Data.IORef (IORef, modifyIORef', newIORef, readIORef)
 import Resilience.Retry (RetryPolicyConfig (..), defaultRetryPolicyConfig, withRetry)
 import Test.Hspec (Spec, describe, it, shouldBe)
@@ -48,7 +49,7 @@ noDelayPolicy =
 
 counted :: IORef Int -> Either String String -> IO (Either String String)
 counted counter result =
-  increment counter *> pure result
+  increment counter $> result
 
 increment :: IORef Int -> IO Int
 increment counter =

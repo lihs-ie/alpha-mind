@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-hpc #-}
 
@@ -16,6 +17,7 @@ module Auth.InternalJwt (
 import App.Response (ToProblemDetails (..), mkErrorResponse, mkProblemDetails)
 import Data.Aeson (eitherDecode)
 import Data.ByteString (fromStrict)
+import Data.Functor (($>))
 import Data.IORef (IORef, readIORef, writeIORef)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text, stripPrefix)
@@ -183,7 +185,7 @@ fetchJwkSet manager config cacheRef = do
     _ -> do
       result <- fetchFromEndpoint manager config.jwksUrl
       case result of
-        Right newJwkSet -> writeIORef cacheRef (Just JwksCache{cachedAt = now, jwkSet = newJwkSet}) *> pure (Right newJwkSet)
+        Right newJwkSet -> writeIORef cacheRef (Just JwksCache{cachedAt = now, jwkSet = newJwkSet}) $> Right newJwkSet
         Left err -> pure (maybe (Left err) (Right . jwkSet) cache)
 
 verifyInternalJwt ::
@@ -223,9 +225,8 @@ internalJwtMiddleware config cacheRef app request sendResponse =
   case extractBearerToken request of
     Left err -> sendResponse (mkErrorResponse err)
     Right token ->
-      verifyInternalJwt config cacheRef token >>= \result ->
-        case result of
-          Left err -> sendResponse (mkErrorResponse err)
-          Right principal ->
-            let request' = request{vault = Vault.insert verifiedPrincipalKey principal (vault request)}
-             in app request' sendResponse
+      verifyInternalJwt config cacheRef token >>= \case
+        Left err -> sendResponse (mkErrorResponse err)
+        Right principal ->
+          let request' = request{vault = Vault.insert verifiedPrincipalKey principal (vault request)}
+           in app request' sendResponse

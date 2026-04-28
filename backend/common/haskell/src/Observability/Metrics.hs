@@ -39,7 +39,7 @@ data CommonMetrics = CommonMetrics
 
 initCommonMetrics :: Text -> IO CommonMetrics
 initCommonMetrics serviceName =
-  HashMap.lookup serviceName <$> readIORef metricsCache >>= maybe registerAndCache pure
+  readIORef metricsCache >>= maybe registerAndCache pure . HashMap.lookup serviceName
  where
   registerAndCache = do
     metrics <- registerCommonMetrics serviceName

@@ -6,7 +6,12 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as Text
 import Gogol.FireStore (Value (..), Value_NullValue (..))
 import Persistence.Firestore (FromFirestore (..), ToFirestore (..))
-import Persistence.Idempotency (IdempotencyError (..), IdempotencyRecord (..), ReserveResult (..), reserveResultForExistingRecord)
+import Persistence.Idempotency (
+  IdempotencyError (..),
+  IdempotencyRecord (..),
+  ReserveResult (..),
+  reserveResultForExistingRecord,
+ )
 import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe)
 import TestFixtures (sampleIdentifier, sampleTime, sampleTrace)
 
@@ -38,7 +43,9 @@ spec =
         "missing field: key"
 
     it "exposes reserve results and errors with equality" $ do
-      Reserved `seq` AlreadyReserved `seq` AlreadyProcessed `seq` True `shouldBe` True
+      Reserved `shouldBe` Reserved
+      AlreadyReserved `shouldBe` AlreadyReserved
+      AlreadyProcessed `shouldBe` AlreadyProcessed
       IdempotencyErrorNotReserved "key" `shouldBe` IdempotencyErrorNotReserved "key"
 
     it "distinguishes reserved records from completed duplicates" $ do

@@ -7,8 +7,8 @@ module Config.Env (
 )
 where
 
-import Control.Exception (Exception, throwIO)
 import Control.Applicative ((<|>))
+import Control.Exception (Exception, throwIO)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -70,10 +70,10 @@ validateLogLevel value =
 
 loadCommonRuntimeEnv :: Text -> IO CommonRuntimeEnv
 loadCommonRuntimeEnv name =
-  CommonRuntimeEnv
-    <$> (fromMaybe 8080 <$> optionalIntEnv "PORT")
+  CommonRuntimeEnv . fromMaybe 8080
+    <$> optionalIntEnv "PORT"
     <*> loadProjectId
     <*> pure name
     <*> requireTextEnv "SERVICE_VERSION"
     <*> optionalTextEnv "K_REVISION"
-    <*> (maybe "info" id <$> optionalTextEnv "LOG_LEVEL" >>= validateLogLevel)
+    <*> (optionalTextEnv "LOG_LEVEL" >>= validateLogLevel . fromMaybe "info")
