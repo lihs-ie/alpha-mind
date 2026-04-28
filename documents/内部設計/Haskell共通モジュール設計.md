@@ -410,3 +410,25 @@ backend/risk-guard/src/
 3. `bff`, `data-collector`, `execution`, `portfolio-planner`, `risk-guard`, `audit-log`, `insight-collector` の `Main.hs` を共通 bootstrap 利用へ置換
 
 これにより、最小リスクで共通モジュールを導入できる。
+
+## 10. 詳細設計
+
+モジュール別の詳細設計は以下を参照する。
+
+- `内部設計/haskell-common/README.md`
+- `内部設計/haskell-common/App.Bootstrap.md`
+- `内部設計/haskell-common/App.Health.md`
+- `内部設計/haskell-common/Config.Env.md`
+- `内部設計/haskell-common/Messaging.CloudEvent.md`
+- `内部設計/haskell-common/Messaging.PubSub.md`
+- `内部設計/haskell-common/Persistence.Firestore.md`
+- `内部設計/haskell-common/Persistence.Idempotency.md`
+- `内部設計/haskell-common/Observability.Logging.md`
+- `内部設計/haskell-common/Observability.Metrics.md`
+- `内部設計/haskell-common/Resilience.Retry.md`
+- `内部設計/haskell-common/Auth.InternalJwt.md`
+- `内部設計/haskell-common/Storage.GCS.md`
+
+補足:
+
+- Haskell 初心者向けの実装順、ライブラリの役割、進め方は `内部設計/haskell-common/README.md` の「6. 初心者向け実装ロードマップ」以降を参照する。

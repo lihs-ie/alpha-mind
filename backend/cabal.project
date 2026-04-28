@@ -1,4 +1,5 @@
 packages:
+  common/haskell/
   agent-orchestrator/
   audit-log/
   bff/

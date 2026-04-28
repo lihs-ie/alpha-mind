@@ -3,3 +3,5 @@ comma-style: leading
 record-brace-space: false
 diff-friendly-import-export: true
 column-limit: 120
+extensions:
+  - OverloadedRecordDot
