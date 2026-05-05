@@ -1,0 +1,21 @@
+module Main (main) where
+
+import Domain.AuditLog.AuditIngestionSpec qualified
+import Domain.AuditLog.AuditRecordSpec qualified
+import Domain.AuditLog.ReasonCodeSpec qualified
+import Domain.AuditLog.ReasonSourceSpec qualified
+import Domain.AuditLog.ResultSpec qualified
+import Domain.AuditLog.StatusSpec qualified
+import Domain.AuditLogSpec qualified
+import Test.Hspec (hspec)
+
+main :: IO ()
+main =
+  hspec $ do
+    Domain.AuditLogSpec.spec
+    Domain.AuditLog.ReasonCodeSpec.spec
+    Domain.AuditLog.ReasonSourceSpec.spec
+    Domain.AuditLog.ResultSpec.spec
+    Domain.AuditLog.StatusSpec.spec
+    Domain.AuditLog.AuditIngestionSpec.spec
+    Domain.AuditLog.AuditRecordSpec.spec
