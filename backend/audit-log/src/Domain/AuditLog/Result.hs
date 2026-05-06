@@ -1,6 +1,6 @@
-module Domain.AuditLog.Result
-  ( Result (..)
-  ) where
+module Domain.AuditLog.Result (
+  Result (..),
+) where
 
 data Result
   = Success

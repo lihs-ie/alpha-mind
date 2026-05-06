@@ -1,11 +1,12 @@
-module Domain.AuditLog
-  ( -- * Common identifier-like types
-    Trace (..)
-    -- * Common basic types
-  , EventType
-  , Service
-  , Reason
-  ) where
+module Domain.AuditLog (
+  -- * Common identifier-like types
+  Trace (..),
+
+  -- * Common basic types
+  EventType,
+  Service,
+  Reason,
+) where
 
 import Data.Text (Text)
 import Data.ULID (ULID)

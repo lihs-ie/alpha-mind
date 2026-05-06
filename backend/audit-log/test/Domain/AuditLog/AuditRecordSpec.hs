@@ -1,26 +1,37 @@
 module Domain.AuditLog.AuditRecordSpec (spec) where
 
 import Data.Aeson (Value (..))
+import Data.Aeson.Key qualified as Key
+import Data.Aeson.KeyMap qualified as KeyMap
+import Data.Either (isLeft)
 import Data.Map.Strict qualified as Map
+import Data.Text (Text)
 import Data.Time (UTCTime (..))
 import Data.Time.Calendar (fromGregorian)
 import Data.ULID (ULID, ulidFromInteger)
 import Domain.AuditLog (Trace (..))
-import Domain.AuditLog.AuditRecord
-  ( AuditRecord (..)
-  , AuditRecordIdentifier (..)
-  , DomainEvent (..)
-  , PayloadDigest (..)
-  , PayloadSummaryValue (..)
-  , ResultNormalization (..)
-  , SourceEventIdentifier (..)
-  , SourceEventSnapshot (..)
-  )
+import Domain.AuditLog.AuditRecord (
+  AuditRecord (..),
+  AuditRecordEvent (..),
+  AuditRecordIdentifier (..),
+  PayloadDigest (..),
+  PayloadSummaryValue (..),
+  ResultNormalization (..),
+  SourceEventIdentifier (..),
+  SourceEventSnapshot (..),
+  acceptSourceEvent,
+  extractReasonFromPayload,
+  markFailed,
+  markRecorded,
+  normalizeReason,
+  normalizeResult,
+  normalizeResultFromEventType,
+  summarizePayload,
+ )
 import Domain.AuditLog.ReasonCode (ReasonCode (..))
 import Domain.AuditLog.ReasonSource (ReasonSource (..))
-import Domain.AuditLog.Result (Result (..))
 import Domain.AuditLog.Result qualified as Result
-import Domain.AuditLog.Status (Status (..))
+import Domain.AuditLog.Status qualified as Status
 import Test.Hspec (Spec, describe, it, shouldBe, shouldNotBe, shouldSatisfy)
 
 mkULID :: Integer -> ULID
@@ -31,272 +42,206 @@ mkULID n = case ulidFromInteger n of
 fixedTime :: UTCTime
 fixedTime = UTCTime (fromGregorian 2025 1 1) 0
 
+fixedTime2 :: UTCTime
+fixedTime2 = UTCTime (fromGregorian 2025 6 15) 0
+
+testSnapshot :: SourceEventSnapshot
+testSnapshot =
+  SourceEventSnapshot
+    { identifier = SourceEventIdentifier (mkULID 50)
+    , eventType = "orders.executed"
+    , occurredAt = fixedTime
+    , trace = Trace (mkULID 60)
+    , payload = Null
+    }
+
+mkPendingRecord :: (AuditRecord, [AuditRecordEvent])
+mkPendingRecord =
+  acceptSourceEvent
+    (AuditRecordIdentifier (mkULID 1))
+    testSnapshot
+    "execution"
+    Result.Success
+
 spec :: Spec
 spec =
   describe "Domain.AuditLog.AuditRecord" $ do
     describe "AuditRecordIdentifier" $ do
-      it "constructs and accesses value" $ do
-        let identifier = AuditRecordIdentifier (mkULID 1)
-        identifier.value `shouldBe` mkULID 1
-
       it "supports equality" $ do
         AuditRecordIdentifier (mkULID 1) `shouldBe` AuditRecordIdentifier (mkULID 1)
         AuditRecordIdentifier (mkULID 1) `shouldNotBe` AuditRecordIdentifier (mkULID 2)
 
       it "supports ordering" $ do
         compare (AuditRecordIdentifier (mkULID 1)) (AuditRecordIdentifier (mkULID 2)) `shouldBe` LT
-        compare (AuditRecordIdentifier (mkULID 2)) (AuditRecordIdentifier (mkULID 1)) `shouldBe` GT
-        compare (AuditRecordIdentifier (mkULID 1)) (AuditRecordIdentifier (mkULID 1)) `shouldBe` EQ
-
-      it "supports show" $ do
-        show (AuditRecordIdentifier (mkULID 1)) `shouldSatisfy` (not . null)
 
     describe "SourceEventIdentifier" $ do
-      it "constructs and accesses value" $ do
-        let identifier = SourceEventIdentifier (mkULID 1)
-        identifier.value `shouldBe` mkULID 1
-
       it "supports equality" $ do
         SourceEventIdentifier (mkULID 1) `shouldBe` SourceEventIdentifier (mkULID 1)
         SourceEventIdentifier (mkULID 1) `shouldNotBe` SourceEventIdentifier (mkULID 2)
 
-      it "supports ordering" $ do
-        compare (SourceEventIdentifier (mkULID 1)) (SourceEventIdentifier (mkULID 2)) `shouldBe` LT
-
-      it "supports show" $ do
-        show (SourceEventIdentifier (mkULID 1)) `shouldSatisfy` (not . null)
-
     describe "PayloadSummaryValue" $ do
-      it "constructs SummaryString" $ do
-        let value = SummaryString "test"
-        value `shouldBe` SummaryString "test"
-
-      it "constructs SummaryNumber" $ do
-        let value = SummaryNumber 42.0
-        value `shouldBe` SummaryNumber 42.0
-
-      it "constructs SummaryBool" $ do
-        let value = SummaryBool True
-        value `shouldBe` SummaryBool True
-
       it "distinguishes different constructors" $ do
         SummaryString "1" `shouldNotBe` SummaryNumber 1.0
         SummaryBool True `shouldNotBe` SummaryString "True"
-        SummaryNumber 0.0 `shouldNotBe` SummaryBool False
-
-      it "supports show for all variants" $ do
-        show (SummaryString "x") `shouldSatisfy` (not . null)
-        show (SummaryNumber 1.0) `shouldSatisfy` (not . null)
-        show (SummaryBool True) `shouldSatisfy` (not . null)
-
-    describe "SourceEventSnapshot" $ do
-      let snapshot = SourceEventSnapshot
-            { identifier = SourceEventIdentifier (mkULID 1)
-            , eventType = "order.created"
-            , occurredAt = fixedTime
-            , trace = Trace (mkULID 2)
-            , payload = Null
-            }
-
-      it "constructs with all fields" $ do
-        snapshot.identifier `shouldBe` SourceEventIdentifier (mkULID 1)
-        snapshot.eventType `shouldBe` "order.created"
-        snapshot.occurredAt `shouldBe` fixedTime
-        snapshot.trace `shouldBe` Trace (mkULID 2)
-        snapshot.payload `shouldBe` Null
-
-      it "supports equality" $ do
-        let snapshot2 = SourceEventSnapshot
-              { identifier = SourceEventIdentifier (mkULID 1)
-              , eventType = "order.created"
-              , occurredAt = fixedTime
-              , trace = Trace (mkULID 2)
-              , payload = Null
-              }
-        let differentSnapshot = SourceEventSnapshot
-              { identifier = SourceEventIdentifier (mkULID 1)
-              , eventType = "order.updated"
-              , occurredAt = fixedTime
-              , trace = Trace (mkULID 2)
-              , payload = Null
-              }
-        snapshot `shouldBe` snapshot2
-        snapshot `shouldNotBe` differentSnapshot
-
-      it "supports show" $ do
-        show snapshot `shouldSatisfy` (not . null)
 
     describe "ResultNormalization" $ do
-      it "constructs with reason" $ do
-        let normalization = ResultNormalization
-              { result = Success
-              , reason = Just "approved"
-              , reasonSource = FromReason
-              }
-        normalization.result `shouldBe` Success
-        normalization.reason `shouldBe` Just "approved"
-        normalization.reasonSource `shouldBe` FromReason
-
-      it "constructs without reason" $ do
-        let normalization = ResultNormalization
-              { result = Result.Failed
-              , reason = Nothing
-              , reasonSource = FromNone
-              }
-        normalization.reason `shouldBe` Nothing
-
-      it "supports equality" $ do
-        let n1 = ResultNormalization Success Nothing FromNone
-        let n2 = ResultNormalization Success Nothing FromNone
-        let n3 = ResultNormalization Result.Failed Nothing FromNone
-        n1 `shouldBe` n2
-        n1 `shouldNotBe` n3
-
-      it "supports show" $ do
-        show (ResultNormalization Success Nothing FromNone) `shouldSatisfy` (not . null)
+      it "constructs with and without reason" $ do
+        let withReason = ResultNormalization Result.Success (Just "approved") FromReason
+        withReason.result `shouldBe` Result.Success
+        withReason.reason `shouldBe` Just ("approved" :: Text)
+        let withoutReason = ResultNormalization Result.Failed Nothing FromNone
+        withoutReason.reason `shouldBe` (Nothing :: Maybe Text)
 
     describe "PayloadDigest" $ do
       it "constructs with all fields" $ do
-        let digest = PayloadDigest
-              { fieldCount = 3
-              , topLevelKeys = ["id", "type", "data"]
-              , summary = Map.fromList [("id", SummaryString "abc")]
-              }
+        let digest = PayloadDigest 3 ["a", "b", "c"] (Map.fromList [("a" :: Text, SummaryNumber 1.0)])
         digest.fieldCount `shouldBe` 3
-        digest.topLevelKeys `shouldBe` ["id", "type", "data"]
-        Map.lookup "id" digest.summary `shouldBe` Just (SummaryString "abc")
+        Map.lookup ("a" :: Text) digest.summary `shouldBe` Just (SummaryNumber 1.0)
 
-      it "supports equality" $ do
-        let d1 = PayloadDigest 1 ["k"] Map.empty
-        let d2 = PayloadDigest 1 ["k"] Map.empty
-        let d3 = PayloadDigest 2 ["k"] Map.empty
-        d1 `shouldBe` d2
-        d1 `shouldNotBe` d3
-
-      it "supports show" $ do
-        show (PayloadDigest 0 [] Map.empty) `shouldSatisfy` (not . null)
-
-    describe "AuditRecord" $ do
-      let snapshot = SourceEventSnapshot
-            { identifier = SourceEventIdentifier (mkULID 50)
-            , eventType = "order.created"
-            , occurredAt = fixedTime
-            , trace = Trace (mkULID 60)
-            , payload = Null
-            }
-      let normalization = ResultNormalization Success Nothing FromNone
-      let record = AuditRecord
-            { identifier = AuditRecordIdentifier (mkULID 1)
-            , eventType = "order.created"
-            , service = "execution"
-            , result = Success
-            , trace = Trace (mkULID 10)
-            , occurredAt = fixedTime
-            , reason = Nothing
-            , payloadSummary = Nothing
-            , status = Pending
-            , reasonCode = Nothing
-            , recordedAt = Nothing
-            , sourceEventSnapshot = snapshot
-            , resultNormalization = normalization
-            , payloadDigest = Nothing
-            }
-
-      it "constructs with minimal optional fields" $ do
+    describe "acceptSourceEvent" $ do
+      it "creates a pending record" $ do
+        let (record, _) = mkPendingRecord
+        record.status `shouldBe` Status.Pending
         record.identifier `shouldBe` AuditRecordIdentifier (mkULID 1)
-        record.eventType `shouldBe` "order.created"
-        record.service `shouldBe` "execution"
-        record.result `shouldBe` Success
-        record.status `shouldBe` Pending
-        record.reason `shouldBe` Nothing
-        record.payloadSummary `shouldBe` Nothing
+        record.service `shouldBe` ("execution" :: Text)
+        record.result `shouldBe` Result.Success
+        record.reason `shouldBe` (Nothing :: Maybe Text)
         record.reasonCode `shouldBe` Nothing
         record.recordedAt `shouldBe` Nothing
-        record.payloadDigest `shouldBe` Nothing
 
-      it "constructs with all optional fields populated" $ do
-        let digest = PayloadDigest 1 ["key"] (Map.fromList [("key", SummaryNumber 1.0)])
-        let fullRecord = record
-              { reason = Just "manual override"
-              , payloadSummary = Just (Map.fromList [("count", SummaryNumber 5.0)])
-              , status = Recorded
-              , reasonCode = Just AuditWriteFailed
-              , recordedAt = Just fixedTime
-              , payloadDigest = Just digest
-              }
-        fullRecord.reason `shouldBe` Just "manual override"
-        fullRecord.payloadSummary `shouldSatisfy` (/= Nothing)
-        fullRecord.status `shouldBe` Recorded
-        fullRecord.reasonCode `shouldBe` Just AuditWriteFailed
-        fullRecord.recordedAt `shouldBe` Just fixedTime
-        fullRecord.payloadDigest `shouldBe` Just digest
+      it "emits AuditRecordAccepted event" $ do
+        let (_, [event]) = mkPendingRecord
+        event
+          `shouldBe` AuditRecordAccepted
+            { identifier = AuditRecordIdentifier (mkULID 1)
+            , eventType = "orders.executed"
+            , trace = Trace (mkULID 60)
+            }
 
-      it "supports equality" $ do
-        record `shouldBe` record
-        record `shouldNotBe` record {status = Recorded}
+    describe "normalizeResult" $ do
+      it "updates result in pending state" $ do
+        let (record, _) = mkPendingRecord
+            Right updated = normalizeResult Result.Failed record
+        updated.result `shouldBe` Result.Failed
+        let ResultNormalization{result = normalizedResult} = updated.resultNormalization
+        normalizedResult `shouldBe` Result.Failed
 
-      it "supports show" $ do
-        show record `shouldSatisfy` (not . null)
+      it "rejects from recorded state" $ do
+        let (record, _) = mkPendingRecord
+            Right (recorded, _) = markRecorded fixedTime2 record
+        normalizeResult Result.Failed recorded `shouldSatisfy` isLeft
 
-    describe "DomainEvent" $ do
-      it "constructs AuditRecordAccepted" $ do
-        let event = AuditRecordAccepted
-              { identifier = AuditRecordIdentifier (mkULID 1)
-              , eventType = "order.created"
-              , trace = Trace (mkULID 10)
-              }
-        event.identifier `shouldBe` AuditRecordIdentifier (mkULID 1)
-        event.eventType `shouldBe` "order.created"
-        event.trace `shouldBe` Trace (mkULID 10)
+    describe "normalizeReason" $ do
+      it "updates reason and reasonSource in pending state" $ do
+        let (record, _) = mkPendingRecord
+            Right updated = normalizeReason (Just "RISK_LIMIT") FromReasonCode record
+        updated.reason `shouldBe` Just ("RISK_LIMIT" :: Text)
+        let ResultNormalization{reasonSource = src} = updated.resultNormalization
+        src `shouldBe` FromReasonCode
 
-      it "constructs AuditRecordPersisted" $ do
-        let event = AuditRecordPersisted
-              { identifier = AuditRecordIdentifier (mkULID 2)
-              , eventType = "order.executed"
-              , service = "execution"
-              , result = Success
-              , trace = Trace (mkULID 20)
-              }
-        event.identifier `shouldBe` AuditRecordIdentifier (mkULID 2)
-        event.service `shouldBe` "execution"
-        event.result `shouldBe` Success
+      it "rejects from non-pending state" $ do
+        let (record, _) = mkPendingRecord
+            Right (failed, _) = markFailed DataSchemaInvalid record
+        normalizeReason (Just "x") FromReason failed `shouldSatisfy` isLeft
 
-      it "constructs AuditRecordPersistenceFailed" $ do
-        let event = AuditRecordPersistenceFailed
-              { identifier = AuditRecordIdentifier (mkULID 3)
-              , reasonCode = AuditWriteFailed
-              , trace = Trace (mkULID 30)
-              }
-        event.identifier `shouldBe` AuditRecordIdentifier (mkULID 3)
-        event.reasonCode `shouldBe` AuditWriteFailed
-        event.trace `shouldBe` Trace (mkULID 30)
+    describe "summarizePayload" $ do
+      it "sets payloadDigest and payloadSummary" $ do
+        let (record, _) = mkPendingRecord
+            digest = PayloadDigest 2 ["k1", "k2"] (Map.fromList [("k1" :: Text, SummaryBool True)])
+            Right updated = summarizePayload digest record
+        updated.payloadDigest `shouldBe` Just digest
+        updated.payloadSummary `shouldBe` Just (Map.fromList [("k1" :: Text, SummaryBool True)])
 
+    describe "markRecorded" $ do
+      it "transitions to recorded state with timestamp" $ do
+        let (record, _) = mkPendingRecord
+            Right (recorded, events) = markRecorded fixedTime2 record
+        recorded.status `shouldBe` Status.Recorded
+        recorded.recordedAt `shouldBe` Just fixedTime2
+        length events `shouldBe` 1
+
+      it "emits AuditRecordPersisted event" $ do
+        let (record, _) = mkPendingRecord
+            Right (_, [event]) = markRecorded fixedTime2 record
+        event
+          `shouldBe` AuditRecordPersisted
+            { identifier = AuditRecordIdentifier (mkULID 1)
+            , eventType = "orders.executed"
+            , service = "execution"
+            , result = Result.Success
+            , trace = Trace (mkULID 60)
+            }
+
+      it "rejects from recorded state" $ do
+        let (record, _) = mkPendingRecord
+            Right (recorded, _) = markRecorded fixedTime2 record
+        markRecorded fixedTime2 recorded `shouldSatisfy` isLeft
+
+    describe "markFailed" $ do
+      it "transitions to failed state with reasonCode" $ do
+        let (record, _) = mkPendingRecord
+            Right (failed, events) = markFailed DataSchemaInvalid record
+        failed.status `shouldBe` Status.Failed
+        failed.reasonCode `shouldBe` Just DataSchemaInvalid
+        length events `shouldBe` 1
+
+      it "emits AuditRecordPersistenceFailed event" $ do
+        let (record, _) = mkPendingRecord
+            Right (_, [event]) = markFailed AuditWriteFailed record
+        event
+          `shouldBe` AuditRecordPersistenceFailed
+            { identifier = AuditRecordIdentifier (mkULID 1)
+            , reasonCode = AuditWriteFailed
+            , trace = Trace (mkULID 60)
+            }
+
+      it "rejects from failed state" $ do
+        let (record, _) = mkPendingRecord
+            Right (failed, _) = markFailed DataSchemaInvalid record
+        markFailed AuditWriteFailed failed `shouldSatisfy` isLeft
+
+    describe "normalizeResultFromEventType" $ do
+      it "returns Failed for *.failed event types" $ do
+        normalizeResultFromEventType "orders.execution.failed" `shouldBe` Result.Failed
+        normalizeResultFromEventType "market.collect.failed" `shouldBe` Result.Failed
+
+      it "returns Success for non-failed event types" $ do
+        normalizeResultFromEventType "orders.executed" `shouldBe` Result.Success
+        normalizeResultFromEventType "market.collected" `shouldBe` Result.Success
+
+    describe "extractReasonFromPayload" $ do
+      it "extracts reasonCode with highest priority" $ do
+        let payload =
+              Object $
+                KeyMap.fromList
+                  [ (Key.fromText "reasonCode", String "RISK_LIMIT")
+                  , (Key.fromText "actionReasonCode", String "MANUAL")
+                  , (Key.fromText "reason", String "fallback")
+                  ]
+        extractReasonFromPayload payload `shouldBe` (Just ("RISK_LIMIT" :: Text), FromReasonCode)
+
+      it "falls back to actionReasonCode" $ do
+        let payload =
+              Object $
+                KeyMap.fromList
+                  [(Key.fromText "actionReasonCode", String "MANUAL")]
+        extractReasonFromPayload payload `shouldBe` (Just ("MANUAL" :: Text), FromActionReasonCode)
+
+      it "falls back to reason" $ do
+        let payload =
+              Object $
+                KeyMap.fromList
+                  [(Key.fromText "reason", String "user request")]
+        extractReasonFromPayload payload `shouldBe` (Just ("user request" :: Text), FromReason)
+
+      it "returns Nothing when no reason fields" $ do
+        extractReasonFromPayload (Object KeyMap.empty) `shouldBe` (Nothing :: Maybe Text, FromNone)
+        extractReasonFromPayload Null `shouldBe` (Nothing :: Maybe Text, FromNone)
+
+    describe "AuditRecordEvent" $ do
       it "distinguishes different event types" $ do
-        let accepted = AuditRecordAccepted
-              { identifier = AuditRecordIdentifier (mkULID 1)
-              , eventType = "order.created"
-              , trace = Trace (mkULID 10)
-              }
-        let persisted = AuditRecordPersisted
-              { identifier = AuditRecordIdentifier (mkULID 1)
-              , eventType = "order.created"
-              , service = "execution"
-              , result = Success
-              , trace = Trace (mkULID 10)
-              }
-        let failed = AuditRecordPersistenceFailed
-              { identifier = AuditRecordIdentifier (mkULID 1)
-              , reasonCode = AuditWriteFailed
-              , trace = Trace (mkULID 10)
-              }
+        let accepted = AuditRecordAccepted (AuditRecordIdentifier (mkULID 1)) "e" (Trace (mkULID 2))
+        let persisted = AuditRecordPersisted (AuditRecordIdentifier (mkULID 1)) "e" "s" Result.Success (Trace (mkULID 2))
+        let failed = AuditRecordPersistenceFailed (AuditRecordIdentifier (mkULID 1)) DataSchemaInvalid (Trace (mkULID 2))
         accepted `shouldNotBe` persisted
         persisted `shouldNotBe` failed
-        failed `shouldNotBe` accepted
-
-      it "supports show for all variants" $ do
-        show (AuditRecordAccepted (AuditRecordIdentifier (mkULID 1)) "e" (Trace (mkULID 2)))
-          `shouldSatisfy` (not . null)
-        show (AuditRecordPersisted (AuditRecordIdentifier (mkULID 1)) "e" "s" Success (Trace (mkULID 2)))
-          `shouldSatisfy` (not . null)
-        show (AuditRecordPersistenceFailed (AuditRecordIdentifier (mkULID 1)) DataSchemaInvalid (Trace (mkULID 2)))
-          `shouldSatisfy` (not . null)

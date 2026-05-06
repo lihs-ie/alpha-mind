@@ -1,6 +1,6 @@
-module Domain.AuditLog.ReasonSource
-  ( ReasonSource (..)
-  ) where
+module Domain.AuditLog.ReasonSource (
+  ReasonSource (..),
+) where
 
 data ReasonSource
   = FromReasonCode

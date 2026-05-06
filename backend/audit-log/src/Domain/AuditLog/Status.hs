@@ -1,6 +1,6 @@
-module Domain.AuditLog.Status
-  ( Status (..)
-  ) where
+module Domain.AuditLog.Status (
+  Status (..),
+) where
 
 data Status
   = Pending

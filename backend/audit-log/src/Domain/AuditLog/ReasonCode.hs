@@ -1,6 +1,6 @@
-module Domain.AuditLog.ReasonCode
-  ( ReasonCode (..)
-  ) where
+module Domain.AuditLog.ReasonCode (
+  ReasonCode (..),
+) where
 
 data ReasonCode
   = DataSchemaInvalid

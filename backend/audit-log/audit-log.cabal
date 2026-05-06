@@ -19,9 +19,12 @@ library
     Domain.AuditLog
     Domain.AuditLog.AuditIngestion
     Domain.AuditLog.AuditRecord
+    Domain.AuditLog.AuditRecordFactory
+    Domain.AuditLog.Error
     Domain.AuditLog.ReasonCode
     Domain.AuditLog.ReasonSource
     Domain.AuditLog.Result
+    Domain.AuditLog.Specification
     Domain.AuditLog.Status
   build-depends:
     aeson      >=2.2  && <3,
