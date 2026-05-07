@@ -1,3 +1,5 @@
+{-# LANGUAGE NoFieldSelectors #-}
+
 module Domain.AuditLog.AuditRecord (
   -- * Identifiers
   AuditRecordIdentifier (..),
@@ -9,8 +11,8 @@ module Domain.AuditLog.AuditRecord (
   ResultNormalization (..),
   PayloadDigest (..),
 
-  -- * Aggregate (construct via 'acceptSourceEvent' only)
-  AuditRecord (..),
+  -- * Aggregate (construct via 'acceptSourceEvent' only; constructor intentionally hidden)
+  AuditRecord,
 
   -- * Smart constructor
   acceptSourceEvent,
@@ -56,6 +58,7 @@ import Domain.AuditLog.Result (Result)
 import Domain.AuditLog.Result qualified as Result
 import Domain.AuditLog.Status (Status)
 import Domain.AuditLog.Status qualified as Status
+import GHC.Records (HasField (..))
 
 -- ---------------------------------------------------------------------
 -- Identifiers
@@ -125,24 +128,32 @@ data AuditRecordEvent
   deriving stock (Eq, Show)
 
 -- ---------------------------------------------------------------------
--- Aggregate (constructor hidden from external modules)
+-- Aggregate
+--
+-- The data constructor is intentionally hidden from the module exports.
+-- Field selectors are prefixed with @ar@ to keep the auto-generated
+-- HasField instances disjoint from the public field names exposed via
+-- the manual HasField instances below. External callers must construct
+-- AuditRecord via 'acceptSourceEvent' and mutate state via the
+-- state-transition commands; read access is preserved through
+-- OverloadedRecordDot.
 -- ---------------------------------------------------------------------
 
 data AuditRecord = AuditRecord
-  { identifier :: AuditRecordIdentifier
-  , eventType :: EventType
-  , service :: Service
-  , result :: Result
-  , trace :: Trace
-  , occurredAt :: UTCTime
-  , reason :: Maybe Reason
-  , payloadSummary :: Maybe (Map Text PayloadSummaryValue)
-  , status :: Status
-  , reasonCode :: Maybe ReasonCode
-  , recordedAt :: Maybe UTCTime
-  , sourceEventSnapshot :: SourceEventSnapshot
-  , resultNormalization :: ResultNormalization
-  , payloadDigest :: Maybe PayloadDigest
+  { arIdentifier :: AuditRecordIdentifier
+  , arEventType :: EventType
+  , arService :: Service
+  , arResult :: Result
+  , arTrace :: Trace
+  , arOccurredAt :: UTCTime
+  , arReason :: Maybe Reason
+  , arPayloadSummary :: Maybe (Map Text PayloadSummaryValue)
+  , arStatus :: Status
+  , arReasonCode :: Maybe ReasonCode
+  , arRecordedAt :: Maybe UTCTime
+  , arSourceEventSnapshot :: SourceEventSnapshot
+  , arResultNormalization :: ResultNormalization
+  , arPayloadDigest :: Maybe PayloadDigest
   }
   deriving stock (Eq, Show)
 
@@ -159,20 +170,20 @@ acceptSourceEvent ::
 acceptSourceEvent recordIdentifier snapshot svc initialResult =
   let record =
         AuditRecord
-          { identifier = recordIdentifier
-          , eventType = snapshot.eventType
-          , service = svc
-          , result = initialResult
-          , trace = snapshot.trace
-          , occurredAt = snapshot.occurredAt
-          , reason = Nothing
-          , payloadSummary = Nothing
-          , status = Status.Pending
-          , reasonCode = Nothing
-          , recordedAt = Nothing
-          , sourceEventSnapshot = snapshot
-          , resultNormalization = ResultNormalization initialResult Nothing FromNone
-          , payloadDigest = Nothing
+          { arIdentifier = recordIdentifier
+          , arEventType = snapshot.eventType
+          , arService = svc
+          , arResult = initialResult
+          , arTrace = snapshot.trace
+          , arOccurredAt = snapshot.occurredAt
+          , arReason = Nothing
+          , arPayloadSummary = Nothing
+          , arStatus = Status.Pending
+          , arReasonCode = Nothing
+          , arRecordedAt = Nothing
+          , arSourceEventSnapshot = snapshot
+          , arResultNormalization = ResultNormalization initialResult Nothing FromNone
+          , arPayloadDigest = Nothing
           }
       event =
         AuditRecordAccepted
@@ -193,8 +204,8 @@ normalizeResult newResult record
   | otherwise =
       Right
         record
-          { result = newResult
-          , resultNormalization =
+          { arResult = newResult
+          , arResultNormalization =
               ResultNormalization
                 { result = newResult
                 , reason = record.resultNormalization.reason
@@ -209,8 +220,8 @@ normalizeReason newReason source record
   | otherwise =
       Right
         record
-          { reason = newReason
-          , resultNormalization =
+          { arReason = newReason
+          , arResultNormalization =
               ResultNormalization
                 { result = record.resultNormalization.result
                 , reason = newReason
@@ -225,8 +236,8 @@ summarizePayload digest record
   | otherwise =
       Right
         record
-          { payloadDigest = Just digest
-          , payloadSummary = Just digest.summary
+          { arPayloadDigest = Just digest
+          , arPayloadSummary = Just digest.summary
           }
 
 -- | INV-AU-001: recorded 状態へ遷移。Pending 状態でのみ有効。
@@ -236,8 +247,8 @@ markRecorded timestamp record
   | otherwise =
       let updated =
             record
-              { status = Status.Recorded
-              , recordedAt = Just timestamp
+              { arStatus = Status.Recorded
+              , arRecordedAt = Just timestamp
               }
           event =
             AuditRecordPersisted
@@ -256,8 +267,8 @@ markFailed code record
   | otherwise =
       let updated =
             record
-              { status = Status.Failed
-              , reasonCode = Just code
+              { arStatus = Status.Failed
+              , arReasonCode = Just code
               }
           event =
             AuditRecordPersistenceFailed
@@ -278,6 +289,8 @@ data SearchCriteria = SearchCriteria
   , traceFilter :: Maybe Trace
   , fromDate :: Maybe UTCTime
   , toDate :: Maybe UTCTime
+  , limitCount :: Maybe Int
+  , afterIdentifier :: Maybe AuditRecordIdentifier
   }
   deriving stock (Eq, Show)
 
@@ -290,6 +303,8 @@ emptyCriteria =
     , traceFilter = Nothing
     , fromDate = Nothing
     , toDate = Nothing
+    , limitCount = Nothing
+    , afterIdentifier = Nothing
     }
 
 class (Monad m) => AuditRecordRepository m where
@@ -352,3 +367,55 @@ lookupString :: Text -> KeyMap.KeyMap Value -> Maybe Text
 lookupString key obj = case KeyMap.lookup (Key.fromText key) obj of
   Just (String s) -> Just s
   _ -> Nothing
+
+-- ---------------------------------------------------------------------
+-- Read-only field access via HasField
+--
+-- The data constructor is hidden from external modules to enforce that
+-- AuditRecord values are only built via 'acceptSourceEvent' and mutated
+-- via the state-transition commands. The HasField instances below
+-- preserve OverloadedRecordDot read access (record.field) without
+-- exposing record-update or constructor application.
+-- ---------------------------------------------------------------------
+
+instance HasField "identifier" AuditRecord AuditRecordIdentifier where
+  getField AuditRecord{arIdentifier = x} = x
+
+instance HasField "eventType" AuditRecord EventType where
+  getField AuditRecord{arEventType = x} = x
+
+instance HasField "service" AuditRecord Service where
+  getField AuditRecord{arService = x} = x
+
+instance HasField "result" AuditRecord Result where
+  getField AuditRecord{arResult = x} = x
+
+instance HasField "trace" AuditRecord Trace where
+  getField AuditRecord{arTrace = x} = x
+
+instance HasField "occurredAt" AuditRecord UTCTime where
+  getField AuditRecord{arOccurredAt = x} = x
+
+instance HasField "reason" AuditRecord (Maybe Reason) where
+  getField AuditRecord{arReason = x} = x
+
+instance HasField "payloadSummary" AuditRecord (Maybe (Map Text PayloadSummaryValue)) where
+  getField AuditRecord{arPayloadSummary = x} = x
+
+instance HasField "status" AuditRecord Status where
+  getField AuditRecord{arStatus = x} = x
+
+instance HasField "reasonCode" AuditRecord (Maybe ReasonCode) where
+  getField AuditRecord{arReasonCode = x} = x
+
+instance HasField "recordedAt" AuditRecord (Maybe UTCTime) where
+  getField AuditRecord{arRecordedAt = x} = x
+
+instance HasField "sourceEventSnapshot" AuditRecord SourceEventSnapshot where
+  getField AuditRecord{arSourceEventSnapshot = x} = x
+
+instance HasField "resultNormalization" AuditRecord ResultNormalization where
+  getField AuditRecord{arResultNormalization = x} = x
+
+instance HasField "payloadDigest" AuditRecord (Maybe PayloadDigest) where
+  getField AuditRecord{arPayloadDigest = x} = x

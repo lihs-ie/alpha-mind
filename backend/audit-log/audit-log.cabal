@@ -10,7 +10,7 @@ common shared
     OverloadedRecordDot
     OverloadedStrings
   ghc-options:      -Wall
-  build-depends:    base >=4.18 && <5
+  build-depends:    base >=4.20 && <5
 
 library
   import:         shared
@@ -24,8 +24,12 @@ library
     Domain.AuditLog.ReasonCode
     Domain.AuditLog.ReasonSource
     Domain.AuditLog.Result
+    Domain.AuditLog.ServicePolicy
     Domain.AuditLog.Specification
     Domain.AuditLog.Status
+    UseCase.QueryAuditLogByIdentifier
+    UseCase.QueryAuditLogs
+    UseCase.RecordAuditFromSourceEvent
   build-depends:
     aeson      >=2.2  && <3,
     containers ^>=0.7,
@@ -53,27 +57,19 @@ test-suite audit-log-test
     audit-log,
     aeson ^>=2.2.3.0,
     containers ^>=0.7,
-    base64 ^>=1.0,
-    base ^>=4.21.0.0,
-    bytestring ^>=0.12.2.0,
-    gogol ^>=1.0.0.0,
-    gogol-firestore ^>=1.0.0,
     hspec ^>=2.11.16,
-    hspec-wai ^>=0.11.1,
-    http-types ^>=0.12.4,
-    servant-server ^>=0.20.3.0,
-    shared,
     text ^>=2.1.4,
     time ^>=1.14,
-    ulid ^>=0.3.3.0,
-    unordered-containers ^>=0.2.21,
-    wai ^>=3.2.4,
-    wai-extra ^>=3.1.18
+    ulid ^>=0.3.3.0
   other-modules:
     Domain.AuditLog.AuditIngestionSpec
     Domain.AuditLog.AuditRecordSpec
     Domain.AuditLog.ReasonCodeSpec
     Domain.AuditLog.ReasonSourceSpec
     Domain.AuditLog.ResultSpec
+    Domain.AuditLog.ServicePolicySpec
     Domain.AuditLog.StatusSpec
     Domain.AuditLogSpec
+    UseCase.QueryAuditLogByIdentifierSpec
+    UseCase.QueryAuditLogsSpec
+    UseCase.RecordAuditFromSourceEventSpec

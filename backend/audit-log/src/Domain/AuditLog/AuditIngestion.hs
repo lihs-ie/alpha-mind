@@ -1,3 +1,5 @@
+{-# LANGUAGE NoFieldSelectors #-}
+
 module Domain.AuditLog.AuditIngestion (
   -- * Identifier
   AuditIngestionIdentifier (..),
@@ -6,8 +8,8 @@ module Domain.AuditLog.AuditIngestion (
   TargetEventType (..),
   DispatchDecision (..),
 
-  -- * Aggregate (construct via 'startIngestion' only)
-  AuditIngestion (..),
+  -- * Aggregate (construct via 'startIngestion' only; constructor intentionally hidden)
+  AuditIngestion,
 
   -- * Smart constructor
   startIngestion,
@@ -32,6 +34,7 @@ import Data.ULID (ULID)
 import Domain.AuditLog (Trace)
 import Domain.AuditLog.Error (DomainError (..))
 import Domain.AuditLog.ReasonCode (ReasonCode)
+import GHC.Records (HasField (..))
 
 -- ---------------------------------------------------------------------
 -- Identifier
@@ -56,16 +59,24 @@ data DispatchDecision = DispatchDecision
   deriving stock (Eq, Show)
 
 -- ---------------------------------------------------------------------
--- Aggregate (constructor hidden from external modules)
+-- Aggregate
+--
+-- The data constructor is intentionally hidden from the module exports.
+-- Field selectors are prefixed with @ai@ so the auto-generated HasField
+-- instances do not collide with the public field names exposed via the
+-- manual HasField instances below. External callers must construct
+-- AuditIngestion via 'startIngestion' and mutate state via the
+-- state-transition commands; read access is preserved through
+-- OverloadedRecordDot.
 -- ---------------------------------------------------------------------
 
 data AuditIngestion = AuditIngestion
-  { identifier :: AuditIngestionIdentifier
-  , processed :: Bool
-  , processedAt :: Maybe UTCTime
-  , trace :: Trace
-  , reasonCode :: Maybe ReasonCode
-  , dispatchDecision :: Maybe DispatchDecision
+  { aiIdentifier :: AuditIngestionIdentifier
+  , aiProcessed :: Bool
+  , aiProcessedAt :: Maybe UTCTime
+  , aiTrace :: Trace
+  , aiReasonCode :: Maybe ReasonCode
+  , aiDispatchDecision :: Maybe DispatchDecision
   }
   deriving stock (Eq, Show)
 
@@ -76,12 +87,12 @@ data AuditIngestion = AuditIngestion
 startIngestion :: AuditIngestionIdentifier -> Trace -> AuditIngestion
 startIngestion ingestionIdentifier traceValue =
   AuditIngestion
-    { identifier = ingestionIdentifier
-    , processed = False
-    , processedAt = Nothing
-    , trace = traceValue
-    , reasonCode = Nothing
-    , dispatchDecision = Nothing
+    { aiIdentifier = ingestionIdentifier
+    , aiProcessed = False
+    , aiProcessedAt = Nothing
+    , aiTrace = traceValue
+    , aiReasonCode = Nothing
+    , aiDispatchDecision = Nothing
     }
 
 -- ---------------------------------------------------------------------
@@ -103,8 +114,8 @@ markProcessed timestamp ingestion
   | otherwise =
       Right
         ingestion
-          { processed = True
-          , processedAt = Just timestamp
+          { aiProcessed = True
+          , aiProcessedAt = Just timestamp
           }
 
 -- | failed 状態へ遷移。new 状態でのみ有効。
@@ -113,22 +124,14 @@ markFailed code ingestion
   | ingestion.processed = Left (InvalidStateTransition "processed" "MarkFailed")
   | isJust ingestion.reasonCode = Left (InvalidStateTransition "failed" "MarkFailed")
   | otherwise =
-      Right
-        AuditIngestion
-          { identifier = ingestion.identifier
-          , processed = ingestion.processed
-          , processedAt = ingestion.processedAt
-          , trace = ingestion.trace
-          , reasonCode = Just code
-          , dispatchDecision = ingestion.dispatchDecision
-          }
+      Right ingestion{aiReasonCode = Just code}
 
 -- | INV-AU-004: 発行判定を設定する。処理完了後（processed または failed）でのみ有効。
 decideDispatch :: DispatchDecision -> AuditIngestion -> Either DomainError AuditIngestion
 decideDispatch decision ingestion
   | not ingestion.processed && isNothing ingestion.reasonCode =
       Left (InvalidStateTransition "new" "DecideDispatch")
-  | otherwise = Right ingestion{dispatchDecision = Just decision}
+  | otherwise = Right ingestion{aiDispatchDecision = Just decision}
 
 -- ---------------------------------------------------------------------
 -- Repository
@@ -146,3 +149,31 @@ class (Monad m) => AuditIngestionRepository m where
 -- | 冪等判定: 処理済みまたは失敗済みの AuditIngestion は重複とみなす。
 isDuplicate :: AuditIngestion -> Bool
 isDuplicate ingestion = ingestion.processed || isJust ingestion.reasonCode
+
+-- ---------------------------------------------------------------------
+-- Read-only field access via HasField
+--
+-- The data constructor is hidden from external modules to enforce that
+-- AuditIngestion values are only built via 'startIngestion' and mutated
+-- via the state-transition commands. The HasField instances below
+-- preserve OverloadedRecordDot read access (ingestion.field) without
+-- exposing record-update or constructor application.
+-- ---------------------------------------------------------------------
+
+instance HasField "identifier" AuditIngestion AuditIngestionIdentifier where
+  getField AuditIngestion{aiIdentifier = x} = x
+
+instance HasField "processed" AuditIngestion Bool where
+  getField AuditIngestion{aiProcessed = x} = x
+
+instance HasField "processedAt" AuditIngestion (Maybe UTCTime) where
+  getField AuditIngestion{aiProcessedAt = x} = x
+
+instance HasField "trace" AuditIngestion Trace where
+  getField AuditIngestion{aiTrace = x} = x
+
+instance HasField "reasonCode" AuditIngestion (Maybe ReasonCode) where
+  getField AuditIngestion{aiReasonCode = x} = x
+
+instance HasField "dispatchDecision" AuditIngestion (Maybe DispatchDecision) where
+  getField AuditIngestion{aiDispatchDecision = x} = x

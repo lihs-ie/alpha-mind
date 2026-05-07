@@ -6,7 +6,7 @@ import Data.Time.Calendar (fromGregorian)
 import Data.ULID (ULID, ulidFromInteger)
 import Domain.AuditLog (Trace (..))
 import Domain.AuditLog.AuditIngestion (
-  AuditIngestion (..),
+  AuditIngestion,
   AuditIngestionIdentifier (..),
   DispatchDecision (..),
   TargetEventType (..),

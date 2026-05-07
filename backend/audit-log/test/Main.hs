@@ -5,9 +5,13 @@ import Domain.AuditLog.AuditRecordSpec qualified
 import Domain.AuditLog.ReasonCodeSpec qualified
 import Domain.AuditLog.ReasonSourceSpec qualified
 import Domain.AuditLog.ResultSpec qualified
+import Domain.AuditLog.ServicePolicySpec qualified
 import Domain.AuditLog.StatusSpec qualified
 import Domain.AuditLogSpec qualified
 import Test.Hspec (hspec)
+import UseCase.QueryAuditLogByIdentifierSpec qualified
+import UseCase.QueryAuditLogsSpec qualified
+import UseCase.RecordAuditFromSourceEventSpec qualified
 
 main :: IO ()
 main =
@@ -19,3 +23,7 @@ main =
     Domain.AuditLog.StatusSpec.spec
     Domain.AuditLog.AuditIngestionSpec.spec
     Domain.AuditLog.AuditRecordSpec.spec
+    Domain.AuditLog.ServicePolicySpec.spec
+    UseCase.RecordAuditFromSourceEventSpec.spec
+    UseCase.QueryAuditLogsSpec.spec
+    UseCase.QueryAuditLogByIdentifierSpec.spec

@@ -14,7 +14,7 @@ import Data.Time (UTCTime)
 import Data.ULID (ULID)
 import Domain.AuditLog (EventType, Trace (..))
 import Domain.AuditLog.AuditRecord (
-  AuditRecord (..),
+  AuditRecord,
   SourceEventIdentifier (..),
   SourceEventSnapshot (..),
  )

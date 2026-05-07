@@ -11,7 +11,7 @@ import Data.Time.Calendar (fromGregorian)
 import Data.ULID (ULID, ulidFromInteger)
 import Domain.AuditLog (Trace (..))
 import Domain.AuditLog.AuditRecord (
-  AuditRecord (..),
+  AuditRecord,
   AuditRecordEvent (..),
   AuditRecordIdentifier (..),
   PayloadDigest (..),
