@@ -377,6 +377,9 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
+      # presentation 層 (#15) が App.Bootstrap / buildAppEnv で要求する必須 env
+      SERVICE_VERSION: "0.1.0"
+      PUBSUB_AUDIT_TOPIC: "audit.recorded"
     depends_on:
       init:
         condition: service_completed_successfully
