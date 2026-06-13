@@ -10,6 +10,9 @@ import Domain.AuditLog.ServicePolicySpec qualified
 import Domain.AuditLog.SpecificationSpec qualified
 import Domain.AuditLog.StatusSpec qualified
 import Domain.AuditLogSpec qualified
+import Infrastructure.Repository.FirestoreAuditIngestionRepositorySpec qualified
+import Infrastructure.Repository.FirestoreAuditRecordRepositorySpec qualified
+import Infrastructure.Repository.IntegrationSpec qualified
 import Test.Hspec (hspec)
 import UseCase.QueryAuditLogByIdentifierSpec qualified
 import UseCase.QueryAuditLogsSpec qualified
@@ -31,3 +34,6 @@ main =
     UseCase.RecordAuditFromSourceEventSpec.spec
     UseCase.QueryAuditLogsSpec.spec
     UseCase.QueryAuditLogByIdentifierSpec.spec
+    Infrastructure.Repository.FirestoreAuditRecordRepositorySpec.spec
+    Infrastructure.Repository.FirestoreAuditIngestionRepositorySpec.spec
+    Infrastructure.Repository.IntegrationSpec.spec

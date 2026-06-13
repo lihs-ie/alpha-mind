@@ -27,15 +27,21 @@ library
     Domain.AuditLog.ServicePolicy
     Domain.AuditLog.Specification
     Domain.AuditLog.Status
+    Infrastructure.Repository.FirestoreAuditIngestionRepository
+    Infrastructure.Repository.FirestoreAuditRecordRepository
     UseCase.QueryAuditLogByIdentifier
     UseCase.QueryAuditLogs
     UseCase.RecordAuditFromSourceEvent
   build-depends:
-    aeson      >=2.2  && <3,
-    containers ^>=0.7,
-    text       ^>=2.1.4,
-    time       ^>=1.14,
-    ulid       ^>=0.3.3
+    aeson               >=2.2  && <3,
+    containers          ^>=0.7,
+    gogol-firestore     ^>=1.0.0,
+    shared,
+    text                ^>=2.1.4,
+    time                ^>=1.14,
+    transformers        ^>=0.6.1.2,
+    ulid                ^>=0.3.3,
+    unordered-containers ^>=0.2.21
 
 executable audit-log
   import:         shared
@@ -55,12 +61,14 @@ test-suite audit-log-test
   hs-source-dirs: test
   build-depends:
     audit-log,
-    aeson ^>=2.2.3.0,
-    containers ^>=0.7,
-    hspec ^>=2.11.16,
-    text ^>=2.1.4,
-    time ^>=1.14,
-    ulid ^>=0.3.3.0
+    aeson                ^>=2.2.3.0,
+    containers           ^>=0.7,
+    hspec                ^>=2.11.16,
+    shared,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    ulid                 ^>=0.3.3.0,
+    unordered-containers ^>=0.2.21
   other-modules:
     Domain.AuditLog.AuditIngestionSpec
     Domain.AuditLog.AuditRecordFactorySpec
@@ -72,6 +80,9 @@ test-suite audit-log-test
     Domain.AuditLog.SpecificationSpec
     Domain.AuditLog.StatusSpec
     Domain.AuditLogSpec
+    Infrastructure.Repository.FirestoreAuditIngestionRepositorySpec
+    Infrastructure.Repository.FirestoreAuditRecordRepositorySpec
+    Infrastructure.Repository.IntegrationSpec
     UseCase.QueryAuditLogByIdentifierSpec
     UseCase.QueryAuditLogsSpec
     UseCase.RecordAuditFromSourceEventSpec
