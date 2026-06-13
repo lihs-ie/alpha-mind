@@ -13,6 +13,9 @@ import Domain.AuditLogSpec qualified
 import Infrastructure.Repository.FirestoreAuditIngestionRepositorySpec qualified
 import Infrastructure.Repository.FirestoreAuditRecordRepositorySpec qualified
 import Infrastructure.Repository.IntegrationSpec qualified
+import Presentation.AppMSpec qualified
+import Presentation.IntegrationSpec qualified
+import Presentation.PubSubHandlerSpec qualified
 import Test.Hspec (hspec)
 import UseCase.QueryAuditLogByIdentifierSpec qualified
 import UseCase.QueryAuditLogsSpec qualified
@@ -37,3 +40,6 @@ main =
     Infrastructure.Repository.FirestoreAuditRecordRepositorySpec.spec
     Infrastructure.Repository.FirestoreAuditIngestionRepositorySpec.spec
     Infrastructure.Repository.IntegrationSpec.spec
+    Presentation.PubSubHandlerSpec.spec
+    Presentation.AppMSpec.spec
+    Presentation.IntegrationSpec.spec
