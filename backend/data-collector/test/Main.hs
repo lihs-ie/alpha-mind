@@ -7,6 +7,7 @@ import Domain.MarketCollection.ReasonCodeSpec qualified
 import Domain.MarketCollection.SourcePolicySpecificationServiceSpec qualified
 import Domain.MarketCollectionSpec qualified
 import Test.Hspec (hspec)
+import UseCase.CollectMarketDataSpec qualified
 
 main :: IO ()
 main =
@@ -17,3 +18,4 @@ main =
     Domain.MarketCollection.CollectionDispatchSpec.spec
     Domain.MarketCollection.SourcePolicySpecificationServiceSpec.spec
     Domain.MarketCollection.CollectionQualityPolicySpec.spec
+    UseCase.CollectMarketDataSpec.spec
