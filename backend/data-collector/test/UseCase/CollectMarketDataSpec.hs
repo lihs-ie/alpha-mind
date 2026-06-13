@@ -332,8 +332,9 @@ spec =
         state <- readIORef ref
         case state.publishedCollected of
           [] -> fail "publishMarketCollected was not called"
-          (_, artifact, _) : _ ->
-            (collectedArtifactSourceStatus artifact).jp `shouldBe` Ok
+          (_, artifact, _) : _ -> do
+            let SourceStatus{jp = jpStatus} = collectedArtifactSourceStatus artifact
+            jpStatus `shouldBe` Ok
 
       it "MarketCollection が Collected 状態で persist される（Must-17）" $ do
         ref <- newMockState
