@@ -91,6 +91,8 @@ runHttpService options proxy businessServer = do
           , identifier = Nothing
           , eventType = Nothing
           , reasonCode = Nothing
+          , result = Nothing
+          , payloadSummary = Nothing
           }
       app = mkApplicationWithRevision options runtimeEnv.revision proxy businessServer
       settings =

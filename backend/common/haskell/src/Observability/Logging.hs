@@ -2,6 +2,7 @@
 
 module Observability.Logging (
   LogContext (..),
+  LogEnv,
   initLogger,
   logErrorWith,
   logExceptionWith,
@@ -10,7 +11,8 @@ module Observability.Logging (
 
 import Config.Env (CommonRuntimeEnv (serviceName))
 import Control.Exception (SomeException)
-import Data.Aeson (ToJSON (toJSON), object, (.=))
+import Data.Aeson (ToJSON (toJSON), Value, object, (.=))
+import Data.HashMap.Strict (HashMap)
 import Data.Text qualified as Text
 import Katip (
   ColorStrategy (ColorIfTerminal),
@@ -34,12 +36,26 @@ import Katip (
  )
 import System.IO (stdout)
 
+{- | Structured log context for katip.
+
+ All fields except 'service' are optional so that callers can set only the
+ fields relevant to their operation.
+
+ @result@ — the normalised outcome of the audited event (@"success"@ or
+ @"failed"@).  Used by 'AuditArchiveRepository.persistArchive'.
+
+ @payloadSummary@ — a map of additional key/value pairs derived from the
+ original CloudEvent payload.  Kept as 'HashMap Text Value' so that
+ structured JSON logging preserves the nested map without re-encoding.
+-}
 data LogContext = LogContext
   { service :: Text.Text
   , trace :: Maybe Text.Text
   , identifier :: Maybe Text.Text
   , eventType :: Maybe Text.Text
   , reasonCode :: Maybe Text.Text
+  , result :: Maybe Text.Text
+  , payloadSummary :: Maybe (HashMap Text.Text Value)
   }
 
 instance ToJSON LogContext where
@@ -50,6 +66,8 @@ instance ToJSON LogContext where
         <> maybe [] (\v -> ["identifier" .= v]) (identifier context)
         <> maybe [] (\v -> ["eventType" .= v]) (eventType context)
         <> maybe [] (\v -> ["reasonCode" .= v]) (reasonCode context)
+        <> maybe [] (\v -> ["result" .= v]) (result context)
+        <> maybe [] (\v -> ["payloadSummary" .= v]) (payloadSummary context)
 
 instance ToObject LogContext
 
@@ -64,13 +82,13 @@ initLogger runtime = do
   registerScribe "stdout" scribe defaultScribeSettings logEnv
 
 logInfoWith :: LogEnv -> LogContext -> Text.Text -> IO ()
-logInfoWith env context message =
-  runKatipT env $ logF context mempty InfoS (ls message)
+logInfoWith logEnvironment context message =
+  runKatipT logEnvironment $ logF context mempty InfoS (ls message)
 
 logErrorWith :: LogEnv -> LogContext -> Text.Text -> IO ()
-logErrorWith env context message =
-  runKatipT env $ logF context mempty ErrorS (ls message)
+logErrorWith logEnvironment context message =
+  runKatipT logEnvironment $ logF context mempty ErrorS (ls message)
 
 logExceptionWith :: LogEnv -> LogContext -> SomeException -> IO ()
-logExceptionWith env context exception =
-  runKatipT env $ logF context mempty ErrorS (ls (Text.pack (show exception)))
+logExceptionWith logEnvironment context exception =
+  runKatipT logEnvironment $ logF context mempty ErrorS (ls (Text.pack (show exception)))

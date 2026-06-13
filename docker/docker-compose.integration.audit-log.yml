@@ -1,6 +1,35 @@
+name: alpha-mind-integration-audit-log
+
+networks:
+  alpha-mind-network:
+    driver: bridge
+
 services:
+  firestore:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.firestore-emulator
+    networks:
+      - alpha-mind-network
+    ports:
+      - "8080:8080"
+    environment:
+      CLOUDSDK_CORE_PROJECT: alpha-mind-local
+      GCP_PROJECT_ID: alpha-mind-local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
   audit-log:
     extends:
       file: ./docker-compose.yml
       service: audit-log
     ports: !reset []
+    depends_on:
+      firestore:
+        condition: service_healthy
+    environment:
+      FIRESTORE_EMULATOR_HOST: firestore:8080
