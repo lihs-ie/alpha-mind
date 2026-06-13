@@ -3,13 +3,75 @@ name:          audit-log
 version:       0.1.0.0
 build-type:    Simple
 
-executable audit-log
-  main-is:       Main.hs
+common shared
+  default-language: GHC2024
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:      -Wall
+  build-depends:    base >=4.20 && <5
+
+library
+  import:         shared
   hs-source-dirs: src
+  exposed-modules:
+    Domain.AuditLog
+    Domain.AuditLog.AuditIngestion
+    Domain.AuditLog.AuditRecord
+    Domain.AuditLog.AuditRecordFactory
+    Domain.AuditLog.Error
+    Domain.AuditLog.ReasonCode
+    Domain.AuditLog.ReasonSource
+    Domain.AuditLog.Result
+    Domain.AuditLog.ServicePolicy
+    Domain.AuditLog.Specification
+    Domain.AuditLog.Status
+    UseCase.QueryAuditLogByIdentifier
+    UseCase.QueryAuditLogs
+    UseCase.RecordAuditFromSourceEvent
   build-depends:
-    base >=4.18 && <5,
+    aeson      >=2.2  && <3,
+    containers ^>=0.7,
+    text       ^>=2.1.4,
+    time       ^>=1.14,
+    ulid       ^>=0.3.3
+
+executable audit-log
+  import:         shared
+  main-is:        Main.hs
+  hs-source-dirs: src
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    audit-log,
     servant-server >=0.20 && <1,
-    warp >=3.4 && <4,
-    aeson >=2.2 && <3
-  default-language: Haskell2010
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+    warp           >=3.4  && <4,
+    aeson          >=2.2  && <3
+
+test-suite audit-log-test
+  import: shared
+  type:     exitcode-stdio-1.0
+  main-is:  Main.hs
+  hs-source-dirs: test
+  build-depends:
+    audit-log,
+    aeson ^>=2.2.3.0,
+    containers ^>=0.7,
+    hspec ^>=2.11.16,
+    text ^>=2.1.4,
+    time ^>=1.14,
+    ulid ^>=0.3.3.0
+  other-modules:
+    Domain.AuditLog.AuditIngestionSpec
+    Domain.AuditLog.AuditRecordFactorySpec
+    Domain.AuditLog.AuditRecordSpec
+    Domain.AuditLog.ReasonCodeSpec
+    Domain.AuditLog.ReasonSourceSpec
+    Domain.AuditLog.ResultSpec
+    Domain.AuditLog.ServicePolicySpec
+    Domain.AuditLog.SpecificationSpec
+    Domain.AuditLog.StatusSpec
+    Domain.AuditLogSpec
+    UseCase.QueryAuditLogByIdentifierSpec
+    UseCase.QueryAuditLogsSpec
+    UseCase.RecordAuditFromSourceEventSpec
