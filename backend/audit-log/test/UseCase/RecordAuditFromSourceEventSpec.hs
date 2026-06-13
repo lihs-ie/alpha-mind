@@ -178,6 +178,14 @@ spec =
           runWithMock ref $ recordAuditFromSourceEvent fixedTime recordIdentifier ingestionIdentifier invalidRawEvent "execution"
         result `shouldSatisfy` isSchemaInvalid
 
+      -- RULE-AU-005 (negative): 保存成功時のみ publish。検証失敗時は publish しない。
+      it "does not publish audit.recorded when the event is schema-invalid" $ do
+        ref <- newMockState
+        _ <-
+          runWithMock ref $ recordAuditFromSourceEvent fixedTime recordIdentifier ingestionIdentifier invalidRawEvent "execution"
+        state <- readIORef ref
+        length state.publishedRecords `shouldBe` 0
+
       it "records a valid event successfully" $ do
         ref <- newMockState
         result <-
