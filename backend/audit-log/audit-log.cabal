@@ -63,11 +63,13 @@ test-suite audit-log-test
     ulid ^>=0.3.3.0
   other-modules:
     Domain.AuditLog.AuditIngestionSpec
+    Domain.AuditLog.AuditRecordFactorySpec
     Domain.AuditLog.AuditRecordSpec
     Domain.AuditLog.ReasonCodeSpec
     Domain.AuditLog.ReasonSourceSpec
     Domain.AuditLog.ResultSpec
     Domain.AuditLog.ServicePolicySpec
+    Domain.AuditLog.SpecificationSpec
     Domain.AuditLog.StatusSpec
     Domain.AuditLogSpec
     UseCase.QueryAuditLogByIdentifierSpec
