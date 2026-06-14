@@ -1,0 +1,16 @@
+{
+  "supported-targets": [
+    "js"
+  ],
+  "import": [
+    {
+      "path": "mizchi/luna",
+      "alias": "luna"
+    },
+    {
+      "path": "mizchi/luna/dom/static",
+      "alias": "server_dom"
+    }
+  ],
+  "warn-list": "-35"
+}
