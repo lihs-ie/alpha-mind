@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 {- | Payload encoding tests for PubSubPortfolioEventPublisher.
 Must-07: eventType present, reasonCode SCREAMING_SNAKE_CASE.
 -}
@@ -69,7 +71,7 @@ spec = do
           Just (Aeson.Object obj) ->
             case KeyMap.lookup "payload" obj of
               Just (Aeson.Object payloadObj) ->
-                KeyMap.lookup "orders" payloadObj `shouldSatisfy` \v -> case v of
+                KeyMap.lookup "orders" payloadObj `shouldSatisfy` \case
                   Just (Aeson.Array _) -> True
                   _ -> False
               _ -> fail "missing payload"

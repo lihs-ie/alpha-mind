@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 {- | Pure codec round-trip tests for FirestoreOrderProposalRepository.
 No Firestore emulator required.
 Must-07: codec round-trip / unknown status → Left.
@@ -95,7 +97,7 @@ spec = do
                 , trace = testUlid
                 , createdAt = testTime
                 }
-        documentToProposal document `shouldSatisfy` \result -> case result of
+        documentToProposal document `shouldSatisfy` \case
           Left _ -> True
           Right _ -> False
 
