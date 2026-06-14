@@ -1,28 +1,48 @@
 module Presentation.Handler.Settings (
   StrategySettingsResponse (..),
   ComplianceControlsResponse (..),
+  StrategySettingsUpdateRequest (..),
+  ComplianceControlsUpdateRequest (..),
+  UpdateResult (..),
   getSettingsStrategyHandler,
   getComplianceControlsHandler,
+  putSettingsStrategyHandler,
+  putComplianceControlsHandler,
 )
 where
 
-import Control.Monad (unless)
+import Control.Exception (SomeException, try)
+import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (ToJSON (..), encode, object, (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), encode, object, withObject, (.:), (.=))
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (getCurrentTime)
+import Data.ULID qualified as ULID
 import Domain.Compliance.Controls (ComplianceControls (..))
-import Domain.Settings.Strategy (StrategySettings (..), rebalanceFrequencyToText)
+import Domain.Settings.Strategy (
+  RebalanceFrequency (..),
+  StrategySettings (..),
+  rebalanceFrequencyToText,
+ )
 import Infrastructure.JWT.JwtVerifier (JwtVerifierEnv (..), VerifiedClaims (..), verifyToken)
 import Infrastructure.Repository.FirestoreSettingsRepository (
+  ComplianceControlsUpdate (..),
   FirestoreSettingsRepositoryEnv (..),
+  StoredComplianceControls (..),
+  StoredStrategySettings (..),
+  StrategySettingsUpdate (..),
   getComplianceControls,
+  getStoredComplianceControls,
+  getStoredStrategySettings,
   getStrategySettings,
+  updateComplianceControls,
+  updateStrategySettings,
  )
 import Network.HTTP.Types (hContentType)
 import Persistence.Firestore (FirestoreError (..))
 import Presentation.AppM (AppEnv (..))
-import Servant (Handler, ServerError (..), err401, err403, err503, throwError)
+import Servant (Handler, ServerError (..), err400, err401, err403, err503, throwError)
 
 -- ---------------------------------------------------------------------------
 -- Response types
@@ -72,6 +92,61 @@ instance ToJSON ComplianceControlsResponse where
       ]
 
 -- ---------------------------------------------------------------------------
+-- Request types
+-- ---------------------------------------------------------------------------
+
+-- | JSON request body for @PUT \/settings\/strategy@.
+data StrategySettingsUpdateRequest = StrategySettingsUpdateRequest
+  { market :: Text
+  , rebalanceFrequency :: Text
+  , symbols :: [Text]
+  , dailyLossLimit :: Double
+  , positionConcentrationLimit :: Double
+  , dailyOrderLimit :: Int
+  }
+
+instance FromJSON StrategySettingsUpdateRequest where
+  parseJSON =
+    withObject "StrategySettingsUpdateRequest" $ \requestObject ->
+      StrategySettingsUpdateRequest
+        <$> requestObject .: "market"
+        <*> requestObject .: "rebalanceFrequency"
+        <*> requestObject .: "symbols"
+        <*> requestObject .: "dailyLossLimit"
+        <*> requestObject .: "positionConcentrationLimit"
+        <*> requestObject .: "dailyOrderLimit"
+
+-- | JSON request body for @PUT \/compliance\/controls@.
+data ComplianceControlsUpdateRequest = ComplianceControlsUpdateRequest
+  { restrictedSymbols :: [Text]
+  , partnerRestrictedSymbols :: [Text]
+  , maxCommentLength :: Int
+  , autoPromotionEnabled :: Bool
+  }
+
+instance FromJSON ComplianceControlsUpdateRequest where
+  parseJSON =
+    withObject "ComplianceControlsUpdateRequest" $ \requestObject ->
+      ComplianceControlsUpdateRequest
+        <$> requestObject .: "restrictedSymbols"
+        <*> requestObject .: "partnerRestrictedSymbols"
+        <*> requestObject .: "maxCommentLength"
+        <*> requestObject .: "autoPromotionEnabled"
+
+-- | JSON response for successful update operations.
+data UpdateResult = UpdateResult
+  { success :: Bool
+  , trace :: Text
+  }
+
+instance ToJSON UpdateResult where
+  toJSON updateResult =
+    object
+      [ "success" .= updateResult.success
+      , "trace" .= updateResult.trace
+      ]
+
+-- ---------------------------------------------------------------------------
 -- Handlers
 -- ---------------------------------------------------------------------------
 
@@ -88,10 +163,11 @@ getSettingsStrategyHandler appEnvironment maybeAuthHeader = do
 
   settingsResult <-
     liftIO $
-      getStrategySettings
-        FirestoreSettingsRepositoryEnv
-          { firestoreContext = appEnvironment.firestoreContext
-          }
+      withFirestoreGuard $
+        getStrategySettings
+          FirestoreSettingsRepositoryEnv
+            { firestoreContext = appEnvironment.firestoreContext
+            }
 
   strategySettings <- case settingsResult of
     Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
@@ -105,6 +181,59 @@ getSettingsStrategyHandler appEnvironment maybeAuthHeader = do
       , dailyLossLimit = strategySettings.dailyLossLimit
       , positionConcentrationLimit = strategySettings.positionConcentrationLimit
       , dailyOrderLimit = strategySettings.dailyOrderLimit
+      }
+
+{- | @PUT \/settings\/strategy@ handler.
+
+Requires @settings:write@ permission. Validates the request body, reads the
+current version counter for optimistic concurrency, and writes updated settings
+to @settings\/strategy@.
+-}
+putSettingsStrategyHandler ::
+  AppEnv ->
+  Maybe Text ->
+  StrategySettingsUpdateRequest ->
+  Handler UpdateResult
+putSettingsStrategyHandler appEnvironment maybeAuthHeader settingsRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "settings:write"
+
+  validatedSettings <- validateStrategySettingsRequest settingsRequest
+
+  let repositoryEnv = FirestoreSettingsRepositoryEnv{firestoreContext = appEnvironment.firestoreContext}
+
+  storedResult <-
+    liftIO $
+      withFirestoreGuard $
+        getStoredStrategySettings repositoryEnv
+
+  storedSettings <- case storedResult of
+    Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right storedValue -> pure storedValue
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let settingsUpdate =
+        StrategySettingsUpdate
+          { settings = validatedSettings
+          , updatedBy = "bff"
+          , updatedAt = now
+          , version = storedSettings.version + 1
+          }
+
+  updateResult <-
+    liftIO $
+      withFirestoreGuard $
+        updateStrategySettings repositoryEnv settingsUpdate
+
+  case updateResult of
+    Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right () -> pure ()
+
+  pure
+    UpdateResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
       }
 
 {- | @GET \/compliance\/controls@ handler.
@@ -122,10 +251,11 @@ getComplianceControlsHandler appEnvironment maybeAuthHeader = do
 
   controlsResult <-
     liftIO $
-      getComplianceControls
-        FirestoreSettingsRepositoryEnv
-          { firestoreContext = appEnvironment.firestoreContext
-          }
+      withFirestoreGuard $
+        getComplianceControls
+          FirestoreSettingsRepositoryEnv
+            { firestoreContext = appEnvironment.firestoreContext
+            }
 
   complianceControls <- case controlsResult of
     Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
@@ -139,9 +269,122 @@ getComplianceControlsHandler appEnvironment maybeAuthHeader = do
       , autoPromotionEnabled = complianceControls.autoPromotionEnabled
       }
 
+{- | @PUT \/compliance\/controls@ handler.
+
+Requires @compliance:write@ permission. Validates the request body, reads the
+current version counter for optimistic concurrency, and writes updated controls
+to @compliance_controls\/trading@.
+-}
+putComplianceControlsHandler ::
+  AppEnv ->
+  Maybe Text ->
+  ComplianceControlsUpdateRequest ->
+  Handler UpdateResult
+putComplianceControlsHandler appEnvironment maybeAuthHeader controlsRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "compliance:write"
+
+  validatedControls <- validateComplianceControlsRequest controlsRequest
+
+  let repositoryEnv = FirestoreSettingsRepositoryEnv{firestoreContext = appEnvironment.firestoreContext}
+
+  storedResult <-
+    liftIO $
+      withFirestoreGuard $
+        getStoredComplianceControls repositoryEnv
+
+  storedControls <- case storedResult of
+    Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right storedValue -> pure storedValue
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let controlsUpdate =
+        ComplianceControlsUpdate
+          { controls = validatedControls
+          , updatedBy = "bff"
+          , updatedAt = now
+          , version = storedControls.version + 1
+          }
+
+  updateResult <-
+    liftIO $
+      withFirestoreGuard $
+        updateComplianceControls repositoryEnv controlsUpdate
+
+  case updateResult of
+    Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right () -> pure ()
+
+  pure
+    UpdateResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+-- ---------------------------------------------------------------------------
+-- Validation
+-- ---------------------------------------------------------------------------
+
+validateStrategySettingsRequest ::
+  StrategySettingsUpdateRequest ->
+  Handler StrategySettings
+validateStrategySettingsRequest settingsRequest = do
+  unless (settingsRequest.market == "JP") $
+    throwBadRequest "market must be JP"
+  frequencyValue <- case settingsRequest.rebalanceFrequency of
+    "daily" -> pure Daily
+    "weekly" -> pure Weekly
+    other -> throwBadRequest ("rebalanceFrequency must be daily or weekly, got: " <> other)
+  when (null settingsRequest.symbols) $
+    throwBadRequest "symbols must not be empty"
+  unless (settingsRequest.dailyLossLimit >= 0 && settingsRequest.dailyLossLimit <= 20) $
+    throwBadRequest "dailyLossLimit must be between 0 and 20"
+  unless (settingsRequest.positionConcentrationLimit >= 0 && settingsRequest.positionConcentrationLimit <= 50) $
+    throwBadRequest "positionConcentrationLimit must be between 0 and 50"
+  unless (settingsRequest.dailyOrderLimit >= 1 && settingsRequest.dailyOrderLimit <= 100) $
+    throwBadRequest "dailyOrderLimit must be between 1 and 100"
+  pure
+    StrategySettings
+      { market = settingsRequest.market
+      , rebalanceFrequency = frequencyValue
+      , symbols = settingsRequest.symbols
+      , dailyLossLimit = settingsRequest.dailyLossLimit
+      , positionConcentrationLimit = settingsRequest.positionConcentrationLimit
+      , dailyOrderLimit = settingsRequest.dailyOrderLimit
+      }
+
+validateComplianceControlsRequest ::
+  ComplianceControlsUpdateRequest ->
+  Handler ComplianceControls
+validateComplianceControlsRequest controlsRequest = do
+  unless (controlsRequest.maxCommentLength >= 32 && controlsRequest.maxCommentLength <= 240) $
+    throwBadRequest "maxCommentLength must be between 32 and 240"
+  pure
+    ComplianceControls
+      { restrictedSymbols = controlsRequest.restrictedSymbols
+      , partnerRestrictedSymbols = controlsRequest.partnerRestrictedSymbols
+      , maxCommentLength = controlsRequest.maxCommentLength
+      , autoPromotionEnabled = controlsRequest.autoPromotionEnabled
+      }
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
+
+{- | Wrap a Firestore IO action so that any unchecked exception (e.g.
+'Gogol.newEnv' 'AuthError' when GCP credentials are absent) is caught and
+mapped to 'FirestoreErrorTransport', preventing the server from crashing.
+-}
+withFirestoreGuard :: IO (Either FirestoreError a) -> IO (Either FirestoreError a)
+withFirestoreGuard action = do
+  resultEither <- tryAction action
+  pure $ case resultEither of
+    Left exception -> Left (FirestoreErrorTransport (Text.pack (show exception)))
+    Right value -> value
+ where
+  tryAction :: IO b -> IO (Either SomeException b)
+  tryAction = try
 
 requireAuth :: AppEnv -> Maybe Text -> Text -> Handler VerifiedClaims
 requireAuth appEnvironment maybeAuthHeader requiredPermission = do
@@ -163,6 +406,15 @@ extractBearerToken (Just headerValue) =
   case Text.stripPrefix "Bearer " headerValue of
     Nothing -> throwUnauthorized "Authorization header must use Bearer scheme"
     Just tokenText -> pure tokenText
+
+throwBadRequest :: Text -> Handler a
+throwBadRequest detailText =
+  throwError
+    err400
+      { errBody = encode (problemJson "Bad Request" 400 detailText "REQUEST_VALIDATION_FAILED")
+      , errHeaders = [(hContentType, "application/problem+json")]
+      , errReasonPhrase = "Bad Request"
+      }
 
 throwUnauthorized :: Text -> Handler a
 throwUnauthorized detailText =
