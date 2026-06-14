@@ -43,6 +43,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-003: 注文管理 (authenticated)
+        @router.SolRoutes::Page(
+          path="/orders",
+          handler=@router.PageHandler(orders_page),
+          title="注文管理 — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]

@@ -40,6 +40,44 @@ test "login_form ComponentRef url" {
 }
 
 ///|
+test "OrderRowProps round-trip" {
+  let json_str = "{ \"identifier\": \"\", \"symbol\": \"\", \"side\": \"\", \"qty\": 0, \"status\": \"\", \"created_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : OrderRowProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : OrderRowProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "order_row ComponentRef url" {
+  let json_str = "{ \"identifier\": \"\", \"symbol\": \"\", \"side\": \"\", \"qty\": 0, \"status\": \"\", \"created_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : OrderRowProps = @json.from_json(json)
+  let cref = order_row(props)
+  assert_true(cref.url.has_suffix("order_row.js"))
+}
+
+///|
+test "OrdersActionsProps round-trip" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_orders\": [], \"initial_kill_switch_enabled\": false }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : OrdersActionsProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : OrdersActionsProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "orders_actions ComponentRef url" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_orders\": [], \"initial_kill_switch_enabled\": false }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : OrdersActionsProps = @json.from_json(json)
+  let cref = orders_actions(props)
+  assert_true(cref.url.has_suffix("orders_actions.js"))
+}
+
+///|
 test "BlackoutWindowProps round-trip" {
   let json_str = "{ \"symbol\": \"\", \"start_at\": \"\", \"end_at\": \"\", \"action_reason_code\": \"\" }"
   let json : Json = @json.parse(json_str) catch { _ => panic() }
