@@ -70,6 +70,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-006: インサイト管理 (authenticated)
+        @router.SolRoutes::Page(
+          path="/insights",
+          handler=@router.PageHandler(insights_page),
+          title="インサイト管理 — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]
