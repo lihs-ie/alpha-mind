@@ -46,9 +46,11 @@ class DependencyContainer:
 
     def __init__(self) -> None:
         self._gcp_project_id = require_env("GCP_PROJECT_ID")
-        self._hypothesis_backtested_topic = require_env("HYPOTHESIS_BACKTESTED_TOPIC")
-        self._hypothesis_promoted_topic = require_env("HYPOTHESIS_PROMOTED_TOPIC")
-        self._hypothesis_rejected_topic = require_env("HYPOTHESIS_REJECTED_TOPIC")
+        self._hypothesis_backtested_topic = os.environ.get(
+            "HYPOTHESIS_BACKTESTED_TOPIC", "event-hypothesis-backtested-v1"
+        )
+        self._hypothesis_promoted_topic = os.environ.get("HYPOTHESIS_PROMOTED_TOPIC", "event-hypothesis-promoted-v1")
+        self._hypothesis_rejected_topic = os.environ.get("HYPOTHESIS_REJECTED_TOPIC", "event-hypothesis-rejected-v1")
 
         partner_symbols_raw = os.environ.get("PARTNER_RESTRICTED_SYMBOLS", "")
         self._partner_restricted_symbols = [
