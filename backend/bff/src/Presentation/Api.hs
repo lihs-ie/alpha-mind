@@ -17,6 +17,8 @@ Endpoints:
   * @GET /compliance/controls@      — returns compliance controls (JWT required)
   * @GET /insights@                 — paginated list of insight records (JWT required)
   * @GET /insights/{identifier}@    — single insight record detail (JWT required)
+  * @GET /hypotheses@               — paginated list of hypotheses (JWT required)
+  * @GET /hypotheses/{identifier}@  — single hypothesis detail (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -36,6 +38,12 @@ import Presentation.Handler.Audit (
  )
 import Presentation.Handler.Auth (LoginRequest, LoginResponse, loginHandler)
 import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
+import Presentation.Handler.Hypotheses (
+  HypothesisDetailResponse,
+  HypothesisListResponse,
+  getHypothesesHandler,
+  getHypothesisByIdentifierHandler,
+ )
 import Presentation.Handler.Insights (
   InsightDetailResponse,
   InsightListResponse,
@@ -138,7 +146,20 @@ type InsightsAPI =
       :> Header "Authorization" Text
       :> Get '[JSON] InsightDetailResponse
 
-type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI :<|> SettingsAPI :<|> InsightsAPI
+type HypothesesAPI =
+  "hypotheses"
+    :> Header "Authorization" Text
+    :> QueryParam "status" Text
+    :> QueryParam "limit" Int
+    :> QueryParam "cursor" Text
+    :> Get '[JSON] HypothesisListResponse
+    :<|> "hypotheses"
+      :> Capture "identifier" Text
+      :> Header "Authorization" Text
+      :> Get '[JSON] HypothesisDetailResponse
+
+type BffAPI =
+  BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI :<|> SettingsAPI :<|> InsightsAPI :<|> HypothesesAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -149,16 +170,18 @@ bffApiProxy = Proxy
 
 {- | Wire 'BffAPI' to its handlers.
 
-  * @POST /auth/login@            → 'loginHandler'
-  * @GET /dashboard/summary@      → 'getDashboardSummaryHandler'
-  * @GET /orders@                 → 'getOrdersHandler'
-  * @GET /orders/{identifier}@    → 'getOrderByIdentifierHandler'
-  * @GET /audit@                  → 'getAuditLogsHandler'
-  * @GET /audit/{identifier}@     → 'getAuditLogByIdentifierHandler'
-  * @GET /settings/strategy@      → 'getSettingsStrategyHandler'
-  * @GET /compliance/controls@    → 'getComplianceControlsHandler'
-  * @GET /insights@               → 'getInsightsHandler'
-  * @GET /insights/{identifier}@  → 'getInsightByIdentifierHandler'
+  * @POST /auth/login@              → 'loginHandler'
+  * @GET /dashboard/summary@        → 'getDashboardSummaryHandler'
+  * @GET /orders@                   → 'getOrdersHandler'
+  * @GET /orders/{identifier}@      → 'getOrderByIdentifierHandler'
+  * @GET /audit@                    → 'getAuditLogsHandler'
+  * @GET /audit/{identifier}@       → 'getAuditLogByIdentifierHandler'
+  * @GET /settings/strategy@        → 'getSettingsStrategyHandler'
+  * @GET /compliance/controls@      → 'getComplianceControlsHandler'
+  * @GET /insights@                 → 'getInsightsHandler'
+  * @GET /insights/{identifier}@    → 'getInsightByIdentifierHandler'
+  * @GET /hypotheses@               → 'getHypothesesHandler'
+  * @GET /hypotheses/{identifier}@  → 'getHypothesisByIdentifierHandler'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
@@ -168,3 +191,4 @@ bffServer appEnvironment =
     :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
     :<|> (getSettingsStrategyHandler appEnvironment :<|> getComplianceControlsHandler appEnvironment)
     :<|> (getInsightsHandler appEnvironment :<|> getInsightByIdentifierHandler appEnvironment)
+    :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)

@@ -20,12 +20,14 @@ library
     Domain.Auth.Credential
     Domain.Compliance.Controls
     Domain.Dashboard.Summary
+    Domain.Hypothesis.Record
     Domain.Insight.Record
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreAuditRepository
+    Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
@@ -36,6 +38,7 @@ library
     Presentation.Handler.Audit
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
+    Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
     Presentation.Handler.Orders
     Presentation.Handler.Settings
@@ -64,12 +67,14 @@ executable bff
     Domain.Auth.Credential
     Domain.Compliance.Controls
     Domain.Dashboard.Summary
+    Domain.Hypothesis.Record
     Domain.Insight.Record
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreAuditRepository
+    Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
@@ -80,6 +85,7 @@ executable bff
     Presentation.Handler.Audit
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
+    Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
     Presentation.Handler.Orders
     Presentation.Handler.Settings
@@ -121,6 +127,7 @@ test-suite bff-test
     Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
     Presentation.Handler.DashboardSpec
+    Presentation.Handler.HypothesesSpec
     Presentation.Handler.InsightsSpec
     Presentation.Handler.OrdersSpec
     Presentation.Handler.SettingsSpec
