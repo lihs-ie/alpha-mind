@@ -82,18 +82,16 @@ fakeNisshokinEnvSuccess =
 -- | Build a fake HTTP CSV response
 buildCsvResponse :: Int -> Text -> Response ByteString.Lazy.ByteString
 buildCsvResponse statusCodeValue body =
-  ( Response
-      { responseStatus = if statusCodeValue >= 500 then status503 else status200
-      , responseVersion = http11
-      , responseHeaders = []
-      , responseBody = ByteString.Lazy.fromStrict (Text.Encoding.encodeUtf8 body)
-      , responseCookieJar = CJ []
-      , responseClose' = ResponseClose (pure ())
-      , responseOriginalRequest = defaultRequest
-      , responseEarlyHints = []
-      } ::
-      Response ByteString.Lazy.ByteString
-  )
+  Response
+    { responseStatus = if statusCodeValue >= 500 then status503 else status200
+    , responseVersion = http11
+    , responseHeaders = []
+    , responseBody = ByteString.Lazy.fromStrict (Text.Encoding.encodeUtf8 body)
+    , responseCookieJar = CJ []
+    , responseClose' = ResponseClose (pure ())
+    , responseOriginalRequest = defaultRequest
+    , responseEarlyHints = []
+    }
 
 makeEnv ::
   (Request -> IO (Response ByteString.Lazy.ByteString)) ->
