@@ -69,6 +69,7 @@ testAppEnv =
     , ordersApprovedTopicName = "test-orders-approved-topic"
     , ordersRejectedTopicName = "test-orders-rejected-topic"
     , ordersProposedTopicName = "test-orders-proposed-topic"
+    , hypothesisProposedTopicName = "test-hypothesis-proposed-topic"
     }
 
 testApp :: Application

@@ -19,6 +19,9 @@ Endpoints:
   * @PUT /compliance/controls@                — updates compliance controls (JWT required, admin)
   * @GET /insights@                           — paginated list of insight records (JWT required)
   * @GET /insights/{identifier}@              — single insight record detail (JWT required)
+  * @POST /insights/{identifier}/adopt@       — adopt an insight record (JWT required, insights:write)
+  * @POST /insights/{identifier}/reject@      — reject an insight record (JWT required, insights:write)
+  * @POST /insights/{identifier}/hypothesize@ — hypothesize from an insight (JWT required, insights:write)
   * @GET /hypotheses@                         — paginated list of hypotheses (JWT required)
   * @GET /hypotheses/{identifier}@            — single hypothesis detail (JWT required)
   * @GET /models/validation@                  — paginated list of model validations (JWT required)
@@ -60,10 +63,17 @@ import Presentation.Handler.Hypotheses (
   getHypothesisByIdentifierHandler,
  )
 import Presentation.Handler.Insights (
+  HypothesizeRequest,
+  InsightActionResult,
+  InsightDecisionRequest,
   InsightDetailResponse,
+  InsightHypothesizeAccepted,
   InsightListResponse,
+  adoptInsightHandler,
   getInsightByIdentifierHandler,
   getInsightsHandler,
+  hypothesizeInsightHandler,
+  rejectInsightHandler,
  )
 import Presentation.Handler.ModelValidations (
   ModelValidationDetailResponse,
@@ -214,6 +224,24 @@ type InsightsAPI =
       :> Capture "identifier" Text
       :> Header "Authorization" Text
       :> Get '[JSON] InsightDetailResponse
+    :<|> "insights"
+      :> Capture "identifier" Text
+      :> "adopt"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] InsightDecisionRequest
+      :> Post '[JSON] InsightActionResult
+    :<|> "insights"
+      :> Capture "identifier" Text
+      :> "reject"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] InsightDecisionRequest
+      :> Post '[JSON] InsightActionResult
+    :<|> "insights"
+      :> Capture "identifier" Text
+      :> "hypothesize"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] HypothesizeRequest
+      :> PostAccepted '[JSON] InsightHypothesizeAccepted
 
 type HypothesesAPI =
   "hypotheses"
@@ -299,6 +327,9 @@ bffApiProxy = Proxy
   * @PUT /compliance/controls@               → 'putComplianceControlsHandler'
   * @GET /insights@                          → 'getInsightsHandler'
   * @GET /insights/{identifier}@             → 'getInsightByIdentifierHandler'
+  * @POST /insights/{identifier}/adopt@      → 'adoptInsightHandler'
+  * @POST /insights/{identifier}/reject@     → 'rejectInsightHandler'
+  * @POST /insights/{identifier}/hypothesize@ → 'hypothesizeInsightHandler'
   * @GET /hypotheses@                        → 'getHypothesesHandler'
   * @GET /hypotheses/{identifier}@           → 'getHypothesisByIdentifierHandler'
   * @GET /models/validation@                 → 'getModelValidationsHandler'
@@ -324,7 +355,12 @@ bffServer appEnvironment =
              :<|> getComplianceControlsHandler appEnvironment
              :<|> putComplianceControlsHandler appEnvironment
          )
-    :<|> (getInsightsHandler appEnvironment :<|> getInsightByIdentifierHandler appEnvironment)
+    :<|> ( getInsightsHandler appEnvironment
+             :<|> getInsightByIdentifierHandler appEnvironment
+             :<|> adoptInsightHandler appEnvironment
+             :<|> rejectInsightHandler appEnvironment
+             :<|> hypothesizeInsightHandler appEnvironment
+         )
     :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)
     :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
     :<|> (handleChangeRuntime appEnvironment :<|> handleToggleKillSwitch appEnvironment)
