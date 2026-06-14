@@ -2,18 +2,40 @@ module Presentation.Handler.Hypotheses (
   HypothesisSummaryResponse (..),
   HypothesisDetailResponse (..),
   HypothesisListResponse (..),
+  HypothesisActionResult (..),
+  HypothesisRetestAccepted (..),
+  HypothesisDecisionRequest (..),
+  HypothesisRejectRequest (..),
+  HypothesisMnpiSelfDeclarationUpdateRequest (..),
   getHypothesesHandler,
   getHypothesisByIdentifierHandler,
+  promoteHypothesisHandler,
+  rejectHypothesisHandler,
+  retestHypothesisHandler,
+  updateHypothesisMnpiHandler,
 )
 where
 
+import Control.Exception (SomeException, try)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (ToJSON (..), encode, object, (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), encode, object, withObject, (.:), (.:?), (.=))
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (getCurrentTime)
+import Data.ULID qualified as ULID
+import Domain.Hypothesis.Action (
+  HypothesisTransitionError (..),
+  validatePromote,
+  validateReject,
+  validateRetest,
+ )
 import Domain.Hypothesis.Record (
   HypothesisDetail (..),
+  HypothesisInsiderRisk (..),
+  HypothesisInstrumentType (..),
+  HypothesisStatus (..),
   HypothesisSummary (..),
   hypothesisInsiderRiskToText,
   hypothesisInstrumentTypeToText,
@@ -21,16 +43,26 @@ import Domain.Hypothesis.Record (
   hypothesisStatusToText,
  )
 import Infrastructure.JWT.JwtVerifier (JwtVerifierEnv (..), VerifiedClaims (..), verifyToken)
+import Infrastructure.Publisher.PubSubHypothesisPublisher (
+  PubSubHypothesisPublisherEnv (..),
+  publishHypothesisPromoted,
+  publishHypothesisRejected,
+  publishHypothesisRetestRequested,
+ )
 import Infrastructure.Repository.FirestoreHypothesisRepository (
   FirestoreHypothesisRepositoryEnv (..),
+  HypothesisMnpiUpdate (..),
   HypothesisQueryFilter (..),
+  HypothesisStatusUpdate (..),
   getHypothesisByIdentifier,
   listHypotheses,
+  updateHypothesisMnpi,
+  updateHypothesisStatus,
  )
 import Network.HTTP.Types (hContentType)
 import Persistence.Firestore (FirestoreError (..))
 import Presentation.AppM (AppEnv (..))
-import Servant (Handler, ServerError (..), err400, err401, err403, err404, err503, throwError)
+import Servant (Handler, ServerError (..), err400, err401, err403, err404, err409, err422, err503, throwError)
 
 -- ---------------------------------------------------------------------------
 -- Response types
@@ -115,6 +147,77 @@ instance ToJSON HypothesisListResponse where
     object
       [ "items" .= hypothesisListResponse.items
       , "nextCursor" .= hypothesisListResponse.nextCursor
+      ]
+
+-- | Request body for @POST \/hypotheses\/{identifier}\/promote@.
+data HypothesisDecisionRequest = HypothesisDecisionRequest
+  { actionReasonCode :: Text
+  , comment :: Maybe Text
+  , mnpiSelfDeclared :: Bool
+  }
+
+instance FromJSON HypothesisDecisionRequest where
+  parseJSON =
+    withObject "HypothesisDecisionRequest" $ \requestObject ->
+      HypothesisDecisionRequest
+        <$> requestObject .: "actionReasonCode"
+        <*> requestObject .:? "comment"
+        <*> requestObject .: "mnpiSelfDeclared"
+
+-- | Request body for @POST \/hypotheses\/{identifier}\/reject@.
+data HypothesisRejectRequest = HypothesisRejectRequest
+  { actionReasonCode :: Text
+  , comment :: Maybe Text
+  }
+
+instance FromJSON HypothesisRejectRequest where
+  parseJSON =
+    withObject "HypothesisRejectRequest" $ \requestObject ->
+      HypothesisRejectRequest
+        <$> requestObject .: "actionReasonCode"
+        <*> requestObject .:? "comment"
+
+-- | Request body for @PUT \/hypotheses\/{identifier}\/mnpi-self-declaration@.
+data HypothesisMnpiSelfDeclarationUpdateRequest = HypothesisMnpiSelfDeclarationUpdateRequest
+  { mnpiSelfDeclared :: Bool
+  , actionReasonCode :: Text
+  , comment :: Maybe Text
+  }
+
+instance FromJSON HypothesisMnpiSelfDeclarationUpdateRequest where
+  parseJSON =
+    withObject "HypothesisMnpiSelfDeclarationUpdateRequest" $ \requestObject ->
+      HypothesisMnpiSelfDeclarationUpdateRequest
+        <$> requestObject .: "mnpiSelfDeclared"
+        <*> requestObject .: "actionReasonCode"
+        <*> requestObject .:? "comment"
+
+-- | Response body for promote, reject, and mnpi-self-declaration actions (200 OK).
+data HypothesisActionResult = HypothesisActionResult
+  { success :: Bool
+  , trace :: Text
+  }
+
+instance ToJSON HypothesisActionResult where
+  toJSON actionResult =
+    object
+      [ "success" .= actionResult.success
+      , "trace" .= actionResult.trace
+      ]
+
+-- | Response body for retest action (202 Accepted).
+data HypothesisRetestAccepted = HypothesisRetestAccepted
+  { accepted :: Bool
+  , identifier :: Text
+  , trace :: Text
+  }
+
+instance ToJSON HypothesisRetestAccepted where
+  toJSON retestAccepted =
+    object
+      [ "accepted" .= retestAccepted.accepted
+      , "identifier" .= retestAccepted.identifier
+      , "trace" .= retestAccepted.trace
       ]
 
 -- ---------------------------------------------------------------------------
@@ -209,6 +312,293 @@ getHypothesisByIdentifierHandler appEnvironment hypothesisIdentifier maybeAuthHe
       throwNotFound "Hypothesis not found"
     Just hypothesisDetail -> pure (toHypothesisDetailResponse hypothesisDetail)
 
+{- | @POST \/hypotheses\/{identifier}\/promote@ handler.
+
+Requires @hypotheses:decide@ permission.  Validates the @demo → live@
+transition per 状態遷移設計.md §6:
+  * status must be @demo@
+  * @requiresComplianceReview@ must not be @true@
+  * @mnpiSelfDeclared@ must be @true@ (from the request body)
+  * @instrumentType=ETF@ + @insiderRisk=low@ → promotion mode @auto@
+  * otherwise → promotion mode @manual@
+Updates Firestore and publishes @hypothesis.promoted@.
+-}
+promoteHypothesisHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  HypothesisDecisionRequest ->
+  Handler HypothesisActionResult
+promoteHypothesisHandler appEnvironment hypothesisIdentifier maybeAuthHeader promoteRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "hypotheses:decide"
+
+  unless promoteRequest.mnpiSelfDeclared $
+    throwUnprocessableEntity "mnpiSelfDeclared must be true for promotion" "COMPLIANCE_MNPI_SUSPECTED"
+
+  hypothesisDetail <- fetchHypothesisOrNotFound appEnvironment hypothesisIdentifier
+
+  case validatePromote hypothesisDetail.status hypothesisDetail.requiresComplianceReview hypothesisDetail.mnpiSelfDeclared of
+    Left ComplianceReviewRequired ->
+      throwConflict "Hypothesis requires compliance review before promotion" "COMPLIANCE_REVIEW_REQUIRED"
+    Left MnpiSelfDeclarationMissing ->
+      throwConflict "MNPI self-declaration must be true before promotion" "COMPLIANCE_MNPI_SUSPECTED"
+    Left DemoPeriodInsufficient ->
+      throwConflict "Demo period has not reached 30 days" "OPERATION_NOT_ALLOWED"
+    Left (InvalidStateTransition currentStatus _action) ->
+      throwConflict
+        ("Cannot promote hypothesis in status " <> hypothesisStatusToText currentStatus)
+        "STATE_CONFLICT"
+    Right () -> pure ()
+
+  let promotionModeValue =
+        case hypothesisDetail.instrumentType of
+          HypothesisInstrumentTypeETF ->
+            case hypothesisDetail.insiderRisk of
+              Just HypothesisInsiderRiskLow -> "auto"
+              _ -> "manual"
+          _ -> "manual"
+
+  let insiderRiskValue = maybe "medium" hypothesisInsiderRiskToText hypothesisDetail.insiderRisk
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+  eventUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        HypothesisStatusUpdate
+          { newStatus = HypothesisStatusLive
+          , newPromotionMode = Just promotionModeValue
+          , updatedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateHypothesisStatus
+              FirestoreHypothesisRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              hypothesisIdentifier
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update hypothesis status"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  let publisherEnvironment =
+        PubSubHypothesisPublisherEnv
+          { publisher = appEnvironment.pubSubPublisher
+          , hypothesisPromotedTopicName = appEnvironment.hypothesisPromotedTopicName
+          , hypothesisRejectedTopicName = appEnvironment.hypothesisRejectedTopicName
+          , hypothesisRetestRequestedTopicName = appEnvironment.hypothesisRetestRequestedTopicName
+          }
+
+  liftIO $
+    publishHypothesisPromoted
+      publisherEnvironment
+      eventUlid
+      traceUlid
+      now
+      hypothesisIdentifier
+      promoteRequest.actionReasonCode
+      promotionModeValue
+      True
+      insiderRiskValue
+
+  pure
+    HypothesisActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @POST \/hypotheses\/{identifier}\/reject@ handler.
+
+Requires @hypotheses:decide@ permission.  Validates the @demo → rejected@
+transition per 状態遷移設計.md §6.  Updates Firestore and publishes
+@hypothesis.rejected@.
+-}
+rejectHypothesisHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  HypothesisRejectRequest ->
+  Handler HypothesisActionResult
+rejectHypothesisHandler appEnvironment hypothesisIdentifier maybeAuthHeader rejectRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "hypotheses:decide"
+
+  hypothesisDetail <- fetchHypothesisOrNotFound appEnvironment hypothesisIdentifier
+
+  case validateReject hypothesisDetail.status of
+    Left (InvalidStateTransition currentStatus _action) ->
+      throwConflict
+        ("Cannot reject hypothesis in status " <> hypothesisStatusToText currentStatus)
+        "STATE_CONFLICT"
+    Left _ -> throwConflict "Invalid state for reject" "STATE_CONFLICT"
+    Right () -> pure ()
+
+  let insiderRiskValue = maybe "medium" hypothesisInsiderRiskToText hypothesisDetail.insiderRisk
+
+  let mnpiSelfDeclaredValue = fromMaybe False hypothesisDetail.mnpiSelfDeclared
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+  eventUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        HypothesisStatusUpdate
+          { newStatus = HypothesisStatusRejected
+          , newPromotionMode = Nothing
+          , updatedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateHypothesisStatus
+              FirestoreHypothesisRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              hypothesisIdentifier
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update hypothesis status"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  let publisherEnvironment =
+        PubSubHypothesisPublisherEnv
+          { publisher = appEnvironment.pubSubPublisher
+          , hypothesisPromotedTopicName = appEnvironment.hypothesisPromotedTopicName
+          , hypothesisRejectedTopicName = appEnvironment.hypothesisRejectedTopicName
+          , hypothesisRetestRequestedTopicName = appEnvironment.hypothesisRetestRequestedTopicName
+          }
+
+  liftIO $
+    publishHypothesisRejected
+      publisherEnvironment
+      eventUlid
+      traceUlid
+      now
+      hypothesisIdentifier
+      rejectRequest.actionReasonCode
+      mnpiSelfDeclaredValue
+      insiderRiskValue
+
+  pure
+    HypothesisActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @POST \/hypotheses\/{identifier}\/retest@ handler.
+
+Requires @hypotheses:retest@ permission.  Validates that the hypothesis is in
+@demo@ or @backtested@ status per 状態遷移設計.md §7.  Does not change Firestore
+status; publishes @hypothesis.retest.requested@ and returns 202.
+-}
+retestHypothesisHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  Handler HypothesisRetestAccepted
+retestHypothesisHandler appEnvironment hypothesisIdentifier maybeAuthHeader = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "hypotheses:retest"
+
+  hypothesisDetail <- fetchHypothesisOrNotFound appEnvironment hypothesisIdentifier
+
+  case validateRetest hypothesisDetail.status of
+    Left (InvalidStateTransition currentStatus _action) ->
+      throwConflict
+        ("Cannot request retest for hypothesis in status " <> hypothesisStatusToText currentStatus)
+        "STATE_CONFLICT"
+    Left _ -> throwConflict "Invalid state for retest" "STATE_CONFLICT"
+    Right () -> pure ()
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+  eventUlid <- liftIO ULID.getULID
+
+  let publisherEnvironment =
+        PubSubHypothesisPublisherEnv
+          { publisher = appEnvironment.pubSubPublisher
+          , hypothesisPromotedTopicName = appEnvironment.hypothesisPromotedTopicName
+          , hypothesisRejectedTopicName = appEnvironment.hypothesisRejectedTopicName
+          , hypothesisRetestRequestedTopicName = appEnvironment.hypothesisRetestRequestedTopicName
+          }
+
+  liftIO $
+    publishHypothesisRetestRequested
+      publisherEnvironment
+      eventUlid
+      traceUlid
+      now
+      hypothesisIdentifier
+
+  pure
+    HypothesisRetestAccepted
+      { accepted = True
+      , identifier = hypothesisIdentifier
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @PUT \/hypotheses\/{identifier}\/mnpi-self-declaration@ handler.
+
+Requires @hypotheses:decide@ permission.  Updates the @mnpiSelfDeclared@
+field in @hypothesis_registry@ without changing the hypothesis status.
+No event is published (per 状態遷移設計.md §7).
+-}
+updateHypothesisMnpiHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  HypothesisMnpiSelfDeclarationUpdateRequest ->
+  Handler HypothesisActionResult
+updateHypothesisMnpiHandler appEnvironment hypothesisIdentifier maybeAuthHeader mnpiRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "hypotheses:decide"
+
+  _hypothesisDetail <- fetchHypothesisOrNotFound appEnvironment hypothesisIdentifier
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let mnpiUpdate =
+        HypothesisMnpiUpdate
+          { mnpiSelfDeclared = mnpiRequest.mnpiSelfDeclared
+          , updatedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateHypothesisMnpi
+              FirestoreHypothesisRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              hypothesisIdentifier
+              mnpiUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update hypothesis MNPI declaration"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  pure
+    HypothesisActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
@@ -278,6 +668,53 @@ throwNotFound detailText =
       , errHeaders = [(hContentType, "application/problem+json")]
       , errReasonPhrase = "Not Found"
       }
+
+throwConflict :: Text -> Text -> Handler a
+throwConflict detailText reasonCodeText =
+  throwError
+    err409
+      { errBody = encode (problemJson "Conflict" 409 detailText reasonCodeText)
+      , errHeaders = [(hContentType, "application/problem+json")]
+      , errReasonPhrase = "Conflict"
+      }
+
+throwUnprocessableEntity :: Text -> Text -> Handler a
+throwUnprocessableEntity detailText reasonCodeText =
+  throwError
+    err422
+      { errBody = encode (problemJson "Unprocessable Entity" 422 detailText reasonCodeText)
+      , errHeaders = [(hContentType, "application/problem+json")]
+      , errReasonPhrase = "Unprocessable Entity"
+      }
+
+-- | Fetch a hypothesis by identifier, returning 404 if not found or 503 on Firestore error.
+fetchHypothesisOrNotFound :: AppEnv -> Text -> Handler HypothesisDetail
+fetchHypothesisOrNotFound appEnvironment hypothesisIdentifier = do
+  detailResult <-
+    liftIO
+      ( try
+          ( getHypothesisByIdentifier
+              FirestoreHypothesisRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              hypothesisIdentifier
+          ) ::
+          IO (Either SomeException (Either FirestoreError (Maybe HypothesisDetail)))
+      )
+  case detailResult of
+    Left _exception ->
+      throwServiceUnavailable "Failed to read hypothesis"
+    Right (Left firestoreError) ->
+      throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right Nothing) ->
+      throwError
+        err404
+          { errBody = encode (problemJson "Not Found" 404 "Hypothesis not found" "RESOURCE_NOT_FOUND")
+          , errHeaders = [(hContentType, "application/problem+json")]
+          , errReasonPhrase = "Not Found"
+          }
+    Right (Right (Just hypothesisDetail)) ->
+      pure hypothesisDetail
 
 data ProblemJson = ProblemJson
   { problemTitle :: Text

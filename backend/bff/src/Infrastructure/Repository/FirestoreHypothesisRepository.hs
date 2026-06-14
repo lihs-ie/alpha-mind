@@ -1,14 +1,19 @@
 module Infrastructure.Repository.FirestoreHypothesisRepository (
   FirestoreHypothesisRepositoryEnv (..),
   HypothesisQueryFilter (..),
+  HypothesisStatusUpdate (..),
+  HypothesisMnpiUpdate (..),
   listHypotheses,
   getHypothesisByIdentifier,
+  updateHypothesisStatus,
+  updateHypothesisMnpi,
 )
 where
 
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import Domain.Hypothesis.Record (
   HypothesisDetail (..),
   HypothesisInsiderRisk (..),
@@ -16,6 +21,7 @@ import Domain.Hypothesis.Record (
   HypothesisPromotionMode (..),
   HypothesisStatus (..),
   HypothesisSummary (..),
+  hypothesisStatusToText,
  )
 import Gogol.FireStore qualified as GogolFireStore
 import Persistence.Firestore (
@@ -26,6 +32,8 @@ import Persistence.Firestore (
   FromFirestore (..),
   QueryOrder (..),
   SortDirection (..),
+  ToFirestore (..),
+  ToFirestoreValue (..),
   requireField,
  )
 import Persistence.Firestore qualified as Firestore
@@ -230,3 +238,74 @@ parseHypothesisPromotionMode :: Text -> Either Text HypothesisPromotionMode
 parseHypothesisPromotionMode "manual" = Right HypothesisPromotionModeManual
 parseHypothesisPromotionMode "auto" = Right HypothesisPromotionModeAuto
 parseHypothesisPromotionMode unknown = Left ("Unknown hypothesis promotion mode: " <> unknown)
+
+-- ---------------------------------------------------------------------------
+-- Update records
+-- ---------------------------------------------------------------------------
+
+-- | Fields to update when promoting or rejecting a hypothesis.
+data HypothesisStatusUpdate = HypothesisStatusUpdate
+  { newStatus :: HypothesisStatus
+  , newPromotionMode :: Maybe Text
+  -- ^ @"manual"@, @"auto"@, or 'Nothing' when not changing.
+  , updatedAt :: UTCTime
+  }
+
+instance ToFirestore HypothesisStatusUpdate where
+  toFirestoreFields statusUpdate =
+    HashMap.fromList $
+      [ ("status", toValue (hypothesisStatusToText statusUpdate.newStatus))
+      , ("updatedAt", toValue statusUpdate.updatedAt)
+      ]
+        <> case statusUpdate.newPromotionMode of
+          Nothing -> []
+          Just modeText -> [("promotionMode", toValue modeText)]
+
+-- | Fields to update when recording an MNPI self-declaration.
+data HypothesisMnpiUpdate = HypothesisMnpiUpdate
+  { mnpiSelfDeclared :: Bool
+  , updatedAt :: UTCTime
+  }
+
+instance ToFirestore HypothesisMnpiUpdate where
+  toFirestoreFields mnpiUpdate =
+    HashMap.fromList
+      [ ("mnpiSelfDeclared", toValue mnpiUpdate.mnpiSelfDeclared)
+      , ("updatedAt", toValue mnpiUpdate.updatedAt)
+      ]
+
+-- ---------------------------------------------------------------------------
+-- Update operations
+-- ---------------------------------------------------------------------------
+
+{- | Overwrite @status@, optionally @promotionMode@, and @updatedAt@ of a
+hypothesis document in @hypothesis_registry@.
+-}
+updateHypothesisStatus ::
+  FirestoreHypothesisRepositoryEnv ->
+  -- | Hypothesis identifier (ULID).
+  Text ->
+  HypothesisStatusUpdate ->
+  IO (Either FirestoreError ())
+updateHypothesisStatus hypothesisRepositoryEnv hypothesisIdentifier statusUpdate =
+  Firestore.upsertDocument
+    hypothesisRepositoryEnv.firestoreContext
+    (CollectionName "hypothesis_registry")
+    (DocumentId hypothesisIdentifier)
+    statusUpdate
+
+{- | Overwrite @mnpiSelfDeclared@ and @updatedAt@ of a hypothesis document
+in @hypothesis_registry@.
+-}
+updateHypothesisMnpi ::
+  FirestoreHypothesisRepositoryEnv ->
+  -- | Hypothesis identifier (ULID).
+  Text ->
+  HypothesisMnpiUpdate ->
+  IO (Either FirestoreError ())
+updateHypothesisMnpi hypothesisRepositoryEnv hypothesisIdentifier mnpiUpdate =
+  Firestore.upsertDocument
+    hypothesisRepositoryEnv.firestoreContext
+    (CollectionName "hypothesis_registry")
+    (DocumentId hypothesisIdentifier)
+    mnpiUpdate

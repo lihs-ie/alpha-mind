@@ -22,8 +22,12 @@ Endpoints:
   * @POST /insights/{identifier}/adopt@       — adopt an insight record (JWT required, insights:write)
   * @POST /insights/{identifier}/reject@      — reject an insight record (JWT required, insights:write)
   * @POST /insights/{identifier}/hypothesize@ — hypothesize from an insight (JWT required, insights:write)
-  * @GET /hypotheses@                         — paginated list of hypotheses (JWT required)
-  * @GET /hypotheses/{identifier}@            — single hypothesis detail (JWT required)
+  * @GET /hypotheses@                                     — paginated list of hypotheses (JWT required)
+  * @GET /hypotheses/{identifier}@                        — single hypothesis detail (JWT required)
+  * @POST /hypotheses/{identifier}/promote@               — promote hypothesis to live (JWT required, hypotheses:decide)
+  * @POST /hypotheses/{identifier}/reject@                — reject hypothesis (JWT required, hypotheses:decide)
+  * @POST /hypotheses/{identifier}/retest@                — request hypothesis retest (JWT required, hypotheses:retest)
+  * @PUT /hypotheses/{identifier}/mnpi-self-declaration@  — update MNPI self-declaration (JWT required, hypotheses:decide)
   * @GET /models/validation@                  — paginated list of model validations (JWT required)
   * @GET /models/validation/{modelVersion}@   — single model validation detail (JWT required)
   * @POST /operations/runtime@                — change runtime state (JWT required)
@@ -57,10 +61,19 @@ import Presentation.Handler.Commands (
  )
 import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
 import Presentation.Handler.Hypotheses (
+  HypothesisActionResult,
+  HypothesisDecisionRequest,
   HypothesisDetailResponse,
   HypothesisListResponse,
+  HypothesisMnpiSelfDeclarationUpdateRequest,
+  HypothesisRejectRequest,
+  HypothesisRetestAccepted,
   getHypothesesHandler,
   getHypothesisByIdentifierHandler,
+  promoteHypothesisHandler,
+  rejectHypothesisHandler,
+  retestHypothesisHandler,
+  updateHypothesisMnpiHandler,
  )
 import Presentation.Handler.Insights (
   HypothesizeRequest,
@@ -254,6 +267,29 @@ type HypothesesAPI =
       :> Capture "identifier" Text
       :> Header "Authorization" Text
       :> Get '[JSON] HypothesisDetailResponse
+    :<|> "hypotheses"
+      :> Capture "identifier" Text
+      :> "promote"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] HypothesisDecisionRequest
+      :> Post '[JSON] HypothesisActionResult
+    :<|> "hypotheses"
+      :> Capture "identifier" Text
+      :> "reject"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] HypothesisRejectRequest
+      :> Post '[JSON] HypothesisActionResult
+    :<|> "hypotheses"
+      :> Capture "identifier" Text
+      :> "retest"
+      :> Header "Authorization" Text
+      :> PostAccepted '[JSON] HypothesisRetestAccepted
+    :<|> "hypotheses"
+      :> Capture "identifier" Text
+      :> "mnpi-self-declaration"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] HypothesisMnpiSelfDeclarationUpdateRequest
+      :> Put '[JSON] HypothesisActionResult
 
 type ModelsValidationAPI =
   "models"
@@ -330,8 +366,12 @@ bffApiProxy = Proxy
   * @POST /insights/{identifier}/adopt@      → 'adoptInsightHandler'
   * @POST /insights/{identifier}/reject@     → 'rejectInsightHandler'
   * @POST /insights/{identifier}/hypothesize@ → 'hypothesizeInsightHandler'
-  * @GET /hypotheses@                        → 'getHypothesesHandler'
-  * @GET /hypotheses/{identifier}@           → 'getHypothesisByIdentifierHandler'
+  * @GET /hypotheses@                                    → 'getHypothesesHandler'
+  * @GET /hypotheses/{identifier}@                       → 'getHypothesisByIdentifierHandler'
+  * @POST /hypotheses/{identifier}/promote@              → 'promoteHypothesisHandler'
+  * @POST /hypotheses/{identifier}/reject@               → 'rejectHypothesisHandler'
+  * @POST /hypotheses/{identifier}/retest@               → 'retestHypothesisHandler'
+  * @PUT /hypotheses/{identifier}/mnpi-self-declaration@ → 'updateHypothesisMnpiHandler'
   * @GET /models/validation@                 → 'getModelValidationsHandler'
   * @GET /models/validation/{modelVersion}@  → 'getModelValidationByVersionHandler'
   * @POST /operations/runtime@               → 'handleChangeRuntime'
@@ -361,7 +401,13 @@ bffServer appEnvironment =
              :<|> rejectInsightHandler appEnvironment
              :<|> hypothesizeInsightHandler appEnvironment
          )
-    :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)
+    :<|> ( getHypothesesHandler appEnvironment
+             :<|> getHypothesisByIdentifierHandler appEnvironment
+             :<|> promoteHypothesisHandler appEnvironment
+             :<|> rejectHypothesisHandler appEnvironment
+             :<|> retestHypothesisHandler appEnvironment
+             :<|> updateHypothesisMnpiHandler appEnvironment
+         )
     :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
     :<|> (handleChangeRuntime appEnvironment :<|> handleToggleKillSwitch appEnvironment)
     :<|> (handleRunCycle appEnvironment :<|> handleRunInsightCycle appEnvironment)
