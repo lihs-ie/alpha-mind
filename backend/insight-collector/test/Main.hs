@@ -1,5 +1,9 @@
 module Main (main) where
 
+import ACL.ExternalSource.GitHubSpec qualified
+import ACL.ExternalSource.PaperSpec qualified
+import ACL.ExternalSource.XSpec qualified
+import ACL.ExternalSource.YouTubeSpec qualified
 import Domain.InsightCollection.AggregateSpec qualified
 import Domain.InsightCollection.DomainEventSpec qualified
 import Domain.InsightCollection.EvidenceCompletenessPolicySpec qualified
@@ -19,3 +23,7 @@ main =
     Domain.InsightCollection.EvidenceCompletenessPolicySpec.spec
     Domain.InsightCollection.DomainEventSpec.spec
     UseCase.CollectInsightsSpec.spec
+    ACL.ExternalSource.XSpec.spec
+    ACL.ExternalSource.YouTubeSpec.spec
+    ACL.ExternalSource.PaperSpec.spec
+    ACL.ExternalSource.GitHubSpec.spec

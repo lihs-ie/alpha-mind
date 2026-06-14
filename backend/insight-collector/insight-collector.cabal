@@ -27,9 +27,20 @@ library
     Domain.InsightCollection.EvidenceCompletenessPolicy
     UseCase.CollectInsights
     UseCase.RecordInsightAudit
+    ACL.ExternalSource.X
+    ACL.ExternalSource.YouTube
+    ACL.ExternalSource.Paper
+    ACL.ExternalSource.GitHub
   build-depends:
+    aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    http-client          ^>=0.7,
+    http-types           ^>=0.12,
+    mtl                  ^>=2.3,
+    shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
+    transformers         ^>=0.6,
     ulid                 ^>=0.3.3
 
 executable insight-collector
@@ -49,6 +60,10 @@ test-suite insight-collector-test
   main-is:        Main.hs
   hs-source-dirs: test
   build-depends:
+    aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    http-client          ^>=0.7,
+    http-types           ^>=0.12,
     insight-collector,
     hspec                ^>=2.11.16,
     mtl                  ^>=2.3,
@@ -63,3 +78,7 @@ test-suite insight-collector-test
     Domain.InsightCollection.ReasonCodeSpec
     Domain.InsightCollection.DomainEventSpec
     UseCase.CollectInsightsSpec
+    ACL.ExternalSource.XSpec
+    ACL.ExternalSource.YouTubeSpec
+    ACL.ExternalSource.PaperSpec
+    ACL.ExternalSource.GitHubSpec
