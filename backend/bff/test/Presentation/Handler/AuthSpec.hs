@@ -11,6 +11,7 @@ import Network.HTTP.Types (status200, status401)
 import Network.Wai (Application, defaultRequest)
 import Network.Wai qualified as Wai
 import Network.Wai.Test (SRequest (..), SResponse (..), runSession, setPath, srequest)
+import Persistence.Firestore (FirestoreContext (..))
 import Presentation.Api (bffApiProxy, bffServer)
 import Presentation.AppM (AppEnv (..))
 import Servant (serve)
@@ -34,6 +35,11 @@ testAppEnv =
         FirestoreUserRepositoryEnv
           { adminEmail = "admin@example.com"
           , adminPasswordHash = "correct-password"
+          }
+    , firestoreContext =
+        FirestoreContext
+          { projectId = "test-project"
+          , databaseId = "(default)"
           }
     , serviceName = "bff"
     }

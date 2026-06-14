@@ -7,7 +7,8 @@ Defines 'BffAPI' as the business API (excluding the standard health
 endpoints which are added by 'App.Bootstrap.mkApplication').
 
 Endpoints:
-  * @POST /auth/login@ — returns a signed RS256 JWT on valid credentials
+  * @POST /auth/login@            — returns a signed HS256 JWT on valid credentials
+  * @GET /dashboard/summary@      — returns aggregated dashboard state (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -17,12 +18,24 @@ module Presentation.Api (
 )
 where
 
+import Data.Text (Text)
 import Presentation.AppM (AppEnv)
 import Presentation.Handler.Auth (LoginRequest, LoginResponse, loginHandler)
-import Servant (JSON, Post, Proxy (..), ReqBody, Server, (:>))
+import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
+import Servant (
+  Get,
+  Header,
+  JSON,
+  Post,
+  Proxy (..),
+  ReqBody,
+  Server,
+  (:<|>) (..),
+  (:>),
+ )
 
 -- ---------------------------------------------------------------------------
--- API type (Must-08)
+-- API type
 -- ---------------------------------------------------------------------------
 
 type BffPublicAPI =
@@ -31,7 +44,13 @@ type BffPublicAPI =
     :> ReqBody '[JSON] LoginRequest
     :> Post '[JSON] LoginResponse
 
-type BffAPI = BffPublicAPI
+type BffProtectedAPI =
+  "dashboard"
+    :> "summary"
+    :> Header "Authorization" Text
+    :> Get '[JSON] DashboardSummaryResponse
+
+type BffAPI = BffPublicAPI :<|> BffProtectedAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -40,8 +59,12 @@ bffApiProxy = Proxy
 -- Server
 -- ---------------------------------------------------------------------------
 
-{- | Wire 'BffAPI' to its handler.  Must-01 result line:
-@POST /auth/login@ → 'loginHandler'.
+{- | Wire 'BffAPI' to its handlers.
+
+  * @POST /auth/login@       → 'loginHandler'
+  * @GET /dashboard/summary@ → 'getDashboardSummaryHandler'
 -}
 bffServer :: AppEnv -> Server BffAPI
-bffServer = loginHandler
+bffServer appEnvironment =
+  loginHandler appEnvironment
+    :<|> getDashboardSummaryHandler appEnvironment

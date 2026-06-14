@@ -13,6 +13,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Infrastructure.JWT.JwtIssuer (JwtIssuerEnv (..))
 import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositoryEnv (..))
+import Persistence.Firestore (FirestoreContext (..))
 
 -- ---------------------------------------------------------------------------
 -- Application environment
@@ -22,6 +23,7 @@ import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositor
 data AppEnv = AppEnv
   { jwtIssuerEnv :: JwtIssuerEnv
   , userRepositoryEnv :: FirestoreUserRepositoryEnv
+  , firestoreContext :: FirestoreContext
   , serviceName :: Text
   }
 
@@ -39,6 +41,8 @@ Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
   JWT_EXPIRY_SECONDS    — token lifetime in seconds (default 3600)
+  GCP_PROJECT_ID        — GCP project identifier (default \"alpha-mind-local\")
+  FIRESTORE_DATABASE_ID — Firestore database ID (default \"(default)\")
 -}
 buildAppEnv :: IO AppEnv
 buildAppEnv = do
@@ -48,9 +52,13 @@ buildAppEnv = do
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
+  maybeProjectId <- optionalTextEnv "GCP_PROJECT_ID"
+  maybeDatabaseId <- optionalTextEnv "FIRESTORE_DATABASE_ID"
   let issuerUrlValue = fromMaybe "https://bff.alpha-mind.local" maybeIssuerUrl
       audienceUrlValue = fromMaybe "https://bff.alpha-mind.local" maybeAudienceUrl
       expirySecondsValue = maybe 3600 (read . Text.unpack) maybeExpirySeconds
+      projectIdValue = fromMaybe "alpha-mind-local" maybeProjectId
+      databaseIdValue = fromMaybe "(default)" maybeDatabaseId
   pure
     AppEnv
       { jwtIssuerEnv =
@@ -64,6 +72,11 @@ buildAppEnv = do
           FirestoreUserRepositoryEnv
             { adminEmail = adminEmailValue
             , adminPasswordHash = adminPasswordValue
+            }
+      , firestoreContext =
+          FirestoreContext
+            { projectId = projectIdValue
+            , databaseId = databaseIdValue
             }
       , serviceName = "bff"
       }
