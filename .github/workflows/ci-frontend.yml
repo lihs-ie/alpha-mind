@@ -96,8 +96,15 @@ jobs:
         id: cache-sol-cli
         uses: actions/cache@v5
         with:
-          path: references/sol.mbt/_build
-          key: sol-cli-build-${{ env.SOL_COMMIT }}-async-${{ env.ASYNC_VERSION }}
+          # node_modules must be cached alongside _build: the built cli.js
+          # imports runtime deps (e.g. colorette) from references/sol.mbt/
+          # node_modules, but the "Clone and build Sol CLI" step (which runs
+          # pnpm install) is skipped on a cache hit. Without node_modules the
+          # later `sol build` fails with ERR_MODULE_NOT_FOUND on a cache hit.
+          path: |
+            references/sol.mbt/_build
+            references/sol.mbt/node_modules
+          key: sol-cli-build-v2-${{ env.SOL_COMMIT }}-async-${{ env.ASYNC_VERSION }}
 
       - name: Clone and build Sol CLI
         if: steps.cache-sol-cli.outputs.cache-hit != 'true'
