@@ -31,9 +31,17 @@ library
     ACL.ExternalSource.YouTube
     ACL.ExternalSource.Paper
     ACL.ExternalSource.GitHub
+    Infrastructure.Idempotency.InsightIdempotency
+    Infrastructure.Publisher.PubSubInsightEventPublisher
+    Infrastructure.Repository.FirestoreInsightCollectionRepository
+    Infrastructure.Repository.FirestoreInsightRecordRepository
+    Infrastructure.Repository.FirestoreSourcePolicyRepository
+    Infrastructure.Wire.ReasonCodeWire
   build-depends:
     aeson                ^>=2.2,
     bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
     http-client          ^>=0.7,
     http-types           ^>=0.12,
     mtl                  ^>=2.3,
@@ -41,7 +49,8 @@ library
     text                 ^>=2.1.4,
     time                 ^>=1.14,
     transformers         ^>=0.6,
-    ulid                 ^>=0.3.3
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2
 
 executable insight-collector
   import:         shared
@@ -67,6 +76,7 @@ test-suite insight-collector-test
     insight-collector,
     hspec                ^>=2.11.16,
     mtl                  ^>=2.3,
+    shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
     ulid                 ^>=0.3.3
@@ -82,3 +92,6 @@ test-suite insight-collector-test
     ACL.ExternalSource.YouTubeSpec
     ACL.ExternalSource.PaperSpec
     ACL.ExternalSource.GitHubSpec
+    Infrastructure.Repository.FirestoreInsightRecordRepositorySpec
+    Infrastructure.Publisher.PubSubInsightEventPublisherSpec
+    Infrastructure.Idempotency.InsightIdempotencySpec
