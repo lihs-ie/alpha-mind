@@ -67,6 +67,9 @@ testAppEnv =
     , killSwitchTopicName = "test-kill-switch-topic"
     , marketCollectTopicName = "test-market-collect-topic"
     , insightCollectTopicName = "test-insight-collect-topic"
+    , ordersApprovedTopicName = "test-orders-approved-topic"
+    , ordersRejectedTopicName = "test-orders-rejected-topic"
+    , ordersProposedTopicName = "test-orders-proposed-topic"
     }
 
 testApp :: Application

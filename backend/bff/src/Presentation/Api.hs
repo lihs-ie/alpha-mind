@@ -79,10 +79,17 @@ import Presentation.Handler.Operations (
   handleToggleKillSwitch,
  )
 import Presentation.Handler.Orders (
+  ApproveOrderRequest,
+  OrderActionResult,
   OrderDetailResponse,
   OrderListResponse,
+  OrderRetryAccepted,
+  RejectOrderRequest,
+  approveOrderHandler,
   getOrderByIdentifierHandler,
   getOrdersHandler,
+  rejectOrderHandler,
+  retryOrderHandler,
  )
 import Presentation.Handler.Settings (
   ComplianceControlsResponse,
@@ -141,6 +148,23 @@ type OrdersAPI =
       :> Capture "identifier" Text
       :> Header "Authorization" Text
       :> Get '[JSON] OrderDetailResponse
+    :<|> "orders"
+      :> Capture "identifier" Text
+      :> "approve"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] ApproveOrderRequest
+      :> Post '[JSON] OrderActionResult
+    :<|> "orders"
+      :> Capture "identifier" Text
+      :> "reject"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] RejectOrderRequest
+      :> Post '[JSON] OrderActionResult
+    :<|> "orders"
+      :> Capture "identifier" Text
+      :> "retry"
+      :> Header "Authorization" Text
+      :> PostAccepted '[JSON] OrderRetryAccepted
 
 type AuditAPI =
   "audit"
@@ -288,7 +312,12 @@ bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
   loginHandler appEnvironment
     :<|> getDashboardSummaryHandler appEnvironment
-    :<|> (getOrdersHandler appEnvironment :<|> getOrderByIdentifierHandler appEnvironment)
+    :<|> ( getOrdersHandler appEnvironment
+             :<|> getOrderByIdentifierHandler appEnvironment
+             :<|> approveOrderHandler appEnvironment
+             :<|> rejectOrderHandler appEnvironment
+             :<|> retryOrderHandler appEnvironment
+         )
     :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
     :<|> ( getSettingsStrategyHandler appEnvironment
              :<|> putSettingsStrategyHandler appEnvironment
