@@ -25,6 +25,23 @@ pub(all) struct DashboardOperationsProps {
 } derive(ToJson, FromJson)
 
 ///| Props type from @client
+pub(all) struct HypothesisRowProps {
+  identifier : String
+  symbol : String
+  instrument_type : String
+  status : String
+  title : String
+  updated_at : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
+pub(all) struct HypothesesActionsProps {
+  bff_base_url : String
+  initial_hypotheses : Array[HypothesisRowProps]
+  initial_next_cursor : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
 pub(all) struct InsightRowProps {
   identifier : String
   source_type : String
@@ -128,6 +145,24 @@ pub fn dashboard_operations(
   trigger~ : @luna.Trigger = @luna.TriggerType::Load,
 ) -> @luna.ComponentRef[DashboardOperationsProps] {
   { url: "/static/dashboard_operations.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for hypothesis_row component
+pub fn hypothesis_row(
+  props : HypothesisRowProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[HypothesisRowProps] {
+  { url: "/static/hypothesis_row.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for hypotheses_actions component
+pub fn hypotheses_actions(
+  props : HypothesesActionsProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[HypothesesActionsProps] {
+  { url: "/static/hypotheses_actions.js", props, wc: false, trigger }
 }
 
 ///|
@@ -247,6 +282,10 @@ pub let route_models_validation : String = "/models/validation"
 /// Route path: /insights
 pub let route_insights : String = "/insights"
 
+///|
+/// Route path: /hypotheses
+pub let route_hypotheses : String = "/hypotheses"
+
 // =============================================================================
 // Link Builder Functions
 // =============================================================================
@@ -297,5 +336,11 @@ pub fn link_models_validation() -> String {
 /// Link builder for route: /insights
 pub fn link_insights() -> String {
   "/insights"
+}
+
+///|
+/// Link builder for route: /hypotheses
+pub fn link_hypotheses() -> String {
+  "/hypotheses"
 }
 
