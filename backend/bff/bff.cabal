@@ -22,6 +22,7 @@ library
     Domain.Dashboard.Summary
     Domain.Hypothesis.Record
     Domain.Insight.Record
+    Domain.ModelValidation.Record
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
@@ -29,6 +30,7 @@ library
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
+    Infrastructure.Repository.FirestoreModelValidationRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreSettingsRepository
@@ -40,6 +42,7 @@ library
     Presentation.Handler.Dashboard
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
+    Presentation.Handler.ModelValidations
     Presentation.Handler.Orders
     Presentation.Handler.Settings
   build-depends:
@@ -69,6 +72,7 @@ executable bff
     Domain.Dashboard.Summary
     Domain.Hypothesis.Record
     Domain.Insight.Record
+    Domain.ModelValidation.Record
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
@@ -76,6 +80,7 @@ executable bff
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
+    Infrastructure.Repository.FirestoreModelValidationRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreSettingsRepository
@@ -87,6 +92,7 @@ executable bff
     Presentation.Handler.Dashboard
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
+    Presentation.Handler.ModelValidations
     Presentation.Handler.Orders
     Presentation.Handler.Settings
   build-depends:
@@ -129,5 +135,6 @@ test-suite bff-test
     Presentation.Handler.DashboardSpec
     Presentation.Handler.HypothesesSpec
     Presentation.Handler.InsightsSpec
+    Presentation.Handler.ModelValidationsSpec
     Presentation.Handler.OrdersSpec
     Presentation.Handler.SettingsSpec
