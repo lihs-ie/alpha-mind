@@ -296,8 +296,13 @@ services:
       GCP_REGION: asia-northeast1
       FIRESTORE_EMULATOR_HOST: firestore:8080
       FIRESTORE_DATABASE: "(default)"
+      FIRESTORE_DATABASE_ID: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
+      # presentation 層 (#40) が App.Bootstrap / buildAppEnv で要求する必須 env
+      SERVICE_VERSION: "0.1.0"
+      PUBSUB_ORDERS_PROPOSED_TOPIC: "orders.proposed"
+      PUBSUB_ORDERS_PROPOSAL_FAILED_TOPIC: "orders.proposal.failed"
     depends_on:
       init:
         condition: service_completed_successfully

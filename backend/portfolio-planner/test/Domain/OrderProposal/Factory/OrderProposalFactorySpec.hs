@@ -65,19 +65,19 @@ spec =
     describe "fromSignalSnapshot (MUST-24)" $ do
       it "MUST-24: success case produces status == Proposed (INV-PP-001)" $ do
         case fromSignalSnapshot testIdentifier "7203" Buy 500 validSignalSnapshot validStrategySnapshot testTrace fixedTime of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             proposal.status `shouldBe` Proposed
 
       it "MUST-24: sets identifier from input" $ do
         case fromSignalSnapshot testIdentifier "7203" Buy 500 validSignalSnapshot validStrategySnapshot testTrace fixedTime of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             proposal.identifier `shouldBe` testIdentifier
 
       it "MUST-24: sets symbol and side correctly" $ do
         case fromSignalSnapshot testIdentifier "7203" Sell 200 validSignalSnapshot validStrategySnapshot testTrace fixedTime of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) -> do
             proposal.symbol `shouldBe` "7203"
             proposal.side `shouldBe` Sell
@@ -92,6 +92,6 @@ spec =
 
       it "emits OrderProposalCreated event" $ do
         case fromSignalSnapshot testIdentifier "7203" Buy 500 validSignalSnapshot validStrategySnapshot testTrace fixedTime of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (_, events) ->
             length events `shouldBe` 1

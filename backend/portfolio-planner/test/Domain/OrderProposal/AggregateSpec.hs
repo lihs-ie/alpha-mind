@@ -86,13 +86,13 @@ spec =
     describe "createProposal (MUST-09, MUST-10)" $ do
       it "MUST-09: sets status to Proposed on success (INV-PP-001)" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             proposal.status `shouldBe` Proposed
 
       it "MUST-09: identifier matches input" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             proposal.identifier `shouldBe` testIdentifier
 
@@ -110,7 +110,7 @@ spec =
 
       it "emits OrderProposalCreated event with trace" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (_, [OrderProposalCreated{trace = t}]) ->
             t `shouldBe` testTrace
           Right (_, events) ->
@@ -120,65 +120,65 @@ spec =
     describe "rejectProposal" $ do
       it "transitions Proposed → Rejected" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             case rejectProposal proposal of
-              Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+              Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
               Right updated -> updated.status `shouldBe` Rejected
 
       it "rejects non-Proposed status" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             case rejectProposal proposal of
-              Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+              Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
               Right rejected ->
                 rejectProposal rejected `shouldSatisfy` isLeft
 
     describe "approveProposal" $ do
       it "transitions Proposed → Approved" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             case approveProposal proposal of
-              Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+              Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
               Right updated -> updated.status `shouldBe` Approved
 
     describe "markExecuted" $ do
       it "transitions Approved → Executed" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             case approveProposal proposal of
-              Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+              Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
               Right approved ->
                 case markExecuted approved of
-                  Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+                  Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
                   Right updated -> updated.status `shouldBe` Executed
 
       it "rejects Proposed status" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             markExecuted proposal `shouldSatisfy` isLeft
 
     describe "markFailed" $ do
       it "transitions Approved → Failed" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             case approveProposal proposal of
-              Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+              Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
               Right approved ->
                 case markFailed approved of
-                  Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+                  Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
                   Right updated -> updated.status `shouldBe` Failed
 
     -- MUST-29: naming convention
     describe "identifier naming (MUST-29)" $ do
       it "uses 'identifier' field, not 'id'" $ do
         case mkValidProposal of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (proposal, _) ->
             -- Compiles only if .identifier accessor exists (not .id or .orderId)
             proposal.identifier `shouldBe` testIdentifier
