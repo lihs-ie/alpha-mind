@@ -27,11 +27,18 @@ library
     Domain.OrderExecution.OrderExecutionFactory
     Domain.OrderExecution.ReasonCode
     Domain.OrderExecution.Specification
+    Infrastructure.ACL.BrokerT
     UseCase.CompleteDemoRun
     UseCase.ExecuteOrder
   build-depends:
+    aeson          ^>=2.2,
+    bytestring     ^>=0.12,
+    http-client    ^>=0.7,
+    http-types     ^>=0.12,
+    shared,
     text           ^>=2.1.4,
     time           ^>=1.14,
+    transformers   ^>=0.6.1.2,
     ulid           ^>=0.3.3,
 
 executable execution
@@ -52,7 +59,11 @@ test-suite execution-test
   hs-source-dirs: test
   build-depends:
     execution,
+    aeson          ^>=2.2,
+    bytestring     ^>=0.12,
     hspec          ^>=2.11,
+    http-client    ^>=0.7,
+    http-types     ^>=0.12,
     text           ^>=2.1.4,
     time           ^>=1.14,
     ulid           ^>=0.3.3,
@@ -61,5 +72,6 @@ test-suite execution-test
     Domain.OrderExecution.BrokerExecutionPolicySpec
     Domain.OrderExecution.DemoRunEvaluationSpec
     Domain.OrderExecution.ExecutionIdempotencyPolicySpec
+    Infrastructure.ACL.BrokerTSpec
     UseCase.CompleteDemoRunSpec
     UseCase.ExecuteOrderSpec
