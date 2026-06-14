@@ -173,6 +173,10 @@ services:
       PUBSUB_ORDERS_APPROVED_TOPIC: "orders.approved"
       PUBSUB_ORDERS_REJECTED_TOPIC: "orders.rejected"
       PUBSUB_ORDERS_PROPOSED_TOPIC: "orders.proposed"
+      # 仮説アクション (#22) が発行するイベントの topic（asyncapi channel address に準拠）
+      PUBSUB_HYPOTHESIS_PROMOTED_TOPIC: "hypothesis.promoted"
+      PUBSUB_HYPOTHESIS_REJECTED_TOPIC: "hypothesis.rejected"
+      PUBSUB_HYPOTHESIS_RETEST_REQUESTED_TOPIC: "hypothesis.retest.requested"
       # インサイトアクション (#21) が発行するイベントの topic（asyncapi channel address に準拠）
       PUBSUB_HYPOTHESIS_PROPOSED_TOPIC: "hypothesis.proposed"
     depends_on:

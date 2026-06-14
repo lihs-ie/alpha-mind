@@ -35,6 +35,9 @@ data AppEnv = AppEnv
   , ordersRejectedTopicName :: Text
   , ordersProposedTopicName :: Text
   , hypothesisProposedTopicName :: Text
+  , hypothesisPromotedTopicName :: Text
+  , hypothesisRejectedTopicName :: Text
+  , hypothesisRetestRequestedTopicName :: Text
   }
 
 -- ---------------------------------------------------------------------------
@@ -50,10 +53,13 @@ Required variables:
   PUBSUB_KILL_SWITCH_TOPIC      — Pub/Sub topic name for kill-switch events
   PUBSUB_MARKET_COLLECT_TOPIC   — Pub/Sub topic for market.collect.requested events
   PUBSUB_INSIGHT_COLLECT_TOPIC  — Pub/Sub topic for insight.collect.requested events
-  PUBSUB_ORDERS_APPROVED_TOPIC      — Pub/Sub topic for orders.approved events
-  PUBSUB_ORDERS_REJECTED_TOPIC      — Pub/Sub topic for orders.rejected events
-  PUBSUB_ORDERS_PROPOSED_TOPIC      — Pub/Sub topic for orders.proposed events (retry)
-  PUBSUB_HYPOTHESIS_PROPOSED_TOPIC  — Pub/Sub topic for hypothesis.proposed events
+  PUBSUB_ORDERS_APPROVED_TOPIC              — Pub/Sub topic for orders.approved events
+  PUBSUB_ORDERS_REJECTED_TOPIC              — Pub/Sub topic for orders.rejected events
+  PUBSUB_ORDERS_PROPOSED_TOPIC              — Pub/Sub topic for orders.proposed events (retry)
+  PUBSUB_HYPOTHESIS_PROPOSED_TOPIC          — Pub/Sub topic for hypothesis.proposed events
+  PUBSUB_HYPOTHESIS_PROMOTED_TOPIC          — Pub/Sub topic for hypothesis.promoted events
+  PUBSUB_HYPOTHESIS_REJECTED_TOPIC          — Pub/Sub topic for hypothesis.rejected events
+  PUBSUB_HYPOTHESIS_RETEST_REQUESTED_TOPIC  — Pub/Sub topic for hypothesis.retest.requested events
 Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
@@ -73,6 +79,9 @@ buildAppEnv = do
   ordersRejectedTopicValue <- requireTextEnv "PUBSUB_ORDERS_REJECTED_TOPIC"
   ordersProposedTopicValue <- requireTextEnv "PUBSUB_ORDERS_PROPOSED_TOPIC"
   hypothesisProposedTopicValue <- requireTextEnv "PUBSUB_HYPOTHESIS_PROPOSED_TOPIC"
+  hypothesisPromotedTopicValue <- requireTextEnv "PUBSUB_HYPOTHESIS_PROMOTED_TOPIC"
+  hypothesisRejectedTopicValue <- requireTextEnv "PUBSUB_HYPOTHESIS_REJECTED_TOPIC"
+  hypothesisRetestRequestedTopicValue <- requireTextEnv "PUBSUB_HYPOTHESIS_RETEST_REQUESTED_TOPIC"
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
@@ -119,4 +128,7 @@ buildAppEnv = do
       , ordersRejectedTopicName = ordersRejectedTopicValue
       , ordersProposedTopicName = ordersProposedTopicValue
       , hypothesisProposedTopicName = hypothesisProposedTopicValue
+      , hypothesisPromotedTopicName = hypothesisPromotedTopicValue
+      , hypothesisRejectedTopicName = hypothesisRejectedTopicValue
+      , hypothesisRetestRequestedTopicName = hypothesisRetestRequestedTopicValue
       }
