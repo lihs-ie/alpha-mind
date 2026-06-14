@@ -36,7 +36,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend == 'true'
 
     env:
-      SOL_COMMIT: bdc573edcfd50aa455d1b17ca8964cee1a69e443
+      SOL_COMMIT: 6bef4fab7c55614990104764da289de8e54cb790
 
     steps:
       - uses: actions/checkout@v6
