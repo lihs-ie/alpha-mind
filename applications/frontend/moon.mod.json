@@ -8,7 +8,7 @@
     "mizchi/signals": "0.6.3",
     "mizchi/js": "0.10.15",
     "mizchi/npm_typed": "0.1.11",
-    "moonbitlang/async": "0.17.0"
+    "moonbitlang/async": "0.19.4"
   },
   "source": "app",
   "preferred-target": "js"

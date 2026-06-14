@@ -39,9 +39,20 @@ jobs:
       # Sol CLI source commit (mizchi/sol.mbt). Pinned to 3c0377a5 (sol 0.14.1,
       # 2026-04-08): bumps moonbitlang/parser 0.1.16 -> 0.2.5, which removes the
       # manual `impl Show for Report` that conflicted with the auto-derived Show
-      # in current MoonBit SDKs ([4051] impl already defined). Builds cleanly on
-      # the unpinned latest SDK, matching Sol's own CI.
+      # in current MoonBit SDKs ([4051] impl already defined).
       SOL_COMMIT: 3c0377a5f6cd547e7ba49441ae7fad3e57a1dc05
+      # moonbitlang/async version override. Every Sol commit (incl. retired
+      # origin/main HEAD) pins moonbitlang/async 0.17.0, whose aqueue/cond_var/
+      # semaphore modules declare struct constructors via the deprecated
+      # `fn new(..)` inside `struct` syntax. The 2026-06 latest MoonBit SDK
+      # promotes that deprecation from a warning to a hard error ([3002]), so
+      # Sol fails to build from source. async 0.19.0+ replaces it with the
+      # required `fn T::T(..)` toplevel form; 0.19.4 is the latest. We override
+      # the transitive pin (in both Sol's moon.mod.json and the frontend
+      # scaffold) so the MoonBit resolver selects a [3002]-free async on the
+      # unpinned latest SDK. The SDK itself cannot be pinned: the CDN serves
+      # only `latest` (date-versioned tarballs return 403).
+      ASYNC_VERSION: 0.19.4
 
     steps:
       - uses: actions/checkout@v6
@@ -86,7 +97,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: references/sol.mbt/_build
-          key: sol-cli-build-${{ env.SOL_COMMIT }}
+          key: sol-cli-build-${{ env.SOL_COMMIT }}-async-${{ env.ASYNC_VERSION }}
 
       - name: Clone and build Sol CLI
         if: steps.cache-sol-cli.outputs.cache-hit != 'true'
@@ -96,6 +107,9 @@ jobs:
           git remote add origin https://github.com/mizchi/sol.mbt
           git fetch --depth 1 origin "$SOL_COMMIT"
           git checkout FETCH_HEAD
+          # Override the transitive moonbitlang/async pin to a [3002]-free
+          # version (see ASYNC_VERSION note above) before resolving deps.
+          node -e "const f='moon.mod.json';const d=require('./'+f);d.deps['moonbitlang/async']=process.env.ASYNC_VERSION;require('fs').writeFileSync(f,JSON.stringify(d,null,2)+'\n')"
           pnpm install
           moon update
           moon build --target js
