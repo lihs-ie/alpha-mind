@@ -2,6 +2,7 @@
 ///| Hydration functions are executed in the browser context.
 using @element {
   type DomNode,
+  a,
   div,
   span,
   button,

@@ -59,6 +59,44 @@ test "dashboard_operations ComponentRef url" {
 }
 
 ///|
+test "InsightRowProps round-trip" {
+  let json_str = "{ \"identifier\": \"\", \"source_type\": \"\", \"summary\": \"\", \"source_url\": \"\", \"collected_at\": \"\", \"signal_class\": \"\", \"so_what_score\": 0 }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : InsightRowProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : InsightRowProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "insight_row ComponentRef url" {
+  let json_str = "{ \"identifier\": \"\", \"source_type\": \"\", \"summary\": \"\", \"source_url\": \"\", \"collected_at\": \"\", \"signal_class\": \"\", \"so_what_score\": 0 }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : InsightRowProps = @json.from_json(json)
+  let cref = insight_row(props)
+  assert_true(cref.url.has_suffix("insight_row.js"))
+}
+
+///|
+test "InsightsActionsProps round-trip" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_insights\": [], \"initial_next_cursor\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : InsightsActionsProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : InsightsActionsProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "insights_actions ComponentRef url" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_insights\": [], \"initial_next_cursor\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : InsightsActionsProps = @json.from_json(json)
+  let cref = insights_actions(props)
+  assert_true(cref.url.has_suffix("insights_actions.js"))
+}
+
+///|
 test "LoginFormProps round-trip" {
   let json_str = "{ \"bff_base_url\": \"\" }"
   let json : Json = @json.parse(json_str) catch { _ => panic() }
