@@ -31,14 +31,21 @@ library
     Infrastructure.Repository.FirestoreRiskAssessmentRepository
     Infrastructure.Repository.FirestoreRiskSettingsRepository
     Infrastructure.Wire.ReasonCodeWire
+    Presentation.Api
+    Presentation.AppM
+    Presentation.Subscriber.PubSubKillSwitchSubscriber
+    Presentation.Subscriber.PubSubOrderRiskSubscriber
     UseCase.CheckOrderRisk
     UseCase.SyncKillSwitch
   build-depends:
     aeson                ^>=2.2,
+    async                ^>=2.2,
     bytestring           ^>=0.12,
     containers           ^>=0.7,
     gogol-firestore      ^>=1.0.0,
     gogol-pubsub         ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
     mtl                  ^>=2.3.1,
     servant-server       ^>=0.20,
     shared,
@@ -55,9 +62,23 @@ executable risk-guard
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   build-depends:
     risk-guard,
-    aeson          ^>=2.2,
-    servant-server ^>=0.20,
-    warp           ^>=3.4
+    aeson                ^>=2.2,
+    async                ^>=2.2,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    gogol-pubsub         ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
+    mtl                  ^>=2.3.1,
+    servant-server       ^>=0.20,
+    shared,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    transformers         ^>=0.6.1.2,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21,
+    warp                 ^>=3.4
 
 test-suite risk-guard-test
   import:         shared
@@ -67,14 +88,22 @@ test-suite risk-guard-test
   build-depends:
     risk-guard,
     aeson                ^>=2.2,
+    base64               ^>=1.0,
+    bytestring           ^>=0.12,
+    case-insensitive     ^>=1.2.1,
     gogol-firestore      ^>=1.0.0,
     hspec                ^>=2.11.16,
+    hspec-wai            ^>=0.11.1,
+    http-client          ^>=0.7,
     mtl                  ^>=2.3.1,
+    servant-server       ^>=0.20,
     shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
     ulid                 ^>=0.3.3,
-    unordered-containers ^>=0.2.21
+    unordered-containers ^>=0.2.21,
+    wai                  ^>=3.2,
+    wai-extra            ^>=3.1
   other-modules:
     Domain.RiskAssessment.AggregateSpec
     Domain.RiskAssessment.ReasonCodeSpec
@@ -82,5 +111,7 @@ test-suite risk-guard-test
     Infrastructure.Publisher.PubSubRiskEventPublisherSpec
     Infrastructure.Repository.FirestoreIdempotencyKeyRepositorySpec
     Infrastructure.Repository.FirestoreRiskAssessmentRepositorySpec
+    Presentation.Server.RiskGuardServerSpec
+    Presentation.Subscriber.PubSubOrderRiskSubscriberSpec
     UseCase.CheckOrderRiskSpec
     UseCase.SyncKillSwitchSpec
