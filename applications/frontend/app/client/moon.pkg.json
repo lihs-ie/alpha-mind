@@ -12,7 +12,7 @@
   ],
   "link": {
     "js": {
-      "exports": ["login_form", "dashboard_operations"],
+      "exports": ["login_form", "dashboard_operations", "strategy_form"],
       "format": "esm"
     }
   }

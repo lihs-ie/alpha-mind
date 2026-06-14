@@ -34,6 +34,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-002: 戦略設定 (authenticated, admin)
+        @router.SolRoutes::Page(
+          path="/settings/strategy",
+          handler=@router.PageHandler(strategy_page),
+          title="戦略設定 — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]
