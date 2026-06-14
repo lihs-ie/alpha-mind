@@ -36,6 +36,9 @@ library
     Domain.HypothesisOrchestration.SkillExecutor
     Domain.HypothesisOrchestration.SkillRegistry
     Domain.HypothesisOrchestration.ValueObjects
+    UseCase.HypothesisOrchestration.DispatchService
+    UseCase.HypothesisOrchestration.FailureKnowledgeRegistrar
+    UseCase.HypothesisOrchestration.HypothesisOrchestrationService
   build-depends:
     text   ^>=2.1.4,
     time   ^>=1.14,
@@ -62,10 +65,11 @@ test-suite agent-orchestrator-test
   hs-source-dirs: test
   build-depends:
     agent-orchestrator,
-    hspec ^>=2.11.16,
-    text  ^>=2.1.4,
-    time  ^>=1.14,
-    ulid  ^>=0.3.3
+    hspec          ^>=2.11.16,
+    mtl            ^>=2.3,
+    text           ^>=2.1.4,
+    time           ^>=1.14,
+    ulid           ^>=0.3.3
   other-modules:
     Domain.HypothesisOrchestration.AggregateSpec
     Domain.HypothesisOrchestration.DuplicateThresholdSpecificationSpec
@@ -74,3 +78,6 @@ test-suite agent-orchestrator-test
     Domain.HypothesisOrchestration.OrchestrationDispatchSpec
     Domain.HypothesisOrchestration.ReasonCodeSpec
     Domain.HypothesisOrchestration.ValueObjectsSpec
+    UseCase.HypothesisOrchestration.DispatchServiceSpec
+    UseCase.HypothesisOrchestration.FailureKnowledgeRegistrarSpec
+    UseCase.HypothesisOrchestration.HypothesisOrchestrationServiceSpec
