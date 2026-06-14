@@ -3,13 +3,80 @@ name:          bff
 version:       0.1.0.0
 build-type:    Simple
 
-executable bff
-  main-is:       Main.hs
+common shared
+  default-language:   GHC2024
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:        -Wall
+  build-depends:      base >=4.20 && <5
+
+library
+  import:         shared
   hs-source-dirs: src
+  exposed-modules:
+    Domain.Auth.Credential
+    Infrastructure.JWT.JwtIssuer
+    Infrastructure.Repository.FirestoreUserRepository
+    Presentation.Api
+    Presentation.AppM
+    Presentation.Handler.Auth
   build-depends:
-    base >=4.20 && <5,
-    servant-server >=0.20 && <1,
-    warp >=3.4 && <4,
-    aeson >=2.2 && <3
-  default-language: GHC2024
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+    aeson          ^>=2.2,
+    bytestring     ^>=0.12,
+    http-types     ^>=0.12,
+    jose-jwt       ^>=0.10.0,
+    mtl            ^>=2.3.1,
+    servant-server ^>=0.20,
+    shared,
+    text           ^>=2.1.4,
+    time           ^>=1.14,
+    transformers   ^>=0.6.1.2,
+    ulid           ^>=0.3.3
+
+executable bff
+  import:         shared
+  main-is:        Main.hs
+  hs-source-dirs: src
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  other-modules:
+    Domain.Auth.Credential
+    Infrastructure.JWT.JwtIssuer
+    Infrastructure.Repository.FirestoreUserRepository
+    Presentation.Api
+    Presentation.AppM
+    Presentation.Handler.Auth
+  build-depends:
+    aeson          ^>=2.2,
+    bff,
+    bytestring     ^>=0.12,
+    http-types     ^>=0.12,
+    jose-jwt       ^>=0.10.0,
+    mtl            ^>=2.3.1,
+    servant-server ^>=0.20,
+    shared,
+    text           ^>=2.1.4,
+    time           ^>=1.14,
+    transformers   ^>=0.6.1.2,
+    ulid           ^>=0.3.3
+
+test-suite bff-test
+  import:         shared
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: test
+  build-depends:
+    aeson          ^>=2.2,
+    bff,
+    bytestring     ^>=0.12,
+    hspec          ^>=2.11.16,
+    http-types     ^>=0.12,
+    servant-server ^>=0.20,
+    shared,
+    text           ^>=2.1.4,
+    wai            ^>=3.2.4,
+    wai-extra      ^>=3.1
+  other-modules:
+    Domain.Auth.CredentialSpec
+    Presentation.Handler.AuthSpec
