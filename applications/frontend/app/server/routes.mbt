@@ -23,8 +23,8 @@ pub fn routes() -> Array[@router.SolRoutes] {
 
 ///|
 /// API handler: health check
-async fn api_health(_props : @router.PageProps) -> @core.Any {
-  @sol.json_obj([("status", @core.any("ok"))])
+async fn api_health(_props : @router.PageProps) -> Json {
+  { "status": "ok" }
 }
 
 ///|

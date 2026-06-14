@@ -36,7 +36,12 @@ jobs:
     if: needs.detect-changes.outputs.frontend == 'true'
 
     env:
-      SOL_COMMIT: 6bef4fab7c55614990104764da289de8e54cb790
+      # Sol CLI source commit (mizchi/sol.mbt). Pinned to 3c0377a5 (sol 0.14.1,
+      # 2026-04-08): bumps moonbitlang/parser 0.1.16 -> 0.2.5, which removes the
+      # manual `impl Show for Report` that conflicted with the auto-derived Show
+      # in current MoonBit SDKs ([4051] impl already defined). Builds cleanly on
+      # the unpinned latest SDK, matching Sol's own CI.
+      SOL_COMMIT: 3c0377a5f6cd547e7ba49441ae7fad3e57a1dc05
 
     steps:
       - uses: actions/checkout@v6
