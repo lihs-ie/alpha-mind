@@ -13,6 +13,7 @@ import Domain.InsightCollection.SourcePolicyComplianceServiceSpec qualified
 import Infrastructure.Idempotency.InsightIdempotencySpec qualified
 import Infrastructure.Publisher.PubSubInsightEventPublisherSpec qualified
 import Infrastructure.Repository.FirestoreInsightRecordRepositorySpec qualified
+import Presentation.PubSubHandlerSpec qualified
 import Test.Hspec (hspec)
 import UseCase.CollectInsightsSpec qualified
 
@@ -33,3 +34,4 @@ main =
     Infrastructure.Repository.FirestoreInsightRecordRepositorySpec.spec
     Infrastructure.Publisher.PubSubInsightEventPublisherSpec.spec
     Infrastructure.Idempotency.InsightIdempotencySpec.spec
+    Presentation.PubSubHandlerSpec.spec

@@ -431,8 +431,14 @@ services:
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
       STORAGE_EMULATOR_HOST: http://gcs:4443
+      # presentation 層 (#54) が App.Bootstrap / buildAppEnv で要求する必須 env
+      SERVICE_VERSION: "0.1.0"
+      PUBSUB_INSIGHT_COLLECTED_TOPIC: "insight.collected"
+      PUBSUB_INSIGHT_COLLECT_FAILED_TOPIC: "insight.collect.failed"
+      # 外部APIキーはローカルではプレースホルダーを使用する（buildAppEnv が読むキー名）
       X_API_BEARER_TOKEN: "local-x-api-bearer-token-placeholder"
       YOUTUBE_API_KEY: "local-youtube-api-key-placeholder"
+      GITHUB_PERSONAL_ACCESS_TOKEN: "local-github-pat-placeholder"
     depends_on:
       init:
         condition: service_completed_successfully

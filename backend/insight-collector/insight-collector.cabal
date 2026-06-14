@@ -37,14 +37,20 @@ library
     Infrastructure.Repository.FirestoreInsightRecordRepository
     Infrastructure.Repository.FirestoreSourcePolicyRepository
     Infrastructure.Wire.ReasonCodeWire
+    Presentation.Api
+    Presentation.AppM
+    Presentation.PubSubHandler
   build-depends:
     aeson                ^>=2.2,
     bytestring           ^>=0.12,
     containers           ^>=0.7,
     gogol-firestore      ^>=1.0.0,
     http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
+    katip                ^>=0.8,
     mtl                  ^>=2.3,
+    servant-server       ^>=0.20,
     shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
@@ -58,10 +64,23 @@ executable insight-collector
   hs-source-dirs: src
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-    insight-collector,
     aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
+    http-types           ^>=0.12,
+    insight-collector,
+    katip                ^>=0.8,
+    mtl                  ^>=2.3,
     servant-server       ^>=0.20,
-    warp                 ^>=3.4
+    shared,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    transformers         ^>=0.6,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2
 
 test-suite insight-collector-test
   import:         shared
@@ -70,16 +89,22 @@ test-suite insight-collector-test
   hs-source-dirs: test
   build-depends:
     aeson                ^>=2.2,
+    base64               ^>=1.0,
     bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    hspec                ^>=2.11.16,
     http-client          ^>=0.7,
     http-types           ^>=0.12,
     insight-collector,
-    hspec                ^>=2.11.16,
     mtl                  ^>=2.3,
+    servant-server       ^>=0.20,
     shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
-    ulid                 ^>=0.3.3
+    transformers         ^>=0.6,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2
   other-modules:
     Domain.InsightCollection.AggregateSpec
     Domain.InsightCollection.InsightDispatchSpec
@@ -95,3 +120,4 @@ test-suite insight-collector-test
     Infrastructure.Repository.FirestoreInsightRecordRepositorySpec
     Infrastructure.Publisher.PubSubInsightEventPublisherSpec
     Infrastructure.Idempotency.InsightIdempotencySpec
+    Presentation.PubSubHandlerSpec
