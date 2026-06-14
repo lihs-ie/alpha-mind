@@ -1,33 +1,22 @@
-"""Hypothesis Lab service - minimal skeleton for Docker build verification."""
+"""Hypothesis Lab service entrypoint."""
 
+from __future__ import annotations
+
+import logging
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from presentation.app_factory import create_application
+from presentation.dependency_container import DependencyContainer
 
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler with /healthz endpoint."""
-
-    def do_GET(self) -> None:
-        if self.path == "/healthz":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"ok")
-        else:
-            self.send_response(404)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"not found")
-
-    def log_message(self, format: str, *args: object) -> None:
-        print(f"[hypothesis-lab] {args[0]}")
+logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
+    """Build the DI container, create the Flask application, and start the server."""
+    container = DependencyContainer()
+    application = create_application(container.hypothesis_workflow_service())
     port = int(os.environ.get("PORT", "8080"))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    print(f"Hypothesis Lab starting on port {port}")
-    server.serve_forever()
+    application.run(host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
