@@ -1,0 +1,24 @@
+{
+  "supported-targets": [
+    "js"
+  ],
+  "import": [
+    {
+      "path": "mizchi/luna",
+      "alias": "luna"
+    },
+    {
+      "path": "mizchi/luna/dom/static",
+      "alias": "server_dom"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/server/atoms",
+      "alias": "atoms"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/server/molecules",
+      "alias": "molecules"
+    }
+  ],
+  "warn-list": "-35"
+}

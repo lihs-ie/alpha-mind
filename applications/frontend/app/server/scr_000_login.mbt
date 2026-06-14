@@ -18,57 +18,25 @@ pub async fn login_page(_props : @router.PageProps) -> @server_dom.ServerNode {
   let form_props : @types.LoginFormProps = { bff_base_url, }
 
   // SSR placeholder matching the Island structure for progressive enhancement.
-  // loader.js hydrates the Island on top of this placeholder.
-  let ssr_placeholder = form(
-    style="display:flex;flex-direction:column;gap:24px;",
+  // Built from the Organisms FormSection (Label + Input molecules + submit).
+  // loader.js hydrates the login_form Island on top of this placeholder.
+  let ssr_placeholder = @organisms.form_section(
     [
-      div(
-        style="display:flex;flex-direction:column;gap:4px;",
-        [
-          label(
-            for_="email",
-            style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;font-weight:500;",
-            [text("メールアドレス")],
-          ),
-          input(
-            type_="email",
-            id="email",
-            name="email",
-            placeholder="operator@example.com",
-            style="background:var(--color-primary,#0F172A);color:var(--color-text,#F8FAFC);border:1px solid rgba(248,250,252,0.15);border-radius:6px;padding:8px 16px;font-size:1rem;font-family:'IBM Plex Sans',sans-serif;width:100%;box-sizing:border-box;",
-          ),
-        ],
+      @organisms.form_field_spec(
+        "メールアドレス",
+        "email",
+        placeholder="operator@example.com",
+        required=true,
       ),
-      div(
-        style="display:flex;flex-direction:column;gap:4px;",
-        [
-          label(
-            for_="password",
-            style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;font-weight:500;",
-            [text("パスワード")],
-          ),
-          input(
-            type_="password",
-            id="password",
-            name="password",
-            placeholder="••••••••",
-            style="background:var(--color-primary,#0F172A);color:var(--color-text,#F8FAFC);border:1px solid rgba(248,250,252,0.15);border-radius:6px;padding:8px 16px;font-size:1rem;font-family:'IBM Plex Sans',sans-serif;width:100%;box-sizing:border-box;",
-          ),
-        ],
-      ),
-      button(
-        attrs=[
-          ("type", @luna.attr_static("submit")),
-          (
-            "style",
-            @luna.attr_static(
-              "background:var(--color-cta,#22C55E);color:#fff;border:none;border-radius:6px;padding:12px 24px;font-size:1rem;font-family:'IBM Plex Sans',sans-serif;font-weight:600;cursor:pointer;width:100%;",
-            ),
-          ),
-        ],
-        [text("ログイン")],
+      @organisms.form_field_spec(
+        "パスワード",
+        "password",
+        input_type=@atoms.InputType::Password,
+        placeholder="••••••••",
+        required=true,
       ),
     ],
+    submit_label="ログイン",
   )
 
   let page_content = div(
