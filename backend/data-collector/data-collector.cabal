@@ -35,6 +35,9 @@ library
     Infrastructure.Repository.FirestoreMarketCollectionRepository
     Infrastructure.Repository.GcsMarketDataRepository
     Infrastructure.Wire.ReasonCodeWire
+    Presentation.Api
+    Presentation.AppM
+    Presentation.PubSubHandler
     UseCase.CollectMarketData
     UseCase.RecordCollectionAudit
   build-depends:
@@ -47,6 +50,7 @@ library
     http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
     mtl                  ^>=2.3.1,
+    servant-server       ^>=0.20,
     shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
@@ -61,9 +65,22 @@ executable data-collector
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   build-depends:
     data-collector,
-    aeson          >=2.2 && <3,
-    servant-server >=0.20 && <1,
-    warp           >=3.4 && <4
+    shared,
+    aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    gogol-storage        ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
+    http-types           ^>=0.12,
+    mtl                  ^>=2.3.1,
+    servant-server       ^>=0.20,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    transformers         ^>=0.6.1.2,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21
 
 test-suite data-collector-test
   import:         shared
@@ -79,10 +96,13 @@ test-suite data-collector-test
     gogol-firestore      ^>=1.0.0,
     hspec                ^>=2.11.16,
     http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
+    servant-server       ^>=0.20,
     shared,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
+    transformers         ^>=0.6.1.2,
     ulid                 ^>=0.3.3,
     unordered-containers ^>=0.2.21
   other-modules:
@@ -103,4 +123,5 @@ test-suite data-collector-test
     Infrastructure.Repository.FirestoreCollectionDispatchRepositorySpec
     Infrastructure.Repository.FirestoreMarketCollectionRepositorySpec
     Infrastructure.Repository.GcsMarketDataRepositorySpec
+    Presentation.PubSubHandlerSpec
     UseCase.CollectMarketDataSpec
