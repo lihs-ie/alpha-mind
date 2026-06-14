@@ -16,6 +16,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           path="/api/health",
           handler=@router.ApiHandler(api_health),
         ),
+        // SCR-000: 認証ページ (public, no auth required)
+        @router.SolRoutes::Page(
+          path="/login",
+          handler=@router.PageHandler(login_page),
+          title="ログイン — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]

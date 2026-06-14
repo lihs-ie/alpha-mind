@@ -4,8 +4,8 @@
   ],
   "import": [
     {
-      "path": "mizchi/sol",
-      "alias": "sol"
+      "path": "mizchi/luna",
+      "alias": "luna"
     },
     {
       "path": "mizchi/sol/router",
@@ -20,8 +20,12 @@
       "alias": "action"
     },
     {
-      "path": "mizchi/js/core",
-      "alias": "core"
+      "path": "mizchi/luna/dom/static",
+      "alias": "server_dom"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/__gen__/types",
+      "alias": "types"
     }
   ],
   "warn-list": "-35-67"

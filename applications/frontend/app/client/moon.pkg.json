@@ -7,9 +7,12 @@
     { "path": "mizchi/js/core", "alias": "js" },
     { "path": "mizchi/js/browser/dom", "alias": "js_dom" }
   ],
+  "test-import": [
+    { "path": "moonbitlang/core/json", "alias": "json" }
+  ],
   "link": {
     "js": {
-      "exports": [],
+      "exports": ["login_form"],
       "format": "esm"
     }
   }

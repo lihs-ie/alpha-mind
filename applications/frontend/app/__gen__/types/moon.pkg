@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/json",
+  "mizchi/luna" @luna,
+}
+
+options(
+  "supported-targets": "js",
+  "warn-list": "-29",
+  link: { "js": { "exports": [ "LoginFormProps", "login_form" ], "format": "esm" } },
+)
