@@ -10,8 +10,11 @@ using @element {
   label,
   h1,
   p,
+  code,
   text,
   text_of,
   text_dyn,
+  fragment,
+  for_each,
   events,
 }

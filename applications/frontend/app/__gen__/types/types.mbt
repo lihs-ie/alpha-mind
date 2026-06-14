@@ -14,6 +14,23 @@ pub(all) struct LoginFormProps {
 } derive(ToJson, FromJson)
 
 ///| Props type from @client
+pub(all) struct OrderRowProps {
+  identifier : String
+  symbol : String
+  side : String
+  qty : Double
+  status : String
+  created_at : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
+pub(all) struct OrdersActionsProps {
+  bff_base_url : String
+  initial_orders : Array[OrderRowProps]
+  initial_kill_switch_enabled : Bool
+} derive(ToJson, FromJson)
+
+///| Props type from @client
 pub(all) struct BlackoutWindowProps {
   symbol : String
   start_at : String
@@ -57,6 +74,24 @@ pub fn login_form(
 }
 
 ///|
+///| Create ComponentRef for order_row component
+pub fn order_row(
+  props : OrderRowProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[OrderRowProps] {
+  { url: "/static/order_row.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for orders_actions component
+pub fn orders_actions(
+  props : OrdersActionsProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[OrdersActionsProps] {
+  { url: "/static/orders_actions.js", props, wc: false, trigger }
+}
+
+///|
 ///| Create ComponentRef for blackout_window component
 pub fn blackout_window(
   props : BlackoutWindowProps,
@@ -94,6 +129,10 @@ pub let route_dashboard : String = "/dashboard"
 /// Route path: /settings/strategy
 pub let route_settings_strategy : String = "/settings/strategy"
 
+///|
+/// Route path: /orders
+pub let route_orders : String = "/orders"
+
 // =============================================================================
 // Link Builder Functions
 // =============================================================================
@@ -120,5 +159,11 @@ pub fn link_dashboard() -> String {
 /// Link builder for route: /settings/strategy
 pub fn link_settings_strategy() -> String {
   "/settings/strategy"
+}
+
+///|
+/// Link builder for route: /orders
+pub fn link_orders() -> String {
+  "/orders"
 }
 
