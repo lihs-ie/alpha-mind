@@ -24,6 +24,7 @@ library
     Domain.Hypothesis.Record
     Domain.Insight.Action
     Domain.Insight.Record
+    Domain.ModelValidation.Action
     Domain.ModelValidation.Record
     Domain.Operation.Control
     Domain.Order.Action
@@ -87,6 +88,7 @@ executable bff
     Domain.Hypothesis.Record
     Domain.Insight.Action
     Domain.Insight.Record
+    Domain.ModelValidation.Action
     Domain.ModelValidation.Record
     Domain.Operation.Control
     Domain.Order.Action
@@ -159,6 +161,7 @@ test-suite bff-test
     Domain.Auth.CredentialSpec
     Domain.Hypothesis.ActionSpec
     Domain.Insight.ActionSpec
+    Domain.ModelValidation.ActionSpec
     Domain.Operation.ControlSpec
     Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
@@ -168,6 +171,7 @@ test-suite bff-test
     Presentation.Handler.HypothesesSpec
     Presentation.Handler.InsightsActionsSpec
     Presentation.Handler.InsightsSpec
+    Presentation.Handler.ModelValidationsActionsSpec
     Presentation.Handler.ModelValidationsSpec
     Presentation.Handler.OperationsSpec
     Presentation.Handler.OrdersActionsSpec

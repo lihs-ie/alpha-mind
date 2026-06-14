@@ -3,6 +3,7 @@ module Main (main) where
 import Domain.Auth.CredentialSpec qualified
 import Domain.Hypothesis.ActionSpec qualified
 import Domain.Insight.ActionSpec qualified
+import Domain.ModelValidation.ActionSpec qualified
 import Domain.Operation.ControlSpec qualified
 import Presentation.Handler.AuditSpec qualified
 import Presentation.Handler.AuthSpec qualified
@@ -12,6 +13,7 @@ import Presentation.Handler.HypothesesActionsSpec qualified
 import Presentation.Handler.HypothesesSpec qualified
 import Presentation.Handler.InsightsActionsSpec qualified
 import Presentation.Handler.InsightsSpec qualified
+import Presentation.Handler.ModelValidationsActionsSpec qualified
 import Presentation.Handler.ModelValidationsSpec qualified
 import Presentation.Handler.OperationsSpec qualified
 import Presentation.Handler.OrdersActionsSpec qualified
@@ -25,6 +27,7 @@ main =
     Domain.Auth.CredentialSpec.spec
     Domain.Hypothesis.ActionSpec.spec
     Domain.Insight.ActionSpec.spec
+    Domain.ModelValidation.ActionSpec.spec
     Domain.Operation.ControlSpec.spec
     Presentation.Handler.AuditSpec.spec
     Presentation.Handler.AuthSpec.spec
@@ -34,6 +37,7 @@ main =
     Presentation.Handler.HypothesesSpec.spec
     Presentation.Handler.InsightsActionsSpec.spec
     Presentation.Handler.InsightsSpec.spec
+    Presentation.Handler.ModelValidationsActionsSpec.spec
     Presentation.Handler.ModelValidationsSpec.spec
     Presentation.Handler.OperationsSpec.spec
     Presentation.Handler.OrdersActionsSpec.spec
