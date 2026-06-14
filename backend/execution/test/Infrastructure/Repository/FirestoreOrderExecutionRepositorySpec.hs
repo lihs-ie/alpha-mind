@@ -141,7 +141,7 @@ spec = do
             results <-
               runFirestoreOrderExecutionRepositoryT environment $
                 findExecutionsByStatus Approved
-            let identifiers = map (\e -> e.identifier) results
+            let identifiers = map (.identifier) results
             identifiers `shouldSatisfy` elem executionIdentifier
 
     -- TST-INFRA-009: idempotency double-reserve integration test (emulator gated)
