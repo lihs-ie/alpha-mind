@@ -15,6 +15,8 @@ Endpoints:
   * @GET /audit/{identifier}@       — single audit log detail (JWT required)
   * @GET /settings/strategy@        — returns strategy settings (JWT required)
   * @GET /compliance/controls@      — returns compliance controls (JWT required)
+  * @GET /insights@                 — paginated list of insight records (JWT required)
+  * @GET /insights/{identifier}@    — single insight record detail (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -34,6 +36,12 @@ import Presentation.Handler.Audit (
  )
 import Presentation.Handler.Auth (LoginRequest, LoginResponse, loginHandler)
 import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
+import Presentation.Handler.Insights (
+  InsightDetailResponse,
+  InsightListResponse,
+  getInsightByIdentifierHandler,
+  getInsightsHandler,
+ )
 import Presentation.Handler.Orders (
   OrderDetailResponse,
   OrderListResponse,
@@ -116,7 +124,21 @@ type SettingsAPI =
       :> Header "Authorization" Text
       :> Get '[JSON] ComplianceControlsResponse
 
-type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI :<|> SettingsAPI
+type InsightsAPI =
+  "insights"
+    :> Header "Authorization" Text
+    :> QueryParam "symbol" Text
+    :> QueryParam "from" Text
+    :> QueryParam "to" Text
+    :> QueryParam "limit" Int
+    :> QueryParam "cursor" Text
+    :> Get '[JSON] InsightListResponse
+    :<|> "insights"
+      :> Capture "identifier" Text
+      :> Header "Authorization" Text
+      :> Get '[JSON] InsightDetailResponse
+
+type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI :<|> SettingsAPI :<|> InsightsAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -135,6 +157,8 @@ bffApiProxy = Proxy
   * @GET /audit/{identifier}@     → 'getAuditLogByIdentifierHandler'
   * @GET /settings/strategy@      → 'getSettingsStrategyHandler'
   * @GET /compliance/controls@    → 'getComplianceControlsHandler'
+  * @GET /insights@               → 'getInsightsHandler'
+  * @GET /insights/{identifier}@  → 'getInsightByIdentifierHandler'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
@@ -143,3 +167,4 @@ bffServer appEnvironment =
     :<|> (getOrdersHandler appEnvironment :<|> getOrderByIdentifierHandler appEnvironment)
     :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
     :<|> (getSettingsStrategyHandler appEnvironment :<|> getComplianceControlsHandler appEnvironment)
+    :<|> (getInsightsHandler appEnvironment :<|> getInsightByIdentifierHandler appEnvironment)
