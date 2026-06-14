@@ -4,6 +4,7 @@ import Domain.Auth.CredentialSpec qualified
 import Presentation.Handler.AuditSpec qualified
 import Presentation.Handler.AuthSpec qualified
 import Presentation.Handler.DashboardSpec qualified
+import Presentation.Handler.HypothesesSpec qualified
 import Presentation.Handler.InsightsSpec qualified
 import Presentation.Handler.OrdersSpec qualified
 import Presentation.Handler.SettingsSpec qualified
@@ -16,6 +17,7 @@ main =
     Presentation.Handler.AuditSpec.spec
     Presentation.Handler.AuthSpec.spec
     Presentation.Handler.DashboardSpec.spec
+    Presentation.Handler.HypothesesSpec.spec
     Presentation.Handler.InsightsSpec.spec
     Presentation.Handler.OrdersSpec.spec
     Presentation.Handler.SettingsSpec.spec
