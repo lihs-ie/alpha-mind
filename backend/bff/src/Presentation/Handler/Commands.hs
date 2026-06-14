@@ -7,6 +7,7 @@ module Presentation.Handler.Commands (
   handleRunInsightCycle,
 ) where
 
+import Control.Exception (SomeException, try)
 import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (
@@ -227,15 +228,24 @@ readOperationsRuntime ::
   AppEnv ->
   Handler OperationsRuntime
 readOperationsRuntime appEnvironment = do
-  runtimeResult <-
+  -- 'getOperationsRuntime' internally calls 'Gogol.newEnv' which throws
+  -- 'AuthError' (an unchecked exception) when GCP Application Default
+  -- Credentials are unavailable (e.g. CI, unit-test environments without
+  -- credentials).  Credential/connection failures are a Firestore dependency
+  -- outage from the caller's perspective, so we catch all 'SomeException'
+  -- here and map them to 503 DEPENDENCY_UNAVAILABLE, preventing 'AuthError'
+  -- from propagating as an uncaught exception.
+  eitherResult <-
     liftIO $
-      getOperationsRuntime
-        FirestoreOperationsRepositoryEnv
-          { firestoreContext = appEnvironment.firestoreContext
-          }
-  case runtimeResult of
-    Left firestoreError -> throwServiceUnavailable (firestoreErrorToText firestoreError)
-    Right runtimeValue -> pure runtimeValue
+      try @SomeException $
+        getOperationsRuntime
+          FirestoreOperationsRepositoryEnv
+            { firestoreContext = appEnvironment.firestoreContext
+            }
+  case eitherResult of
+    Left exception -> throwServiceUnavailable ("Firestore unavailable: " <> Text.pack (show exception))
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right runtimeValue) -> pure runtimeValue
 
 requireAuth :: AppEnv -> Maybe Text -> Text -> Handler VerifiedClaims
 requireAuth appEnvironment maybeAuthHeader requiredPermission = do
