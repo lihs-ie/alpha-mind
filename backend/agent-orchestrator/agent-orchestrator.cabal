@@ -3,13 +3,74 @@ name:          agent-orchestrator
 version:       0.1.0.0
 build-type:    Simple
 
-executable agent-orchestrator
-  main-is:       Main.hs
-  hs-source-dirs: src
-  build-depends:
-    base >=4.20 && <5,
-    servant-server >=0.20 && <1,
-    warp >=3.4 && <4,
-    aeson >=2.2 && <3
+common shared
   default-language: GHC2024
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:      -Wall
+  build-depends:    base >=4.20 && <5
+
+library
+  import:         shared
+  hs-source-dirs: src
+  exposed-modules:
+    Domain.HypothesisOrchestration
+    Domain.HypothesisOrchestration.Aggregate
+    Domain.HypothesisOrchestration.CodeReferenceTemplate
+    Domain.HypothesisOrchestration.DispatchFactory
+    Domain.HypothesisOrchestration.DuplicateSuppressionPolicy
+    Domain.HypothesisOrchestration.DuplicateThresholdSpecification
+    Domain.HypothesisOrchestration.Error
+    Domain.HypothesisOrchestration.Event
+    Domain.HypothesisOrchestration.FailureKnowledge
+    Domain.HypothesisOrchestration.GenerationContextResolutionPolicy
+    Domain.HypothesisOrchestration.HypothesisProposalFactory
+    Domain.HypothesisOrchestration.HypothesisReport
+    Domain.HypothesisOrchestration.InstructionProfile
+    Domain.HypothesisOrchestration.NonRetryableReasonSpecification
+    Domain.HypothesisOrchestration.OrchestrationDispatch
+    Domain.HypothesisOrchestration.ProposalPayloadIntegritySpecification
+    Domain.HypothesisOrchestration.ReasonCode
+    Domain.HypothesisOrchestration.SkillExecutor
+    Domain.HypothesisOrchestration.SkillRegistry
+    Domain.HypothesisOrchestration.ValueObjects
+  build-depends:
+    text   ^>=2.1.4,
+    time   ^>=1.14,
+    ulid   ^>=0.3.3
+
+executable agent-orchestrator
+  import:         shared
+  main-is:        Main.hs
+  hs-source-dirs: src
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    agent-orchestrator,
+    aeson          ^>=2.2,
+    servant-server ^>=0.20,
+    text           ^>=2.1.4,
+    time           ^>=1.14,
+    ulid           ^>=0.3.3,
+    warp           ^>=3.4
+
+test-suite agent-orchestrator-test
+  import:         shared
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: test
+  build-depends:
+    agent-orchestrator,
+    hspec ^>=2.11.16,
+    text  ^>=2.1.4,
+    time  ^>=1.14,
+    ulid  ^>=0.3.3
+  other-modules:
+    Domain.HypothesisOrchestration.AggregateSpec
+    Domain.HypothesisOrchestration.DuplicateThresholdSpecificationSpec
+    Domain.HypothesisOrchestration.GenerationContextResolutionPolicySpec
+    Domain.HypothesisOrchestration.NonRetryableReasonSpecificationSpec
+    Domain.HypothesisOrchestration.OrchestrationDispatchSpec
+    Domain.HypothesisOrchestration.ReasonCodeSpec
+    Domain.HypothesisOrchestration.ValueObjectsSpec
