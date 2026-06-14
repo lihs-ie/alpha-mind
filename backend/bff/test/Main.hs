@@ -3,6 +3,7 @@ module Main (main) where
 import Domain.Auth.CredentialSpec qualified
 import Presentation.Handler.AuthSpec qualified
 import Presentation.Handler.DashboardSpec qualified
+import Presentation.Handler.OrdersSpec qualified
 import Test.Hspec (hspec)
 
 main :: IO ()
@@ -11,3 +12,4 @@ main =
     Domain.Auth.CredentialSpec.spec
     Presentation.Handler.AuthSpec.spec
     Presentation.Handler.DashboardSpec.spec
+    Presentation.Handler.OrdersSpec.spec

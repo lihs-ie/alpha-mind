@@ -18,14 +18,17 @@ library
   exposed-modules:
     Domain.Auth.Credential
     Domain.Dashboard.Summary
+    Domain.Order.Order
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreOperationsRepository
+    Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
+    Presentation.Handler.Orders
   build-depends:
     aeson          ^>=2.2,
     bytestring     ^>=0.12,
@@ -47,14 +50,17 @@ executable bff
   other-modules:
     Domain.Auth.Credential
     Domain.Dashboard.Summary
+    Domain.Order.Order
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreOperationsRepository
+    Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
+    Presentation.Handler.Orders
   build-depends:
     aeson          ^>=2.2,
     bff,
@@ -90,3 +96,4 @@ test-suite bff-test
     Domain.Auth.CredentialSpec
     Presentation.Handler.AuthSpec
     Presentation.Handler.DashboardSpec
+    Presentation.Handler.OrdersSpec
