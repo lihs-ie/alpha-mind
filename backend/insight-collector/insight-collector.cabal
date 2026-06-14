@@ -25,6 +25,8 @@ library
     Domain.InsightCollection.ReasonCode
     Domain.InsightCollection.SourcePolicyComplianceService
     Domain.InsightCollection.EvidenceCompletenessPolicy
+    UseCase.CollectInsights
+    UseCase.RecordInsightAudit
   build-depends:
     text                 ^>=2.1.4,
     time                 ^>=1.14,
@@ -49,6 +51,7 @@ test-suite insight-collector-test
   build-depends:
     insight-collector,
     hspec                ^>=2.11.16,
+    mtl                  ^>=2.3,
     text                 ^>=2.1.4,
     time                 ^>=1.14,
     ulid                 ^>=0.3.3
@@ -59,3 +62,4 @@ test-suite insight-collector-test
     Domain.InsightCollection.EvidenceCompletenessPolicySpec
     Domain.InsightCollection.ReasonCodeSpec
     Domain.InsightCollection.DomainEventSpec
+    UseCase.CollectInsightsSpec

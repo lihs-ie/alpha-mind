@@ -7,6 +7,7 @@ import Domain.InsightCollection.InsightDispatchSpec qualified
 import Domain.InsightCollection.ReasonCodeSpec qualified
 import Domain.InsightCollection.SourcePolicyComplianceServiceSpec qualified
 import Test.Hspec (hspec)
+import UseCase.CollectInsightsSpec qualified
 
 main :: IO ()
 main =
@@ -17,3 +18,4 @@ main =
     Domain.InsightCollection.SourcePolicyComplianceServiceSpec.spec
     Domain.InsightCollection.EvidenceCompletenessPolicySpec.spec
     Domain.InsightCollection.DomainEventSpec.spec
+    UseCase.CollectInsightsSpec.spec
