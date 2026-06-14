@@ -28,11 +28,18 @@ library
     Domain.OrderExecution.ReasonCode
     Domain.OrderExecution.Specification
     Infrastructure.ACL.BrokerT
+    Infrastructure.Idempotency.ExecutionIdempotency
+    Infrastructure.Publisher.PubSubExecutionEventPublisher
+    Infrastructure.Repository.FirestoreIdempotencyRepository
+    Infrastructure.Repository.FirestoreOrderExecutionRepository
+    Infrastructure.Wire.ReasonCodeWire
     UseCase.CompleteDemoRun
     UseCase.ExecuteOrder
   build-depends:
     aeson          ^>=2.2,
     bytestring     ^>=0.12,
+    gogol          ^>=1.0,
+    gogol-firestore ^>=1.0,
     http-client    ^>=0.7,
     http-types     ^>=0.12,
     shared,
@@ -40,6 +47,7 @@ library
     time           ^>=1.14,
     transformers   ^>=0.6.1.2,
     ulid           ^>=0.3.3,
+    unordered-containers ^>=0.2,
 
 executable execution
   import:         shared
@@ -64,6 +72,7 @@ test-suite execution-test
     hspec          ^>=2.11,
     http-client    ^>=0.7,
     http-types     ^>=0.12,
+    shared,
     text           ^>=2.1.4,
     time           ^>=1.14,
     ulid           ^>=0.3.3,
@@ -73,5 +82,8 @@ test-suite execution-test
     Domain.OrderExecution.DemoRunEvaluationSpec
     Domain.OrderExecution.ExecutionIdempotencyPolicySpec
     Infrastructure.ACL.BrokerTSpec
+    Infrastructure.Publisher.PubSubExecutionEventPublisherSpec
+    Infrastructure.Repository.FirestoreIdempotencyRepositorySpec
+    Infrastructure.Repository.FirestoreOrderExecutionRepositorySpec
     UseCase.CompleteDemoRunSpec
     UseCase.ExecuteOrderSpec
