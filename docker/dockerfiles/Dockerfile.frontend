@@ -11,8 +11,14 @@
 # Stage 2 (runner): Node.js ランタイムのみを含む最小イメージ。
 # Compatible with Cloud Run: listens on $PORT, runs as non-root.
 
-# Sol CLI の commit SHA をピン留めする (v0.8.0)
-ARG SOL_COMMIT=bdc573edcfd50aa455d1b17ca8964cee1a69e443
+# Sol CLI の commit SHA をピン留めする (sol 0.14.1, 2026-04-08)
+# parser 0.1.16 -> 0.2.5 で [4051] impl Show 衝突を解消した版。
+ARG SOL_COMMIT=3c0377a5f6cd547e7ba49441ae7fad3e57a1dc05
+# moonbitlang/async override。Sol が transitive pin する 0.17.0 は deprecated
+# `fn new(..)` in struct 構文を持ち、2026-06 latest MoonBit SDK で hard error
+# [3002] に昇格する。0.19.4 は `fn T::T(..)` toplevel 形式で解消。
+# (CDN は latest のみ提供のため MoonBit SDK 自体は固定不可。ci-frontend.yml と同一。)
+ARG ASYNC_VERSION=0.19.4
 
 # ===========================================================================
 # Stage 1: moonbit-builder
@@ -20,6 +26,7 @@ ARG SOL_COMMIT=bdc573edcfd50aa455d1b17ca8964cee1a69e443
 FROM node:24-bookworm AS moonbit-builder
 
 ARG SOL_COMMIT
+ARG ASYNC_VERSION
 
 # Docker ビルドは非インタラクティブ環境のため CI=true を設定する
 ENV CI=true
@@ -46,7 +53,9 @@ RUN git clone https://github.com/mizchi/sol.mbt.git /workspace/sol.mbt && \
     git checkout ${SOL_COMMIT}
 
 # sol.mbt リポジトリに pnpm-lock.yaml が含まれないため --no-frozen-lockfile を使用する
+# moonbitlang/async の transitive pin を [3002]-free な版に上書きしてから解決する
 RUN cd /workspace/sol.mbt && \
+    node -e "const f='moon.mod.json';const d=require('./'+f);d.deps['moonbitlang/async']=process.env.ASYNC_VERSION;require('fs').writeFileSync(f,JSON.stringify(d,null,2)+'\n')" && \
     pnpm install --no-frozen-lockfile && \
     moon update && \
     moon build --target js

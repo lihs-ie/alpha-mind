@@ -1,0 +1,15 @@
+{
+  "name": "alpha-mind/frontend-sol",
+  "version": "0.1.0",
+  "deps": {
+    "mizchi/sol": "0.14.1",
+    "mizchi/mars": "0.3.10",
+    "mizchi/luna": "0.18.3",
+    "mizchi/signals": "0.6.3",
+    "mizchi/js": "0.10.15",
+    "mizchi/npm_typed": "0.1.11",
+    "moonbitlang/async": "0.19.4"
+  },
+  "source": "app",
+  "preferred-target": "js"
+}
