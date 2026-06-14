@@ -34,8 +34,10 @@ library
     Infrastructure.Idempotency.InsightIdempotency
     Infrastructure.Publisher.PubSubInsightEventPublisher
     Infrastructure.Repository.FirestoreInsightCollectionRepository
+    Infrastructure.Repository.FirestoreInsightDispatchRepository
     Infrastructure.Repository.FirestoreInsightRecordRepository
     Infrastructure.Repository.FirestoreSourcePolicyRepository
+    Infrastructure.Repository.GcsInsightArtifactRepository
     Infrastructure.Wire.ReasonCodeWire
     Presentation.Api
     Presentation.AppM
@@ -45,6 +47,7 @@ library
     bytestring           ^>=0.12,
     containers           ^>=0.7,
     gogol-firestore      ^>=1.0.0,
+    gogol-storage        ^>=1.0.0,
     http-client          ^>=0.7,
     http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
@@ -68,6 +71,7 @@ executable insight-collector
     bytestring           ^>=0.12,
     containers           ^>=0.7,
     gogol-firestore      ^>=1.0.0,
+    gogol-storage        ^>=1.0.0,
     http-client          ^>=0.7,
     http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
@@ -93,6 +97,7 @@ test-suite insight-collector-test
     bytestring           ^>=0.12,
     containers           ^>=0.7,
     gogol-firestore      ^>=1.0.0,
+    gogol-storage        ^>=1.0.0,
     hspec                ^>=2.11.16,
     http-client          ^>=0.7,
     http-types           ^>=0.12,
@@ -117,7 +122,9 @@ test-suite insight-collector-test
     ACL.ExternalSource.YouTubeSpec
     ACL.ExternalSource.PaperSpec
     ACL.ExternalSource.GitHubSpec
+    Infrastructure.Repository.FirestoreInsightDispatchRepositorySpec
     Infrastructure.Repository.FirestoreInsightRecordRepositorySpec
+    Infrastructure.Repository.GcsInsightArtifactRepositorySpec
     Infrastructure.Publisher.PubSubInsightEventPublisherSpec
     Infrastructure.Idempotency.InsightIdempotencySpec
     Presentation.PubSubHandlerSpec

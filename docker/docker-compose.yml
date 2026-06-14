@@ -461,6 +461,8 @@ services:
       X_API_BEARER_TOKEN: "local-x-api-bearer-token-placeholder"
       YOUTUBE_API_KEY: "local-youtube-api-key-placeholder"
       GITHUB_PERSONAL_ACCESS_TOKEN: "local-github-pat-placeholder"
+      # infra #218: InsightArtifactRepository が使用する GCS バケット名
+      INSIGHT_GCS_BUCKET_NAME: "alpha-mind-insight-data-local"
     depends_on:
       init:
         condition: service_completed_successfully
