@@ -15,6 +15,7 @@ import Infrastructure.Firestore.InstructionProfileRepositorySpec qualified
 import Infrastructure.Firestore.OrchestrationDispatchRepositorySpec qualified
 import Infrastructure.Firestore.SkillRegistryRepositorySpec qualified
 import Infrastructure.PubSub.HypothesisEventPublisherSpec qualified
+import Presentation.PubSubHandlerSpec qualified
 import Test.Hspec (hspec)
 import UseCase.HypothesisOrchestration.DispatchServiceSpec qualified
 import UseCase.HypothesisOrchestration.FailureKnowledgeRegistrarSpec qualified
@@ -38,6 +39,7 @@ main =
     Infrastructure.Firestore.HypothesisProposalRepositorySpec.spec
     Infrastructure.Firestore.OrchestrationDispatchRepositorySpec.spec
     Infrastructure.PubSub.HypothesisEventPublisherSpec.spec
+    Presentation.PubSubHandlerSpec.spec
     UseCase.HypothesisOrchestration.DispatchServiceSpec.spec
     UseCase.HypothesisOrchestration.FailureKnowledgeRegistrarSpec.spec
     UseCase.HypothesisOrchestration.HypothesisOrchestrationServiceSpec.spec
