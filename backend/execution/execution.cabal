@@ -33,32 +33,36 @@ library
     Infrastructure.Repository.FirestoreIdempotencyRepository
     Infrastructure.Repository.FirestoreOrderExecutionRepository
     Infrastructure.Wire.ReasonCodeWire
+    Presentation.Api
+    Presentation.AppM
+    Presentation.PubSubHandler
     UseCase.CompleteDemoRun
     UseCase.ExecuteOrder
   build-depends:
-    aeson          ^>=2.2,
-    bytestring     ^>=0.12,
-    gogol          ^>=1.0,
-    gogol-firestore ^>=1.0,
-    http-client    ^>=0.7,
-    http-types     ^>=0.12,
+    aeson              ^>=2.2,
+    bytestring         ^>=0.12,
+    gogol              ^>=1.0,
+    gogol-firestore    ^>=1.0,
+    http-client        ^>=0.7,
+    http-client-tls    ^>=0.3,
+    http-types         ^>=0.12,
+    servant-server     ^>=0.20,
     shared,
-    text           ^>=2.1.4,
-    time           ^>=1.14,
-    transformers   ^>=0.6.1.2,
-    ulid           ^>=0.3.3,
+    text               ^>=2.1.4,
+    time               ^>=1.14,
+    transformers       ^>=0.6.1.2,
+    ulid               ^>=0.3.3,
     unordered-containers ^>=0.2,
+    warp               ^>=3.4,
 
 executable execution
   import:         shared
   main-is:        Main.hs
-  hs-source-dirs: src
+  hs-source-dirs: app
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   build-depends:
     execution,
-    aeson          ^>=2.2,
-    servant-server ^>=0.20,
-    warp           ^>=3.4,
+    shared,
 
 test-suite execution-test
   import:         shared
@@ -68,6 +72,7 @@ test-suite execution-test
   build-depends:
     execution,
     aeson          ^>=2.2,
+    base64         ^>=1.0,
     bytestring     ^>=0.12,
     hspec          ^>=2.11,
     http-client    ^>=0.7,
@@ -85,5 +90,6 @@ test-suite execution-test
     Infrastructure.Publisher.PubSubExecutionEventPublisherSpec
     Infrastructure.Repository.FirestoreIdempotencyRepositorySpec
     Infrastructure.Repository.FirestoreOrderExecutionRepositorySpec
+    Presentation.PubSubHandlerSpec
     UseCase.CompleteDemoRunSpec
     UseCase.ExecuteOrderSpec

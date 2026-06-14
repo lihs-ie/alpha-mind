@@ -364,10 +364,17 @@ services:
       GCP_REGION: asia-northeast1
       FIRESTORE_EMULATOR_HOST: firestore:8080
       FIRESTORE_DATABASE: "(default)"
+      FIRESTORE_DATABASE_ID: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
-      BROKER_API_KEY: "local-broker-api-key-placeholder"
-      BROKER_API_SECRET: "local-broker-api-secret-placeholder"
+      # presentation 層 (#49) が App.Bootstrap / buildAppEnv で要求する必須 env
+      SERVICE_VERSION: "0.1.0"
+      PUBSUB_EXECUTED_TOPIC: "orders.executed"
+      PUBSUB_EXECUTION_FAILED_TOPIC: "orders.execution.failed"
+      PUBSUB_DEMO_COMPLETED_TOPIC: "hypothesis.demo.completed"
+      # 外部ブローカーAPIはローカルではプレースホルダーを使用する（buildAppEnv が読むキー名）
+      BROKER_API_TOKEN: "local-broker-api-token-placeholder"
+      BROKER_BASE_URL: "https://broker.local.invalid"
     depends_on:
       init:
         condition: service_completed_successfully
