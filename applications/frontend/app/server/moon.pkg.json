@@ -30,6 +30,10 @@
     {
       "path": "alpha-mind/frontend-sol/server/atoms",
       "alias": "atoms"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/server/molecules",
+      "alias": "molecules"
     }
   ],
   "warn-list": "-35-67"
