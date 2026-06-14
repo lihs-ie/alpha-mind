@@ -3,13 +3,73 @@ name:          portfolio-planner
 version:       0.1.0.0
 build-type:    Simple
 
-executable portfolio-planner
-  main-is:       Main.hs
-  hs-source-dirs: src
-  build-depends:
-    base >=4.20 && <5,
-    servant-server >=0.20 && <1,
-    warp >=3.4 && <4,
-    aeson >=2.2 && <3
+common shared
   default-language: GHC2024
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
+  ghc-options:      -Wall
+  build-depends:    base >=4.20 && <5
+
+library
+  import:         shared
+  hs-source-dirs: src
+  exposed-modules:
+    Domain.OrderProposal
+    Domain.OrderProposal.Aggregate
+    Domain.OrderProposal.ProposalDispatch
+    Domain.OrderProposal.ValueObjects
+    Domain.OrderProposal.DomainEvent
+    Domain.OrderProposal.Error
+    Domain.OrderProposal.ReasonCode
+    Domain.OrderProposal.Ports
+    Domain.OrderProposal.Factory.OrderProposalFactory
+    Domain.OrderProposal.Factory.ProposalDispatchFactory
+    Domain.OrderProposal.Specification.SignalIntegritySpecification
+    Domain.OrderProposal.Specification.ComplianceReviewGateSpecification
+    Domain.OrderProposal.Specification.ProposalBatchConsistencySpecification
+    Domain.OrderProposal.Service.ProposalEligibilityPolicy
+    Domain.OrderProposal.Service.OrderSizingPolicy
+  build-depends:
+    shared,
+    text    ^>=2.1.4,
+    time    ^>=1.14,
+    ulid    ^>=0.3.3
+
+executable portfolio-planner
+  import:         shared
+  main-is:        Main.hs
+  hs-source-dirs: src
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    portfolio-planner,
+    shared,
+    aeson          >=2.2 && <3,
+    servant-server >=0.20 && <1,
+    text           ^>=2.1.4,
+    time           ^>=1.14,
+    ulid           ^>=0.3.3,
+    warp           >=3.4 && <4
+
+test-suite portfolio-planner-test
+  import:         shared
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: test
+  build-depends:
+    portfolio-planner,
+    hspec ^>=2.11.16,
+    text  ^>=2.1.4,
+    time  ^>=1.14,
+    ulid  ^>=0.3.3
+  other-modules:
+    Domain.OrderProposal.AggregateSpec
+    Domain.OrderProposal.ProposalDispatchSpec
+    Domain.OrderProposal.Factory.OrderProposalFactorySpec
+    Domain.OrderProposal.Factory.ProposalDispatchFactorySpec
+    Domain.OrderProposal.Specification.SignalIntegritySpecificationSpec
+    Domain.OrderProposal.Specification.ComplianceReviewGateSpecificationSpec
+    Domain.OrderProposal.Specification.ProposalBatchConsistencySpecificationSpec
+    Domain.OrderProposal.Service.ProposalEligibilityPolicySpec
+    Domain.OrderProposal.Service.OrderSizingPolicySpec
