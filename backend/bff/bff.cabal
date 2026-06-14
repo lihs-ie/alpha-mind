@@ -16,16 +16,19 @@ library
   import:         shared
   hs-source-dirs: src
   exposed-modules:
+    Domain.Audit.Log
     Domain.Auth.Credential
     Domain.Dashboard.Summary
     Domain.Order.Order
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
+    Presentation.Handler.Audit
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
     Presentation.Handler.Orders
@@ -48,16 +51,19 @@ executable bff
   hs-source-dirs: src
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   other-modules:
+    Domain.Audit.Log
     Domain.Auth.Credential
     Domain.Dashboard.Summary
     Domain.Order.Order
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
+    Presentation.Handler.Audit
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
     Presentation.Handler.Orders
@@ -94,6 +100,7 @@ test-suite bff-test
     wai-extra      ^>=3.1
   other-modules:
     Domain.Auth.CredentialSpec
+    Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
     Presentation.Handler.DashboardSpec
     Presentation.Handler.OrdersSpec
