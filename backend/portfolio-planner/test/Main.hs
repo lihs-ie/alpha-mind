@@ -10,6 +10,8 @@ import Domain.OrderProposal.Specification.ComplianceReviewGateSpecificationSpec 
 import Domain.OrderProposal.Specification.ProposalBatchConsistencySpecificationSpec qualified
 import Domain.OrderProposal.Specification.SignalIntegritySpecificationSpec qualified
 import Test.Hspec (hspec)
+import UseCase.PortfolioPlanningServiceSpec qualified
+import UseCase.ProposalAuditWriterSpec qualified
 
 main :: IO ()
 main =
@@ -23,3 +25,5 @@ main =
     Domain.OrderProposal.Service.OrderSizingPolicySpec.spec
     Domain.OrderProposal.Factory.OrderProposalFactorySpec.spec
     Domain.OrderProposal.Factory.ProposalDispatchFactorySpec.spec
+    UseCase.PortfolioPlanningServiceSpec.spec
+    UseCase.ProposalAuditWriterSpec.spec
