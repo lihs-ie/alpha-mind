@@ -17,11 +17,15 @@ library
   hs-source-dirs: src
   exposed-modules:
     Domain.Auth.Credential
+    Domain.Dashboard.Summary
     Infrastructure.JWT.JwtIssuer
+    Infrastructure.JWT.JwtVerifier
+    Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
     Presentation.Handler.Auth
+    Presentation.Handler.Dashboard
   build-depends:
     aeson          ^>=2.2,
     bytestring     ^>=0.12,
@@ -42,11 +46,15 @@ executable bff
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N
   other-modules:
     Domain.Auth.Credential
+    Domain.Dashboard.Summary
     Infrastructure.JWT.JwtIssuer
+    Infrastructure.JWT.JwtVerifier
+    Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
     Presentation.Handler.Auth
+    Presentation.Handler.Dashboard
   build-depends:
     aeson          ^>=2.2,
     bff,
@@ -75,8 +83,10 @@ test-suite bff-test
     servant-server ^>=0.20,
     shared,
     text           ^>=2.1.4,
+    time           ^>=1.14,
     wai            ^>=3.2.4,
     wai-extra      ^>=3.1
   other-modules:
     Domain.Auth.CredentialSpec
     Presentation.Handler.AuthSpec
+    Presentation.Handler.DashboardSpec
