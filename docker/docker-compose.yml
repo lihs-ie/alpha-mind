@@ -462,8 +462,11 @@ services:
       FIRESTORE_DATABASE: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
+      PUBSUB_TOPIC_HYPOTHESIS: "hypothesis.proposed"
       STORAGE_EMULATOR_HOST: http://gcs:4443
       LLM_API_KEY: "local-llm-api-key-placeholder"
+      SERVICE_VERSION: "0.1.0"
+      SKILL_EXECUTOR_ENDPOINT: "http://skill-executor:8080"
     depends_on:
       init:
         condition: service_completed_successfully
