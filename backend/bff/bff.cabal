@@ -18,13 +18,16 @@ library
   exposed-modules:
     Domain.Audit.Log
     Domain.Auth.Credential
+    Domain.Compliance.Controls
     Domain.Dashboard.Summary
     Domain.Order.Order
+    Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
+    Infrastructure.Repository.FirestoreSettingsRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
@@ -32,6 +35,7 @@ library
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
     Presentation.Handler.Orders
+    Presentation.Handler.Settings
   build-depends:
     aeson          ^>=2.2,
     bytestring     ^>=0.12,
@@ -53,13 +57,16 @@ executable bff
   other-modules:
     Domain.Audit.Log
     Domain.Auth.Credential
+    Domain.Compliance.Controls
     Domain.Dashboard.Summary
     Domain.Order.Order
+    Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreOperationsRepository
     Infrastructure.Repository.FirestoreOrderRepository
+    Infrastructure.Repository.FirestoreSettingsRepository
     Infrastructure.Repository.FirestoreUserRepository
     Presentation.Api
     Presentation.AppM
@@ -67,6 +74,7 @@ executable bff
     Presentation.Handler.Auth
     Presentation.Handler.Dashboard
     Presentation.Handler.Orders
+    Presentation.Handler.Settings
   build-depends:
     aeson          ^>=2.2,
     bff,
@@ -104,3 +112,4 @@ test-suite bff-test
     Presentation.Handler.AuthSpec
     Presentation.Handler.DashboardSpec
     Presentation.Handler.OrdersSpec
+    Presentation.Handler.SettingsSpec

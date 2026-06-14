@@ -7,12 +7,14 @@ Defines 'BffAPI' as the business API (excluding the standard health
 endpoints which are added by 'App.Bootstrap.mkApplication').
 
 Endpoints:
-  * @POST /auth/login@            — returns a signed HS256 JWT on valid credentials
-  * @GET /dashboard/summary@      — returns aggregated dashboard state (JWT required)
-  * @GET /orders@                 — paginated list of orders (JWT required)
-  * @GET /orders/{identifier}@    — single order detail (JWT required)
-  * @GET /audit@                  — paginated list of audit logs (JWT required)
-  * @GET /audit/{identifier}@     — single audit log detail (JWT required)
+  * @POST /auth/login@              — returns a signed HS256 JWT on valid credentials
+  * @GET /dashboard/summary@        — returns aggregated dashboard state (JWT required)
+  * @GET /orders@                   — paginated list of orders (JWT required)
+  * @GET /orders/{identifier}@      — single order detail (JWT required)
+  * @GET /audit@                    — paginated list of audit logs (JWT required)
+  * @GET /audit/{identifier}@       — single audit log detail (JWT required)
+  * @GET /settings/strategy@        — returns strategy settings (JWT required)
+  * @GET /compliance/controls@      — returns compliance controls (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -37,6 +39,12 @@ import Presentation.Handler.Orders (
   OrderListResponse,
   getOrderByIdentifierHandler,
   getOrdersHandler,
+ )
+import Presentation.Handler.Settings (
+  ComplianceControlsResponse,
+  StrategySettingsResponse,
+  getComplianceControlsHandler,
+  getSettingsStrategyHandler,
  )
 import Servant (
   Capture,
@@ -98,7 +106,17 @@ type AuditAPI =
       :> Header "Authorization" Text
       :> Get '[JSON] AuditDetailResponse
 
-type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI
+type SettingsAPI =
+  "settings"
+    :> "strategy"
+    :> Header "Authorization" Text
+    :> Get '[JSON] StrategySettingsResponse
+    :<|> "compliance"
+      :> "controls"
+      :> Header "Authorization" Text
+      :> Get '[JSON] ComplianceControlsResponse
+
+type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI :<|> SettingsAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -115,6 +133,8 @@ bffApiProxy = Proxy
   * @GET /orders/{identifier}@    → 'getOrderByIdentifierHandler'
   * @GET /audit@                  → 'getAuditLogsHandler'
   * @GET /audit/{identifier}@     → 'getAuditLogByIdentifierHandler'
+  * @GET /settings/strategy@      → 'getSettingsStrategyHandler'
+  * @GET /compliance/controls@    → 'getComplianceControlsHandler'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
@@ -122,3 +142,4 @@ bffServer appEnvironment =
     :<|> getDashboardSummaryHandler appEnvironment
     :<|> (getOrdersHandler appEnvironment :<|> getOrderByIdentifierHandler appEnvironment)
     :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
+    :<|> (getSettingsStrategyHandler appEnvironment :<|> getComplianceControlsHandler appEnvironment)

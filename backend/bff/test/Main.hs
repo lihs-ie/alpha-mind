@@ -5,6 +5,7 @@ import Presentation.Handler.AuditSpec qualified
 import Presentation.Handler.AuthSpec qualified
 import Presentation.Handler.DashboardSpec qualified
 import Presentation.Handler.OrdersSpec qualified
+import Presentation.Handler.SettingsSpec qualified
 import Test.Hspec (hspec)
 
 main :: IO ()
@@ -15,3 +16,4 @@ main =
     Presentation.Handler.AuthSpec.spec
     Presentation.Handler.DashboardSpec.spec
     Presentation.Handler.OrdersSpec.spec
+    Presentation.Handler.SettingsSpec.spec
