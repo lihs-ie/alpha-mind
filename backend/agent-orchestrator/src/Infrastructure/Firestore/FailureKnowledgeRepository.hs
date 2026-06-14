@@ -149,7 +149,7 @@ fieldsToKnowledge fields = do
       , summary = summaryValue
       , markdownSummary = markdownSummaryValue
       , similarityHash = similarityHashValue
-      , recordedAt = (createdAtValue :: UTCTime)
+      , recordedAt = createdAtValue :: UTCTime
       }
 
 liftTextError :: Either Text a -> Either DomainError a
