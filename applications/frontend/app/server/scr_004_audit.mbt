@@ -130,8 +130,25 @@ fn render_audit_placeholder(
         ],
         [render_audit_header_ssr(), table_body],
       ),
+      // Cursor-based pagination (Molecule). Hydrated by the AuditSearch Island,
+      // which wires the prev/next cursors returned by BFF GET /audit.
+      @molecules.pagination(
+        summary=audit_page_summary(logs.length()),
+        has_prev=false,
+        has_next=logs.length() > 0,
+      ),
     ],
   )
+}
+
+///|
+/// Range/count summary for the audit pagination control.
+fn audit_page_summary(count : Int) -> String {
+  if count == 0 {
+    "0 件"
+  } else {
+    "1–" + count.to_string() + " 件"
+  }
 }
 
 ///|
