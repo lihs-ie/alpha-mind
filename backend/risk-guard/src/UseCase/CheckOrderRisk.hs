@@ -16,6 +16,12 @@ module UseCase.CheckOrderRisk (
   OrderRiskAssessmentRepository,
   IdempotencyKeyRepository,
   RiskEventPublisher,
+
+  -- * Payload and settings re-exports (for presentation layer)
+  OrdersProposedPayload (..),
+  RiskLimits,
+  CompliancePolicy,
+  RiskExposure,
 ) where
 
 import Data.Text (Text)
