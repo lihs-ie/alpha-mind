@@ -17,6 +17,7 @@ import Infrastructure.Repository.FirestoreCodecSpec qualified
 import Infrastructure.Repository.FirestoreCollectionDispatchRepositorySpec qualified
 import Infrastructure.Repository.FirestoreMarketCollectionRepositorySpec qualified
 import Infrastructure.Repository.GcsMarketDataRepositorySpec qualified
+import Presentation.PubSubHandlerSpec qualified
 import Test.Hspec (hspec)
 import UseCase.CollectMarketDataSpec qualified
 
@@ -41,3 +42,4 @@ main =
     Infrastructure.Repository.FirestoreMarketCollectionRepositorySpec.spec
     Infrastructure.Repository.FirestoreCollectionDispatchRepositorySpec.spec
     Infrastructure.Publisher.PubSubCollectionEventPublisherSpec.spec
+    Presentation.PubSubHandlerSpec.spec
