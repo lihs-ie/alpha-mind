@@ -27,6 +27,8 @@ library
     Domain.OrderExecution.OrderExecutionFactory
     Domain.OrderExecution.ReasonCode
     Domain.OrderExecution.Specification
+    UseCase.CompleteDemoRun
+    UseCase.ExecuteOrder
   build-depends:
     text           ^>=2.1.4,
     time           ^>=1.14,
@@ -59,3 +61,5 @@ test-suite execution-test
     Domain.OrderExecution.BrokerExecutionPolicySpec
     Domain.OrderExecution.DemoRunEvaluationSpec
     Domain.OrderExecution.ExecutionIdempotencyPolicySpec
+    UseCase.CompleteDemoRunSpec
+    UseCase.ExecuteOrderSpec
