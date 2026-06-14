@@ -14,7 +14,9 @@ Endpoints:
   * @GET /audit@                              — paginated list of audit logs (JWT required)
   * @GET /audit/{identifier}@                 — single audit log detail (JWT required)
   * @GET /settings/strategy@                  — returns strategy settings (JWT required)
+  * @PUT /settings/strategy@                  — updates strategy settings (JWT required, admin)
   * @GET /compliance/controls@                — returns compliance controls (JWT required)
+  * @PUT /compliance/controls@                — updates compliance controls (JWT required, admin)
   * @GET /insights@                           — paginated list of insight records (JWT required)
   * @GET /insights/{identifier}@              — single insight record detail (JWT required)
   * @GET /hypotheses@                         — paginated list of hypotheses (JWT required)
@@ -84,9 +86,14 @@ import Presentation.Handler.Orders (
  )
 import Presentation.Handler.Settings (
   ComplianceControlsResponse,
+  ComplianceControlsUpdateRequest,
   StrategySettingsResponse,
+  StrategySettingsUpdateRequest,
+  UpdateResult,
   getComplianceControlsHandler,
   getSettingsStrategyHandler,
+  putComplianceControlsHandler,
+  putSettingsStrategyHandler,
  )
 import Servant (
   Capture,
@@ -96,6 +103,7 @@ import Servant (
   Post,
   PostAccepted,
   Proxy (..),
+  Put,
   QueryParam,
   ReqBody,
   Server,
@@ -154,10 +162,20 @@ type SettingsAPI =
     :> "strategy"
     :> Header "Authorization" Text
     :> Get '[JSON] StrategySettingsResponse
+    :<|> "settings"
+      :> "strategy"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] StrategySettingsUpdateRequest
+      :> Put '[JSON] UpdateResult
     :<|> "compliance"
       :> "controls"
       :> Header "Authorization" Text
       :> Get '[JSON] ComplianceControlsResponse
+    :<|> "compliance"
+      :> "controls"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] ComplianceControlsUpdateRequest
+      :> Put '[JSON] UpdateResult
 
 type InsightsAPI =
   "insights"
@@ -252,7 +270,9 @@ bffApiProxy = Proxy
   * @GET /audit@                             → 'getAuditLogsHandler'
   * @GET /audit/{identifier}@                → 'getAuditLogByIdentifierHandler'
   * @GET /settings/strategy@                 → 'getSettingsStrategyHandler'
+  * @PUT /settings/strategy@                 → 'putSettingsStrategyHandler'
   * @GET /compliance/controls@               → 'getComplianceControlsHandler'
+  * @PUT /compliance/controls@               → 'putComplianceControlsHandler'
   * @GET /insights@                          → 'getInsightsHandler'
   * @GET /insights/{identifier}@             → 'getInsightByIdentifierHandler'
   * @GET /hypotheses@                        → 'getHypothesesHandler'
@@ -270,7 +290,11 @@ bffServer appEnvironment =
     :<|> getDashboardSummaryHandler appEnvironment
     :<|> (getOrdersHandler appEnvironment :<|> getOrderByIdentifierHandler appEnvironment)
     :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
-    :<|> (getSettingsStrategyHandler appEnvironment :<|> getComplianceControlsHandler appEnvironment)
+    :<|> ( getSettingsStrategyHandler appEnvironment
+             :<|> putSettingsStrategyHandler appEnvironment
+             :<|> getComplianceControlsHandler appEnvironment
+             :<|> putComplianceControlsHandler appEnvironment
+         )
     :<|> (getInsightsHandler appEnvironment :<|> getInsightByIdentifierHandler appEnvironment)
     :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)
     :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
