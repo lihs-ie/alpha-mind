@@ -189,13 +189,20 @@ services:
       GCP_REGION: asia-northeast1
       FIRESTORE_EMULATOR_HOST: firestore:8080
       FIRESTORE_DATABASE: "(default)"
+      FIRESTORE_DATABASE_ID: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
       STORAGE_EMULATOR_HOST: http://gcs:4443
-      # 外部APIキーはローカルではプレースホルダーを使用する
-      JQUANTS_API_KEY: "local-jquants-api-key-placeholder"
-      ALPACA_API_KEY: "local-alpaca-api-key-placeholder"
-      ALPACA_API_SECRET: "local-alpaca-api-secret-placeholder"
+      # presentation 層 (#28) が App.Bootstrap / buildAppEnv で要求する必須 env
+      SERVICE_VERSION: "0.1.0"
+      GCS_BUCKET_NAME: "alpha-mind-market-data-local"
+      PUBSUB_MARKET_COLLECTED_TOPIC: "market.collected"
+      PUBSUB_MARKET_COLLECT_FAILED_TOPIC: "market.collect.failed"
+      # 外部APIキーはローカルではプレースホルダーを使用する（buildAppEnv が読むキー名）
+      JQUANTS_ID_TOKEN: "local-jquants-id-token-placeholder"
+      ALPACA_API_KEY_ID: "local-alpaca-api-key-id-placeholder"
+      ALPACA_API_SECRET_KEY: "local-alpaca-api-secret-key-placeholder"
+      ALPACA_US_COLLECTION_ENABLED: "false"
     depends_on:
       init:
         condition: service_completed_successfully
