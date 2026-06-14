@@ -10,6 +10,9 @@ import Domain.InsightCollection.EvidenceCompletenessPolicySpec qualified
 import Domain.InsightCollection.InsightDispatchSpec qualified
 import Domain.InsightCollection.ReasonCodeSpec qualified
 import Domain.InsightCollection.SourcePolicyComplianceServiceSpec qualified
+import Infrastructure.Idempotency.InsightIdempotencySpec qualified
+import Infrastructure.Publisher.PubSubInsightEventPublisherSpec qualified
+import Infrastructure.Repository.FirestoreInsightRecordRepositorySpec qualified
 import Test.Hspec (hspec)
 import UseCase.CollectInsightsSpec qualified
 
@@ -27,3 +30,6 @@ main =
     ACL.ExternalSource.YouTubeSpec.spec
     ACL.ExternalSource.PaperSpec.spec
     ACL.ExternalSource.GitHubSpec.spec
+    Infrastructure.Repository.FirestoreInsightRecordRepositorySpec.spec
+    Infrastructure.Publisher.PubSubInsightEventPublisherSpec.spec
+    Infrastructure.Idempotency.InsightIdempotencySpec.spec
