@@ -25,6 +25,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-001: ダッシュボード (authenticated)
+        @router.SolRoutes::Page(
+          path="/dashboard",
+          handler=@router.PageHandler(dashboard_page),
+          title="ダッシュボード — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]

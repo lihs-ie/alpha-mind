@@ -12,5 +12,6 @@ using @element {
   p,
   text,
   text_of,
+  text_dyn,
   events,
 }
