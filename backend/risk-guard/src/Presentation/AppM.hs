@@ -27,7 +27,7 @@ module Presentation.AppM (
   loadSettings,
 ) where
 
-import Config.Env (optionalTextEnv, requireTextEnv)
+import Config.Env (CommonRuntimeEnv (..), loadCommonRuntimeEnv, optionalTextEnv, requireTextEnv)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Trans.Reader (ReaderT (..), ask, runReaderT)
 import Data.Maybe (fromMaybe)
@@ -160,19 +160,27 @@ instance RiskEventPublisher AppM where
 
 {- | Must-09: Build 'AppEnv' from environment variables.
 
- Required variables:
-   PUBSUB_PROJECT_ID             — Pub/Sub GCP project ID
-   ORDERS_PROPOSED_SUBSCRIPTION  — orders.proposed subscription name
-   KILL_SWITCH_SUBSCRIPTION      — operation.kill_switch.changed subscription name
+ Required (via loadCommonRuntimeEnv):
+   GCP_PROJECT_ID (or GOOGLE_CLOUD_PROJECT) — GCP project ID for both Firestore and Pub/Sub
+   SERVICE_VERSION                           — service version string
+
+ Required:
    ORDERS_APPROVED_TOPIC         — orders.approved topic name
    ORDERS_REJECTED_TOPIC         — orders.rejected topic name
-   FIRESTORE_PROJECT_ID          — Firestore GCP project ID
+
  Optional:
-   FIRESTORE_DATABASE_ID         (default "(default)")
+   FIRESTORE_PROJECT_ID   — override GCP project ID for Firestore
+   PUBSUB_PROJECT_ID      — override GCP project ID for Pub/Sub
+   FIRESTORE_DATABASE_ID  — Firestore database ID (default "(default)")
 -}
 buildAppEnv :: IO AppEnv
 buildAppEnv = do
-  firestoreProjectIdentifier <- requireTextEnv "FIRESTORE_PROJECT_ID"
+  commonEnv <- loadCommonRuntimeEnv "risk-guard"
+  let gcpProjectId = commonEnv.gcpProjectId
+
+  -- Firestore project: prefer explicit override, fall back to GCP_PROJECT_ID
+  maybeFirestoreProjectIdentifier <- optionalTextEnv "FIRESTORE_PROJECT_ID"
+  let firestoreProjectIdentifier = fromMaybe gcpProjectId maybeFirestoreProjectIdentifier
   maybeDatabaseIdentifier <- optionalTextEnv "FIRESTORE_DATABASE_ID"
   let databaseIdentifier = fromMaybe "(default)" maybeDatabaseIdentifier
       firestoreCtx =
@@ -185,8 +193,9 @@ buildAppEnv = do
       settingsEnvironment = FirestoreRiskSettingsEnv{firestoreContext = firestoreCtx}
       killSwitchEnvironment = FirestoreKillSwitchStateEnv{firestoreContext = firestoreCtx}
 
-  -- Pub/Sub publisher
-  pubSubProjectIdentifier <- requireTextEnv "PUBSUB_PROJECT_ID"
+  -- Pub/Sub project: prefer explicit override, fall back to GCP_PROJECT_ID
+  maybePubSubProjectIdentifier <- optionalTextEnv "PUBSUB_PROJECT_ID"
+  let pubSubProjectIdentifier = fromMaybe gcpProjectId maybePubSubProjectIdentifier
   approvedTopicNameValue <- requireTextEnv "ORDERS_APPROVED_TOPIC"
   rejectedTopicNameValue <- requireTextEnv "ORDERS_REJECTED_TOPIC"
   httpManager <- newTlsManager

@@ -321,12 +321,17 @@ services:
     environment:
       APP_ENV: local
       PORT: "8080"
+      SERVICE_VERSION: "0.1.0"
       GCP_PROJECT_ID: alpha-mind-local
       GCP_REGION: asia-northeast1
       FIRESTORE_EMULATOR_HOST: firestore:8080
-      FIRESTORE_DATABASE: "(default)"
+      FIRESTORE_DATABASE_ID: "(default)"
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PUBSUB_TOPIC_PREFIX: "event-"
+      ORDERS_APPROVED_TOPIC: "orders.approved"
+      ORDERS_REJECTED_TOPIC: "orders.rejected"
+      ORDERS_PROPOSED_SUBSCRIPTION: "orders.proposed.risk-guard"
+      KILL_SWITCH_SUBSCRIPTION: "operation.kill-switch.changed.risk-guard"
     depends_on:
       init:
         condition: service_completed_successfully

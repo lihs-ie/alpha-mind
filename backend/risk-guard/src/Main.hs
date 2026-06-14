@@ -20,20 +20,15 @@
 module Main (main) where
 
 import App.Bootstrap (HttpServiceOptions (..), runHttpService)
-import Config.Env (requireTextEnv)
 import Control.Concurrent.Async (concurrently_)
 import Presentation.Api (riskGuardApiProxy, riskGuardServer)
 import Presentation.AppM (buildAppEnv)
 
 main :: IO ()
 main = do
-  -- Must-09: Validate required environment variables exist before starting.
-  -- Missing variables cause 'requireTextEnv' to throw 'MissingEnv' at startup.
-  _pubSubProjectIdentifier <- requireTextEnv "PUBSUB_PROJECT_ID"
-  _ordersProposedSubscription <- requireTextEnv "ORDERS_PROPOSED_SUBSCRIPTION"
-  _killSwitchSubscription <- requireTextEnv "KILL_SWITCH_SUBSCRIPTION"
-
-  -- Build the full AppEnv from environment variables
+  -- Build the full AppEnv from environment variables.
+  -- Must-09: buildAppEnv reads GCP_PROJECT_ID, ORDERS_APPROVED_TOPIC, ORDERS_REJECTED_TOPIC,
+  -- SERVICE_VERSION (via loadCommonRuntimeEnv) and throws MissingEnv on any absent required var.
   appEnv <- buildAppEnv
 
   -- Must-07: Run HTTP server with all routes concurrently.
