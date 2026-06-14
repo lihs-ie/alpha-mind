@@ -1,20 +1,24 @@
 module Infrastructure.Repository.FirestoreModelValidationRepository (
   FirestoreModelValidationRepositoryEnv (..),
   ModelValidationQueryFilter (..),
+  ModelValidationStatusUpdate (..),
   listModelValidations,
   getModelValidationByVersion,
+  updateModelValidationStatus,
 )
 where
 
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import Domain.ModelValidation.Record (
   DegradationFlag (..),
   ModelMetrics (..),
   ModelValidationDetail (..),
   ModelValidationStatus (..),
   ModelValidationSummary (..),
+  modelValidationStatusToText,
  )
 import Gogol.FireStore qualified as GogolFireStore
 import Persistence.Firestore (
@@ -25,6 +29,8 @@ import Persistence.Firestore (
   FromFirestore (..),
   QueryOrder (..),
   SortDirection (..),
+  ToFirestore (..),
+  ToFirestoreValue (..),
   requireField,
  )
 import Persistence.Firestore qualified as Firestore
@@ -181,3 +187,42 @@ requireDoubleField key fields =
           case value.integerValue of
             Just i -> Right (fromIntegral i)
             Nothing -> Left ("Field " <> key <> " is not a number")
+
+-- ---------------------------------------------------------------------------
+-- Update records
+-- ---------------------------------------------------------------------------
+
+-- | Fields to update when approving or rejecting a model validation.
+data ModelValidationStatusUpdate = ModelValidationStatusUpdate
+  { newStatus :: ModelValidationStatus
+  -- ^ The target status (@approved@ or @rejected@).
+  , decidedAt :: UTCTime
+  -- ^ Timestamp of the decision.
+  }
+
+instance ToFirestore ModelValidationStatusUpdate where
+  toFirestoreFields statusUpdate =
+    HashMap.fromList
+      [ ("status", toValue (modelValidationStatusToText statusUpdate.newStatus))
+      , ("decidedAt", toValue statusUpdate.decidedAt)
+      ]
+
+-- ---------------------------------------------------------------------------
+-- Update operations
+-- ---------------------------------------------------------------------------
+
+{- | Overwrite @status@ and @decidedAt@ of a model validation document in
+@model_registry@.
+-}
+updateModelValidationStatus ::
+  FirestoreModelValidationRepositoryEnv ->
+  -- | Model version (document ID).
+  Text ->
+  ModelValidationStatusUpdate ->
+  IO (Either FirestoreError ())
+updateModelValidationStatus modelValidationRepositoryEnv modelVersionText statusUpdate =
+  Firestore.upsertDocument
+    modelValidationRepositoryEnv.firestoreContext
+    (CollectionName "model_registry")
+    (DocumentId modelVersionText)
+    statusUpdate

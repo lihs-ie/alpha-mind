@@ -28,8 +28,10 @@ Endpoints:
   * @POST /hypotheses/{identifier}/reject@                — reject hypothesis (JWT required, hypotheses:decide)
   * @POST /hypotheses/{identifier}/retest@                — request hypothesis retest (JWT required, hypotheses:retest)
   * @PUT /hypotheses/{identifier}/mnpi-self-declaration@  — update MNPI self-declaration (JWT required, hypotheses:decide)
-  * @GET /models/validation@                  — paginated list of model validations (JWT required)
-  * @GET /models/validation/{modelVersion}@   — single model validation detail (JWT required)
+  * @GET /models/validation@                             — paginated list of model validations (JWT required)
+  * @GET /models/validation/{modelVersion}@              — single model validation detail (JWT required)
+  * @POST /models/validation/{modelVersion}/approve@     — approve a model validation (JWT required, models:decide)
+  * @POST /models/validation/{modelVersion}/reject@      — reject a model validation (JWT required, models:decide)
   * @POST /operations/runtime@                — change runtime state (JWT required)
   * @POST /operations/kill-switch@            — toggle kill switch (JWT required)
   * @POST /commands/run-cycle@                — trigger market collect cycle (JWT required)
@@ -89,10 +91,14 @@ import Presentation.Handler.Insights (
   rejectInsightHandler,
  )
 import Presentation.Handler.ModelValidations (
+  ModelActionResult,
+  ModelDecisionRequest,
   ModelValidationDetailResponse,
   ModelValidationListResponse,
+  approveModelValidationHandler,
   getModelValidationByVersionHandler,
   getModelValidationsHandler,
+  rejectModelValidationHandler,
  )
 import Presentation.Handler.Operations (
   KillSwitchRequest,
@@ -305,6 +311,20 @@ type ModelsValidationAPI =
       :> Capture "modelVersion" Text
       :> Header "Authorization" Text
       :> Get '[JSON] ModelValidationDetailResponse
+    :<|> "models"
+      :> "validation"
+      :> Capture "modelVersion" Text
+      :> "approve"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] ModelDecisionRequest
+      :> Post '[JSON] ModelActionResult
+    :<|> "models"
+      :> "validation"
+      :> Capture "modelVersion" Text
+      :> "reject"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] ModelDecisionRequest
+      :> Post '[JSON] ModelActionResult
 
 type OperationsAPI =
   "operations"
@@ -372,8 +392,10 @@ bffApiProxy = Proxy
   * @POST /hypotheses/{identifier}/reject@               → 'rejectHypothesisHandler'
   * @POST /hypotheses/{identifier}/retest@               → 'retestHypothesisHandler'
   * @PUT /hypotheses/{identifier}/mnpi-self-declaration@ → 'updateHypothesisMnpiHandler'
-  * @GET /models/validation@                 → 'getModelValidationsHandler'
-  * @GET /models/validation/{modelVersion}@  → 'getModelValidationByVersionHandler'
+  * @GET /models/validation@                            → 'getModelValidationsHandler'
+  * @GET /models/validation/{modelVersion}@             → 'getModelValidationByVersionHandler'
+  * @POST /models/validation/{modelVersion}/approve@    → 'approveModelValidationHandler'
+  * @POST /models/validation/{modelVersion}/reject@     → 'rejectModelValidationHandler'
   * @POST /operations/runtime@               → 'handleChangeRuntime'
   * @POST /operations/kill-switch@           → 'handleToggleKillSwitch'
   * @POST /commands/run-cycle@               → 'handleRunCycle'
@@ -408,6 +430,10 @@ bffServer appEnvironment =
              :<|> retestHypothesisHandler appEnvironment
              :<|> updateHypothesisMnpiHandler appEnvironment
          )
-    :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
+    :<|> ( getModelValidationsHandler appEnvironment
+             :<|> getModelValidationByVersionHandler appEnvironment
+             :<|> approveModelValidationHandler appEnvironment
+             :<|> rejectModelValidationHandler appEnvironment
+         )
     :<|> (handleChangeRuntime appEnvironment :<|> handleToggleKillSwitch appEnvironment)
     :<|> (handleRunCycle appEnvironment :<|> handleRunInsightCycle appEnvironment)

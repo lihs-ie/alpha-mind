@@ -3,19 +3,32 @@ module Presentation.Handler.ModelValidations (
   ModelValidationDetailResponse (..),
   ModelValidationListResponse (..),
   ModelMetricsResponse (..),
+  ModelActionResult (..),
+  ModelDecisionRequest (..),
   getModelValidationsHandler,
   getModelValidationByVersionHandler,
+  approveModelValidationHandler,
+  rejectModelValidationHandler,
 )
 where
 
+import Control.Exception (SomeException, try)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (ToJSON (..), encode, object, (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), encode, object, withObject, (.:), (.:?), (.=))
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (getCurrentTime)
+import Data.ULID qualified as ULID
+import Domain.ModelValidation.Action (
+  ModelValidationTransitionError (..),
+  validateApprove,
+  validateReject,
+ )
 import Domain.ModelValidation.Record (
   ModelMetrics (..),
   ModelValidationDetail (..),
+  ModelValidationStatus (..),
   ModelValidationSummary (..),
   degradationFlagToText,
   modelValidationStatusToText,
@@ -24,13 +37,15 @@ import Infrastructure.JWT.JwtVerifier (JwtVerifierEnv (..), VerifiedClaims (..),
 import Infrastructure.Repository.FirestoreModelValidationRepository (
   FirestoreModelValidationRepositoryEnv (..),
   ModelValidationQueryFilter (..),
+  ModelValidationStatusUpdate (..),
   getModelValidationByVersion,
   listModelValidations,
+  updateModelValidationStatus,
  )
 import Network.HTTP.Types (hContentType)
 import Persistence.Firestore (FirestoreError (..))
 import Presentation.AppM (AppEnv (..))
-import Servant (Handler, ServerError (..), err400, err401, err403, err404, err503, throwError)
+import Servant (Handler, ServerError (..), err400, err401, err403, err404, err409, err503, throwError)
 
 -- ---------------------------------------------------------------------------
 -- Response types
@@ -110,6 +125,34 @@ instance ToJSON ModelValidationListResponse where
     object
       [ "items" .= modelValidationListResponse.items
       , "nextCursor" .= modelValidationListResponse.nextCursor
+      ]
+
+{- | Request body for @POST \/models\/validation\/{modelVersion}\/approve@ and
+  @POST \/models\/validation\/{modelVersion}\/reject@.
+-}
+data ModelDecisionRequest = ModelDecisionRequest
+  { actionReasonCode :: Text
+  , comment :: Maybe Text
+  }
+
+instance FromJSON ModelDecisionRequest where
+  parseJSON =
+    withObject "ModelDecisionRequest" $ \requestObject ->
+      ModelDecisionRequest
+        <$> requestObject .: "actionReasonCode"
+        <*> requestObject .:? "comment"
+
+-- | Response body for approve and reject actions (200 OK).
+data ModelActionResult = ModelActionResult
+  { success :: Bool
+  , trace :: Text
+  }
+
+instance ToJSON ModelActionResult where
+  toJSON modelActionResult =
+    object
+      [ "success" .= modelActionResult.success
+      , "trace" .= modelActionResult.trace
       ]
 
 -- ---------------------------------------------------------------------------
@@ -206,6 +249,134 @@ getModelValidationByVersionHandler appEnvironment modelVersionParam maybeAuthHea
       throwNotFound "Model validation entry not found"
     Just modelValidationDetail -> pure (toModelValidationDetailResponse modelValidationDetail)
 
+{- | @POST \/models\/validation\/{modelVersion}\/approve@ handler.
+
+Requires @models:decide@ permission.  Validates the @candidate → approved@
+transition per 状態遷移設計.md §5:
+
+  * status must be @candidate@
+  * @requiresComplianceReview@ must not be @true@
+
+Updates Firestore @model_registry@ document status and @decidedAt@.
+No Pub\/Sub event is published (no asyncapi channel defined for this transition).
+-}
+approveModelValidationHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  ModelDecisionRequest ->
+  Handler ModelActionResult
+approveModelValidationHandler appEnvironment modelVersionParam maybeAuthHeader _decisionRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "models:decide"
+
+  modelValidationDetail <- fetchModelValidationOrNotFound appEnvironment modelVersionParam
+
+  case validateApprove modelValidationDetail.status modelValidationDetail.requiresComplianceReview of
+    Left ComplianceReviewRequired ->
+      throwConflict
+        "Model requires compliance review before approval"
+        "COMPLIANCE_REVIEW_REQUIRED"
+    Left (InvalidStateTransition currentStatus _action) ->
+      throwConflict
+        ("Cannot approve model validation in status " <> modelValidationStatusToText currentStatus)
+        "STATE_CONFLICT"
+    Right () -> pure ()
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        ModelValidationStatusUpdate
+          { newStatus = ModelValidationStatusApproved
+          , decidedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateModelValidationStatus
+              FirestoreModelValidationRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              modelVersionParam
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update model validation status"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  pure
+    ModelActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @POST \/models\/validation\/{modelVersion}\/reject@ handler.
+
+Requires @models:decide@ permission.  Validates the @candidate → rejected@
+transition per 状態遷移設計.md §5.  @approved@ and @rejected@ are terminal;
+any attempt to re-transition returns 409.
+
+Updates Firestore @model_registry@ document status and @decidedAt@.
+No Pub\/Sub event is published (no asyncapi channel defined for this transition).
+-}
+rejectModelValidationHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  ModelDecisionRequest ->
+  Handler ModelActionResult
+rejectModelValidationHandler appEnvironment modelVersionParam maybeAuthHeader _decisionRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "models:decide"
+
+  modelValidationDetail <- fetchModelValidationOrNotFound appEnvironment modelVersionParam
+
+  case validateReject modelValidationDetail.status of
+    Left (InvalidStateTransition currentStatus _action) ->
+      throwConflict
+        ("Cannot reject model validation in status " <> modelValidationStatusToText currentStatus)
+        "STATE_CONFLICT"
+    Left _ ->
+      throwConflict "Invalid state for reject" "STATE_CONFLICT"
+    Right () -> pure ()
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        ModelValidationStatusUpdate
+          { newStatus = ModelValidationStatusRejected
+          , decidedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateModelValidationStatus
+              FirestoreModelValidationRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              modelVersionParam
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update model validation status"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  pure
+    ModelActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
@@ -275,6 +446,46 @@ throwNotFound detailText =
       , errHeaders = [(hContentType, "application/problem+json")]
       , errReasonPhrase = "Not Found"
       }
+
+throwConflict :: Text -> Text -> Handler a
+throwConflict detailText reasonCodeText =
+  throwError
+    err409
+      { errBody = encode (problemJson "Conflict" 409 detailText reasonCodeText)
+      , errHeaders = [(hContentType, "application/problem+json")]
+      , errReasonPhrase = "Conflict"
+      }
+
+{- | Fetch a model validation by modelVersion, returning 404 if not found or
+503 on Firestore error (including credential failures).
+-}
+fetchModelValidationOrNotFound :: AppEnv -> Text -> Handler ModelValidationDetail
+fetchModelValidationOrNotFound appEnvironment modelVersionText = do
+  detailResult <-
+    liftIO
+      ( try
+          ( getModelValidationByVersion
+              FirestoreModelValidationRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              modelVersionText
+          ) ::
+          IO (Either SomeException (Either FirestoreError (Maybe ModelValidationDetail)))
+      )
+  case detailResult of
+    Left _exception ->
+      throwServiceUnavailable "Failed to read model validation"
+    Right (Left firestoreError) ->
+      throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right Nothing) ->
+      throwError
+        err404
+          { errBody = encode (problemJson "Not Found" 404 "Model validation entry not found" "RESOURCE_NOT_FOUND")
+          , errHeaders = [(hContentType, "application/problem+json")]
+          , errReasonPhrase = "Not Found"
+          }
+    Right (Right (Just modelValidationDetail)) ->
+      pure modelValidationDetail
 
 data ProblemJson = ProblemJson
   { problemTitle :: Text

@@ -1,9 +1,10 @@
-module Presentation.Handler.ModelValidationsSpec (spec) where
+module Presentation.Handler.ModelValidationsActionsSpec (spec) where
 
-import Data.Aeson (Value, decode)
+import Data.Aeson (Value, decode, encode, object, (.=))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
+import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Domain.Auth.Credential (
@@ -78,13 +79,27 @@ testAppEnv =
 testApp :: Application
 testApp = serve bffApiProxy (bffServer testAppEnv)
 
-viewerWithoutModels :: AuthenticatedUser
-viewerWithoutModels =
+-- | Admin user with models:decide permission.
+adminWithModelsDecide :: AuthenticatedUser
+adminWithModelsDecide =
+  AuthenticatedUser
+    { identifier = "admin-001"
+    , email = EmailAddress "admin@example.com"
+    , role = Admin
+    , permissions =
+        [ AuthPermission "models:read"
+        , AuthPermission "models:decide"
+        ]
+    }
+
+-- | Viewer without models mutation permissions.
+viewerWithoutModelsDecide :: AuthenticatedUser
+viewerWithoutModelsDecide =
   AuthenticatedUser
     { identifier = "viewer-001"
     , email = EmailAddress "viewer@example.com"
     , role = Viewer
-    , permissions = [AuthPermission "dashboard:read"]
+    , permissions = [AuthPermission "models:read"]
     }
 
 issueTestToken :: AuthenticatedUser -> IO Text
@@ -94,75 +109,96 @@ issueTestToken authenticatedUser = do
     Left errorText -> error ("Failed to issue test token: " <> show errorText)
     Right tokenText -> pure tokenText
 
-modelsValidationRequest :: Maybe Text -> SRequest
-modelsValidationRequest maybeToken =
+approveRequest :: Maybe Text -> ByteString -> SRequest
+approveRequest maybeToken body =
   SRequest
     { simpleRequest =
         setPath
           defaultRequest
-            { Wai.requestMethod = "GET"
+            { Wai.requestMethod = "POST"
             , Wai.requestHeaders =
-                [("Accept", "application/json")]
+                [("Content-Type", "application/json"), ("Accept", "application/json")]
                   <> case maybeToken of
                     Nothing -> []
                     Just tokenText ->
                       [("Authorization", "Bearer " <> encodeUtf8 tokenText)]
             }
-          "/models/validation"
-    , simpleRequestBody = ""
+          "/models/validation/v1.0.0/approve"
+    , simpleRequestBody = body
     }
 
-modelValidationByVersionRequest :: Maybe Text -> SRequest
-modelValidationByVersionRequest maybeToken =
+rejectRequest :: Maybe Text -> ByteString -> SRequest
+rejectRequest maybeToken body =
   SRequest
     { simpleRequest =
         setPath
           defaultRequest
-            { Wai.requestMethod = "GET"
+            { Wai.requestMethod = "POST"
             , Wai.requestHeaders =
-                [("Accept", "application/json")]
+                [("Content-Type", "application/json"), ("Accept", "application/json")]
                   <> case maybeToken of
                     Nothing -> []
                     Just tokenText ->
                       [("Authorization", "Bearer " <> encodeUtf8 tokenText)]
             }
-          "/models/validation/v1.0.0"
-    , simpleRequestBody = ""
+          "/models/validation/v1.0.0/reject"
+    , simpleRequestBody = body
     }
 
 lookupText :: String -> Value -> Maybe Aeson.Value
 lookupText key (Aeson.Object obj) = KeyMap.lookup (Key.fromString key) obj
 lookupText _ _ = Nothing
 
+hasReasonCode :: Text -> Value -> Bool
+hasReasonCode expectedCode bodyValue =
+  case lookupText "reasonCode" bodyValue of
+    Just (Aeson.String code) -> code == expectedCode
+    _ -> False
+
 -- ---------------------------------------------------------------------------
 -- Spec
 -- ---------------------------------------------------------------------------
 
 spec :: Spec
-spec = describe "Presentation.Handler.ModelValidations" $ do
-  describe "GET /models/validation" $ do
+spec = describe "Presentation.Handler.ModelValidations (action endpoints)" $ do
+  describe "POST /models/validation/{modelVersion}/approve" $ do
     it "returns 401 when Authorization header is missing" $ do
-      response <- runSession (srequest (modelsValidationRequest Nothing)) testApp
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (approveRequest Nothing body)) testApp
       simpleStatus response `shouldBe` status401
 
     it "returns 401 when Authorization header has invalid token" $ do
-      let invalidToken = "invalid.jwt.token" :: Text
-      response <- runSession (srequest (modelsValidationRequest (Just invalidToken))) testApp
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (approveRequest (Just "invalid.jwt.token") body)) testApp
       simpleStatus response `shouldBe` status401
 
-    it "returns 403 when token lacks models:read permission" $ do
-      tokenText <- issueTestToken viewerWithoutModels
-      response <- runSession (srequest (modelsValidationRequest (Just tokenText))) testApp
+    it "returns 403 when token lacks models:decide permission" $ do
+      tokenText <- issueTestToken viewerWithoutModelsDecide
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (approveRequest (Just tokenText) body)) testApp
       simpleStatus response `shouldBe` status403
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
-        Just bodyValue ->
-          case lookupText "reasonCode" bodyValue of
-            Just (Aeson.String reasonCode) -> reasonCode == "AUTH_FORBIDDEN"
-            _ -> False
+        Just bodyValue -> hasReasonCode "AUTH_FORBIDDEN" bodyValue
         Nothing -> False
 
-  describe "GET /models/validation/v1.0.0" $ do
+  describe "POST /models/validation/{modelVersion}/reject" $ do
     it "returns 401 when Authorization header is missing" $ do
-      response <- runSession (srequest (modelValidationByVersionRequest Nothing)) testApp
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (rejectRequest Nothing body)) testApp
       simpleStatus response `shouldBe` status401
+
+    it "returns 401 when Authorization header has invalid token" $ do
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (rejectRequest (Just "invalid.jwt.token") body)) testApp
+      simpleStatus response `shouldBe` status401
+
+    it "returns 403 when token lacks models:decide permission" $ do
+      tokenText <- issueTestToken viewerWithoutModelsDecide
+      let body = encode (object ["actionReasonCode" .= ("MANUAL_OPERATION" :: Text)])
+      response <- runSession (srequest (rejectRequest (Just tokenText) body)) testApp
+      simpleStatus response `shouldBe` status403
+      let maybeBody = decode (simpleBody response) :: Maybe Value
+      maybeBody `shouldSatisfy` \case
+        Just bodyValue -> hasReasonCode "AUTH_FORBIDDEN" bodyValue
+        Nothing -> False
