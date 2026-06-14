@@ -13,6 +13,27 @@ pub(all) struct LoginFormProps {
   bff_base_url : String
 } derive(ToJson, FromJson)
 
+///| Props type from @client
+pub(all) struct BlackoutWindowProps {
+  symbol : String
+  start_at : String
+  end_at : String
+  action_reason_code : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
+pub(all) struct StrategyFormProps {
+  bff_base_url : String
+  initial_market : String
+  initial_rebalance_frequency : String
+  initial_symbols : Array[String]
+  initial_daily_loss_limit : Double
+  initial_position_concentration_limit : Double
+  initial_daily_order_limit : Int
+  initial_restricted_symbols : Array[String]
+  initial_blackout_windows : Array[BlackoutWindowProps]
+} derive(ToJson, FromJson)
+
 // =============================================================================
 // ComponentRef Factory Functions
 // =============================================================================
@@ -35,6 +56,24 @@ pub fn login_form(
   { url: "/static/login_form.js", props, wc: false, trigger }
 }
 
+///|
+///| Create ComponentRef for blackout_window component
+pub fn blackout_window(
+  props : BlackoutWindowProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[BlackoutWindowProps] {
+  { url: "/static/blackout_window.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for strategy_form component
+pub fn strategy_form(
+  props : StrategyFormProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[StrategyFormProps] {
+  { url: "/static/strategy_form.js", props, wc: false, trigger }
+}
+
 // =============================================================================
 // Route Path Constants
 // =============================================================================
@@ -50,6 +89,10 @@ pub let route_login : String = "/login"
 ///|
 /// Route path: /dashboard
 pub let route_dashboard : String = "/dashboard"
+
+///|
+/// Route path: /settings/strategy
+pub let route_settings_strategy : String = "/settings/strategy"
 
 // =============================================================================
 // Link Builder Functions
@@ -71,5 +114,11 @@ pub fn link_login() -> String {
 /// Link builder for route: /dashboard
 pub fn link_dashboard() -> String {
   "/dashboard"
+}
+
+///|
+/// Link builder for route: /settings/strategy
+pub fn link_settings_strategy() -> String {
+  "/settings/strategy"
 }
 
