@@ -34,6 +34,7 @@ data AppEnv = AppEnv
   , ordersApprovedTopicName :: Text
   , ordersRejectedTopicName :: Text
   , ordersProposedTopicName :: Text
+  , hypothesisProposedTopicName :: Text
   }
 
 -- ---------------------------------------------------------------------------
@@ -49,9 +50,10 @@ Required variables:
   PUBSUB_KILL_SWITCH_TOPIC      — Pub/Sub topic name for kill-switch events
   PUBSUB_MARKET_COLLECT_TOPIC   — Pub/Sub topic for market.collect.requested events
   PUBSUB_INSIGHT_COLLECT_TOPIC  — Pub/Sub topic for insight.collect.requested events
-  PUBSUB_ORDERS_APPROVED_TOPIC  — Pub/Sub topic for orders.approved events
-  PUBSUB_ORDERS_REJECTED_TOPIC  — Pub/Sub topic for orders.rejected events
-  PUBSUB_ORDERS_PROPOSED_TOPIC  — Pub/Sub topic for orders.proposed events (retry)
+  PUBSUB_ORDERS_APPROVED_TOPIC      — Pub/Sub topic for orders.approved events
+  PUBSUB_ORDERS_REJECTED_TOPIC      — Pub/Sub topic for orders.rejected events
+  PUBSUB_ORDERS_PROPOSED_TOPIC      — Pub/Sub topic for orders.proposed events (retry)
+  PUBSUB_HYPOTHESIS_PROPOSED_TOPIC  — Pub/Sub topic for hypothesis.proposed events
 Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
@@ -70,6 +72,7 @@ buildAppEnv = do
   ordersApprovedTopicValue <- requireTextEnv "PUBSUB_ORDERS_APPROVED_TOPIC"
   ordersRejectedTopicValue <- requireTextEnv "PUBSUB_ORDERS_REJECTED_TOPIC"
   ordersProposedTopicValue <- requireTextEnv "PUBSUB_ORDERS_PROPOSED_TOPIC"
+  hypothesisProposedTopicValue <- requireTextEnv "PUBSUB_HYPOTHESIS_PROPOSED_TOPIC"
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
@@ -115,4 +118,5 @@ buildAppEnv = do
       , ordersApprovedTopicName = ordersApprovedTopicValue
       , ordersRejectedTopicName = ordersRejectedTopicValue
       , ordersProposedTopicName = ordersProposedTopicValue
+      , hypothesisProposedTopicName = hypothesisProposedTopicValue
       }

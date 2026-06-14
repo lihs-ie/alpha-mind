@@ -1,14 +1,17 @@
 module Infrastructure.Repository.FirestoreInsightRepository (
   FirestoreInsightRepositoryEnv (..),
   InsightQueryFilter (..),
+  InsightStatusUpdate (..),
   listInsightRecords,
   getInsightRecordByIdentifier,
+  updateInsightStatus,
 )
 where
 
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import Domain.Insight.Record (
   InsightDetail (..),
   InsightSentiment (..),
@@ -25,6 +28,8 @@ import Persistence.Firestore (
   FromFirestore (..),
   QueryOrder (..),
   SortDirection (..),
+  ToFirestore (..),
+  ToFirestoreValue (..),
   requireField,
  )
 import Persistence.Firestore qualified as Firestore
@@ -149,6 +154,41 @@ getInsightRecordByIdentifier insightRepositoryEnv insightIdentifier =
     insightRepositoryEnv.firestoreContext
     (CollectionName "insight_records")
     (DocumentId insightIdentifier)
+
+-- ---------------------------------------------------------------------------
+-- Status update
+-- ---------------------------------------------------------------------------
+
+-- | Payload for updating an insight record's action status in Firestore.
+data InsightStatusUpdate = InsightStatusUpdate
+  { actionStatus :: Text
+  -- ^ One of @"adopted"@, @"rejected"@, or @"hypothesized"@.
+  , updatedAt :: UTCTime
+  }
+
+instance ToFirestore InsightStatusUpdate where
+  toFirestoreFields statusUpdate =
+    HashMap.fromList
+      [ ("actionStatus", toValue statusUpdate.actionStatus)
+      , ("updatedAt", toValue statusUpdate.updatedAt)
+      ]
+
+{- | Overwrite the @actionStatus@ and @updatedAt@ fields of an insight record.
+
+Uses 'Firestore.upsertDocument' (PATCH semantics — merges on the server side).
+-}
+updateInsightStatus ::
+  FirestoreInsightRepositoryEnv ->
+  -- | Insight identifier (ULID).
+  Text ->
+  InsightStatusUpdate ->
+  IO (Either FirestoreError ())
+updateInsightStatus insightRepositoryEnv insightIdentifier statusUpdate =
+  Firestore.upsertDocument
+    insightRepositoryEnv.firestoreContext
+    (CollectionName "insight_records")
+    (DocumentId insightIdentifier)
+    statusUpdate
 
 -- ---------------------------------------------------------------------------
 -- Helpers

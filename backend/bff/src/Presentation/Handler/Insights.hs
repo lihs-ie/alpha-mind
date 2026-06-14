@@ -2,16 +2,27 @@ module Presentation.Handler.Insights (
   InsightSummaryResponse (..),
   InsightDetailResponse (..),
   InsightListResponse (..),
+  InsightActionResult (..),
+  InsightHypothesizeAccepted (..),
+  InsightDecisionRequest (..),
+  HypothesizeRequest (..),
   getInsightsHandler,
   getInsightByIdentifierHandler,
+  adoptInsightHandler,
+  rejectInsightHandler,
+  hypothesizeInsightHandler,
 )
 where
 
+import Control.Exception (SomeException, try)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (ToJSON (..), encode, object, (.=))
+import Data.Aeson (FromJSON (..), ToJSON (..), encode, object, withObject, (.:), (.:?), (.=))
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (getCurrentTime)
+import Data.ULID qualified as ULID
+import Domain.Insight.Action (InsightActionError (..), checkMnpiFilter)
 import Domain.Insight.Record (
   InsightDetail (..),
   InsightSummary (..),
@@ -20,16 +31,22 @@ import Domain.Insight.Record (
   insightSourceTypeToText,
  )
 import Infrastructure.JWT.JwtVerifier (JwtVerifierEnv (..), VerifiedClaims (..), verifyToken)
+import Infrastructure.Publisher.PubSubInsightsPublisher (
+  PubSubInsightsPublisherEnv (..),
+  publishHypothesisProposed,
+ )
 import Infrastructure.Repository.FirestoreInsightRepository (
   FirestoreInsightRepositoryEnv (..),
   InsightQueryFilter (..),
+  InsightStatusUpdate (..),
   getInsightRecordByIdentifier,
   listInsightRecords,
+  updateInsightStatus,
  )
 import Network.HTTP.Types (hContentType)
 import Persistence.Firestore (FirestoreError (..))
 import Presentation.AppM (AppEnv (..))
-import Servant (Handler, ServerError (..), err400, err401, err403, err404, err503, throwError)
+import Servant (Handler, ServerError (..), err400, err401, err403, err404, err422, err503, throwError)
 
 -- ---------------------------------------------------------------------------
 -- Response types
@@ -104,6 +121,60 @@ instance ToJSON InsightListResponse where
     object
       [ "items" .= insightListResponse.items
       , "nextCursor" .= insightListResponse.nextCursor
+      ]
+
+-- | Request body for insight action endpoints (adopt, reject).
+data InsightDecisionRequest = InsightDecisionRequest
+  { actionReasonCode :: Text
+  , comment :: Maybe Text
+  }
+
+instance FromJSON InsightDecisionRequest where
+  parseJSON =
+    withObject "InsightDecisionRequest" $ \requestObject ->
+      InsightDecisionRequest
+        <$> requestObject .: "actionReasonCode"
+        <*> requestObject .:? "comment"
+
+-- | Optional request body for the hypothesize action.
+data HypothesizeRequest = HypothesizeRequest
+  { actionReasonCode :: Maybe Text
+  , comment :: Maybe Text
+  }
+
+instance FromJSON HypothesizeRequest where
+  parseJSON =
+    withObject "HypothesizeRequest" $ \requestObject ->
+      HypothesizeRequest
+        <$> requestObject .:? "actionReasonCode"
+        <*> requestObject .:? "comment"
+
+-- | Response body for adopt and reject actions (200 OK).
+data InsightActionResult = InsightActionResult
+  { success :: Bool
+  , trace :: Text
+  }
+
+instance ToJSON InsightActionResult where
+  toJSON actionResult =
+    object
+      [ "success" .= actionResult.success
+      , "trace" .= actionResult.trace
+      ]
+
+-- | Response body for hypothesize action (202 Accepted).
+data InsightHypothesizeAccepted = InsightHypothesizeAccepted
+  { accepted :: Bool
+  , identifier :: Text
+  , trace :: Text
+  }
+
+instance ToJSON InsightHypothesizeAccepted where
+  toJSON hypothesizeAccepted =
+    object
+      [ "accepted" .= hypothesizeAccepted.accepted
+      , "identifier" .= hypothesizeAccepted.identifier
+      , "trace" .= hypothesizeAccepted.trace
       ]
 
 -- ---------------------------------------------------------------------------
@@ -194,6 +265,158 @@ getInsightByIdentifierHandler appEnvironment insightIdentifier maybeAuthHeader =
       throwNotFound "Insight record not found"
     Just insightDetail -> pure (toInsightDetailResponse insightDetail)
 
+{- | @POST \/insights\/{identifier}\/adopt@ handler.
+
+Requires @insights:write@ permission.  Checks for MNPI-suspected keywords
+in the comment field, fetches the insight to confirm it exists, updates the
+@actionStatus@ field in Firestore to @\"adopted\"@, and returns 200 OK.
+-}
+adoptInsightHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  InsightDecisionRequest ->
+  Handler InsightActionResult
+adoptInsightHandler appEnvironment insightIdentifier maybeAuthHeader decisionRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "insights:write"
+
+  checkMnpiComment decisionRequest.comment
+
+  _insightDetail <- fetchInsightOrNotFound appEnvironment insightIdentifier
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        InsightStatusUpdate
+          { actionStatus = "adopted"
+          , updatedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateInsightStatus
+              FirestoreInsightRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              insightIdentifier
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update insight record"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  pure
+    InsightActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @POST \/insights\/{identifier}\/reject@ handler.
+
+Requires @insights:write@ permission.  Checks for MNPI-suspected keywords
+in the comment field, fetches the insight to confirm it exists, updates the
+@actionStatus@ field in Firestore to @\"rejected\"@, and returns 200 OK.
+-}
+rejectInsightHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  InsightDecisionRequest ->
+  Handler InsightActionResult
+rejectInsightHandler appEnvironment insightIdentifier maybeAuthHeader decisionRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "insights:write"
+
+  checkMnpiComment decisionRequest.comment
+
+  _insightDetail <- fetchInsightOrNotFound appEnvironment insightIdentifier
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+
+  let statusUpdate =
+        InsightStatusUpdate
+          { actionStatus = "rejected"
+          , updatedAt = now
+          }
+
+  updateResult <-
+    liftIO
+      ( try
+          ( updateInsightStatus
+              FirestoreInsightRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              insightIdentifier
+              statusUpdate
+          ) ::
+          IO (Either SomeException (Either FirestoreError ()))
+      )
+
+  case updateResult of
+    Left _exception -> throwServiceUnavailable "Failed to update insight record"
+    Right (Left firestoreError) -> throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right ()) -> pure ()
+
+  pure
+    InsightActionResult
+      { success = True
+      , trace = Text.pack (show traceUlid)
+      }
+
+{- | @POST \/insights\/{identifier}\/hypothesize@ handler.
+
+Requires @insights:write@ permission.  Checks for MNPI-suspected keywords
+in the optional comment field, fetches the insight to confirm it exists,
+publishes a @hypothesis.proposed@ CloudEvent to Pub/Sub, and returns
+202 Accepted with the new hypothesis identifier.
+-}
+hypothesizeInsightHandler ::
+  AppEnv ->
+  Text ->
+  Maybe Text ->
+  HypothesizeRequest ->
+  Handler InsightHypothesizeAccepted
+hypothesizeInsightHandler appEnvironment insightIdentifier maybeAuthHeader hypothesizeRequest = do
+  _verifiedClaims <- requireAuth appEnvironment maybeAuthHeader "insights:write"
+
+  checkMnpiComment hypothesizeRequest.comment
+
+  insightDetail <- fetchInsightOrNotFound appEnvironment insightIdentifier
+
+  now <- liftIO getCurrentTime
+  traceUlid <- liftIO ULID.getULID
+  eventUlid <- liftIO ULID.getULID
+  hypothesisUlid <- liftIO ULID.getULID
+
+  let publisherEnvironment =
+        PubSubInsightsPublisherEnv
+          { publisher = appEnvironment.pubSubPublisher
+          , hypothesisProposedTopicName = appEnvironment.hypothesisProposedTopicName
+          }
+
+  liftIO $
+    publishHypothesisProposed
+      publisherEnvironment
+      eventUlid
+      traceUlid
+      hypothesisUlid
+      now
+      insightIdentifier
+      insightDetail.skillVersion
+
+  pure
+    InsightHypothesizeAccepted
+      { accepted = True
+      , identifier = Text.pack (show hypothesisUlid)
+      , trace = Text.pack (show traceUlid)
+      }
+
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
@@ -218,6 +441,41 @@ extractBearerToken (Just headerValue) =
   case Text.stripPrefix "Bearer " headerValue of
     Nothing -> throwUnauthorized "Authorization header must use Bearer scheme"
     Just tokenText -> pure tokenText
+
+-- | Check optional comment for MNPI-suspected keywords; throw 422 if detected.
+checkMnpiComment :: Maybe Text -> Handler ()
+checkMnpiComment Nothing = pure ()
+checkMnpiComment (Just commentText) =
+  case checkMnpiFilter commentText of
+    Left (MnpiSuspected keyword) ->
+      throwUnprocessableEntity
+        ("MNPI-suspected keyword detected in comment: " <> keyword)
+        "COMPLIANCE_MNPI_SUSPECTED"
+    Right () -> pure ()
+
+-- | Fetch an insight by identifier, returning 404 if not found or 503 on Firestore error.
+fetchInsightOrNotFound :: AppEnv -> Text -> Handler InsightDetail
+fetchInsightOrNotFound appEnvironment insightIdentifier = do
+  detailResult <-
+    liftIO
+      ( try
+          ( getInsightRecordByIdentifier
+              FirestoreInsightRepositoryEnv
+                { firestoreContext = appEnvironment.firestoreContext
+                }
+              insightIdentifier
+          ) ::
+          IO (Either SomeException (Either FirestoreError (Maybe InsightDetail)))
+      )
+  case detailResult of
+    Left _exception ->
+      throwServiceUnavailable "Failed to read insight record"
+    Right (Left firestoreError) ->
+      throwServiceUnavailable (firestoreErrorToText firestoreError)
+    Right (Right Nothing) ->
+      throwNotFound "Insight record not found"
+    Right (Right (Just insightDetail)) ->
+      pure insightDetail
 
 throwBadRequest :: Text -> Handler a
 throwBadRequest detailText =
@@ -262,6 +520,15 @@ throwNotFound detailText =
       { errBody = encode (problemJson "Not Found" 404 detailText "RESOURCE_NOT_FOUND")
       , errHeaders = [(hContentType, "application/problem+json")]
       , errReasonPhrase = "Not Found"
+      }
+
+throwUnprocessableEntity :: Text -> Text -> Handler a
+throwUnprocessableEntity detailText reasonCodeText =
+  throwError
+    err422
+      { errBody = encode (problemJson "Unprocessable Entity" 422 detailText reasonCodeText)
+      , errHeaders = [(hContentType, "application/problem+json")]
+      , errReasonPhrase = "Unprocessable Entity"
       }
 
 data ProblemJson = ProblemJson

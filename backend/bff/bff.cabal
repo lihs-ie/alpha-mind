@@ -21,6 +21,7 @@ library
     Domain.Compliance.Controls
     Domain.Dashboard.Summary
     Domain.Hypothesis.Record
+    Domain.Insight.Action
     Domain.Insight.Record
     Domain.ModelValidation.Record
     Domain.Operation.Control
@@ -30,6 +31,7 @@ library
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Publisher.PubSubCommandsPublisher
+    Infrastructure.Publisher.PubSubInsightsPublisher
     Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Publisher.PubSubOrdersPublisher
     Infrastructure.Repository.FirestoreAuditRepository
@@ -80,6 +82,7 @@ executable bff
     Domain.Compliance.Controls
     Domain.Dashboard.Summary
     Domain.Hypothesis.Record
+    Domain.Insight.Action
     Domain.Insight.Record
     Domain.ModelValidation.Record
     Domain.Operation.Control
@@ -89,6 +92,7 @@ executable bff
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
     Infrastructure.Publisher.PubSubCommandsPublisher
+    Infrastructure.Publisher.PubSubInsightsPublisher
     Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Publisher.PubSubOrdersPublisher
     Infrastructure.Repository.FirestoreAuditRepository
@@ -149,12 +153,14 @@ test-suite bff-test
     wai-extra      ^>=3.1
   other-modules:
     Domain.Auth.CredentialSpec
+    Domain.Insight.ActionSpec
     Domain.Operation.ControlSpec
     Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
     Presentation.Handler.CommandsSpec
     Presentation.Handler.DashboardSpec
     Presentation.Handler.HypothesesSpec
+    Presentation.Handler.InsightsActionsSpec
     Presentation.Handler.InsightsSpec
     Presentation.Handler.ModelValidationsSpec
     Presentation.Handler.OperationsSpec
