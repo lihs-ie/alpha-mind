@@ -25,6 +25,8 @@ library
     Domain.RiskAssessment.Service.KillSwitchPolicy
     Domain.RiskAssessment.Service.RiskScreeningPolicy
     Domain.RiskAssessment.ValueObjects
+    UseCase.CheckOrderRisk
+    UseCase.SyncKillSwitch
   build-depends:
     aeson          ^>=2.2,
     bytestring     ^>=0.12,
@@ -56,6 +58,7 @@ test-suite risk-guard-test
   build-depends:
     risk-guard,
     hspec          ^>=2.11.16,
+    mtl            ^>=2.3.1,
     text           ^>=2.1.4,
     time           ^>=1.14,
     ulid           ^>=0.3.3
@@ -63,3 +66,5 @@ test-suite risk-guard-test
     Domain.RiskAssessment.AggregateSpec
     Domain.RiskAssessment.ReasonCodeSpec
     Domain.RiskAssessment.Service.RiskScreeningPolicySpec
+    UseCase.CheckOrderRiskSpec
+    UseCase.SyncKillSwitchSpec
