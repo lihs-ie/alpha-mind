@@ -36,11 +36,19 @@ library
     Infrastructure.Repository.FirestoreOrderProposalRepository
     Infrastructure.Repository.FirestoreProposalDispatchRepository
     Infrastructure.Wire.ReasonCodeWire
+    Presentation.Api
+    Presentation.AppM
+    Presentation.PubSubHandler
     UseCase.PortfolioPlanningService
     UseCase.ProposalAuditWriter
   build-depends:
     aeson          >=2.2 && <3,
+    bytestring     ^>=0.12,
     gogol-firestore ^>=1.0.0,
+    http-client    ^>=0.7,
+    http-client-tls ^>=0.3,
+    mtl            ^>=2.3,
+    servant-server ^>=0.20,
     shared,
     text    ^>=2.1.4,
     time    ^>=1.14,
@@ -57,10 +65,17 @@ executable portfolio-planner
     portfolio-planner,
     shared,
     aeson          >=2.2 && <3,
+    bytestring     ^>=0.12,
+    gogol-firestore ^>=1.0.0,
+    http-client    ^>=0.7,
+    http-client-tls ^>=0.3,
+    mtl            ^>=2.3,
     servant-server >=0.20 && <1,
     text           ^>=2.1.4,
     time           ^>=1.14,
+    transformers   ^>=0.6.1.2,
     ulid           ^>=0.3.3,
+    unordered-containers ^>=0.2.21,
     warp           >=3.4 && <4
 
 test-suite portfolio-planner-test
@@ -71,10 +86,14 @@ test-suite portfolio-planner-test
   build-depends:
     portfolio-planner,
     aeson          >=2.2 && <3,
+    base64         ^>=1.0,
+    bytestring     ^>=0.12,
     containers ^>=0.7,
     gogol-firestore ^>=1.0.0,
     hspec      ^>=2.11.16,
+    http-client ^>=0.7,
     mtl        ^>=2.3,
+    servant-server ^>=0.20,
     shared,
     text       ^>=2.1.4,
     time       ^>=1.14,
@@ -94,5 +113,6 @@ test-suite portfolio-planner-test
     Infrastructure.Repository.FirestoreIdempotencyRepositorySpec
     Infrastructure.Repository.FirestoreOrderProposalRepositorySpec
     Infrastructure.Repository.FirestoreProposalDispatchRepositorySpec
+    Presentation.PubSubHandlerSpec
     UseCase.PortfolioPlanningServiceSpec
     UseCase.ProposalAuditWriterSpec

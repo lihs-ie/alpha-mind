@@ -64,7 +64,7 @@ mkCompletedDispatch =
   let (dispatch, _) = mkPendingDispatch
       count = length testOrderIdentifiers
    in case completeDispatch count testOrderIdentifiers fixedTime dispatch of
-        Left err -> error ("Test setup failed: " ++ show err)
+        Left domainError -> error ("Test setup failed: " ++ show domainError)
         Right (completed, _) -> completed
 
 -- ---------------------------------------------------------------------

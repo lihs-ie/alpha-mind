@@ -13,6 +13,7 @@ import Infrastructure.Publisher.PubSubPortfolioEventPublisherSpec qualified
 import Infrastructure.Repository.FirestoreIdempotencyRepositorySpec qualified
 import Infrastructure.Repository.FirestoreOrderProposalRepositorySpec qualified
 import Infrastructure.Repository.FirestoreProposalDispatchRepositorySpec qualified
+import Presentation.PubSubHandlerSpec qualified
 import Test.Hspec (hspec)
 import UseCase.PortfolioPlanningServiceSpec qualified
 import UseCase.ProposalAuditWriterSpec qualified
@@ -33,5 +34,6 @@ main =
     Infrastructure.Repository.FirestoreIdempotencyRepositorySpec.spec
     Infrastructure.Repository.FirestoreOrderProposalRepositorySpec.spec
     Infrastructure.Repository.FirestoreProposalDispatchRepositorySpec.spec
+    Presentation.PubSubHandlerSpec.spec
     UseCase.PortfolioPlanningServiceSpec.spec
     UseCase.ProposalAuditWriterSpec.spec

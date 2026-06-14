@@ -1,43 +1,31 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeOperators #-}
+{- | Entry point for the portfolio-planner service.
 
-module Main where
+ Initialises 'AppEnv' from environment variables, then delegates to
+ 'App.Bootstrap.runHttpService' which:
+   * mounts @GET /healthz@ and @GET /@ (standard health API)
+   * runs the Warp HTTP server on the port defined by @PORT@
+   * installs structured exception logging via katip
 
-import Data.Aeson (ToJSON)
-import Data.Maybe (fromMaybe)
-import GHC.Generics (Generic)
-import Network.Wai.Handler.Warp (run)
-import Servant
-import System.Environment (lookupEnv)
+ The business API ('PortfolioPlannerAPI') is combined with the standard
+ health API inside 'runHttpService'; callers only need to supply the
+ business proxy and server.
+-}
+module Main (main) where
 
-data ServiceStatus = ServiceStatus
-  { service :: String
-  , status :: String
-  }
-  deriving (Generic)
-
-instance ToJSON ServiceStatus
-
-type HealthCheckAPI = "healthz" :> Get '[PlainText] String
-type StatusAPI = Get '[JSON] ServiceStatus
-type API = HealthCheckAPI :<|> StatusAPI
-
-apiProxy :: Proxy API
-apiProxy = Proxy
-
-healthCheckHandler :: Handler String
-healthCheckHandler = return "ok"
-
-statusHandler :: Handler ServiceStatus
-statusHandler = return ServiceStatus{service = "portfolio-planner", status = "running"}
-
-server :: Server API
-server = healthCheckHandler :<|> statusHandler
+import App.Bootstrap (HttpServiceOptions (..), runHttpService)
+import Presentation.Api (portfolioPlannerApiProxy, portfolioPlannerServer)
+import Presentation.AppM (buildAppEnv)
 
 main :: IO ()
 main = do
-  portString <- lookupEnv "PORT"
-  let port = read (fromMaybe "8080" portString) :: Int
-  putStrLn $ "portfolio-planner starting on port " ++ show port
-  run port (serve apiProxy server)
+  appEnv <- buildAppEnv
+  runHttpService
+    HttpServiceOptions
+      { serviceName = "portfolio-planner"
+      , serviceVersion = "0.1.0"
+      , metricsPath = Nothing
+      , middlewareStack = []
+      , beforeRun = pure ()
+      }
+    portfolioPlannerApiProxy
+    (portfolioPlannerServer appEnv)

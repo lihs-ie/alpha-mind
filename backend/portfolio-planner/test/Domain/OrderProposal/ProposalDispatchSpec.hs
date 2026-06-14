@@ -90,7 +90,7 @@ spec =
         let (dispatch, _) = mkPendingDispatch
         let count = length testOrderIdentifiers
         case completeDispatch count testOrderIdentifiers fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (updated, _) -> do
             updated.dispatchStatus `shouldBe` Completed
             updated.orderCount `shouldBe` Just count
@@ -116,7 +116,7 @@ spec =
         let (dispatch, _) = mkPendingDispatch
         let count = length testOrderIdentifiers
         case completeDispatch count testOrderIdentifiers fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (_, [ProposalDispatchCompleted{trace = t}]) ->
             t `shouldBe` testTrace
           Right (_, events) ->
@@ -125,7 +125,7 @@ spec =
       it "rejects non-Pending status" $ do
         let (dispatch, _) = mkPendingDispatch
         case completeDispatch 0 [] fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (completed, _) ->
             completeDispatch 0 [] fixedTime completed `shouldSatisfy` isLeft
 
@@ -139,7 +139,7 @@ spec =
       it "transitions Pending → Failed when reasonCode is provided" $ do
         let (dispatch, _) = mkPendingDispatch
         case failDispatch (Just DependencyTimeout) fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (updated, _) -> do
             updated.dispatchStatus `shouldBe` Failed
             updated.reasonCode `shouldBe` Just DependencyTimeout
@@ -147,7 +147,7 @@ spec =
       it "emits ProposalDispatchFailed event with trace and reasonCode" $ do
         let (dispatch, _) = mkPendingDispatch
         case failDispatch (Just RequestValidationFailed) fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (_, [ProposalDispatchFailed{reasonCode = code, trace = t}]) -> do
             code `shouldBe` RequestValidationFailed
             t `shouldBe` testTrace
@@ -157,6 +157,6 @@ spec =
       it "rejects non-Pending status" $ do
         let (dispatch, _) = mkPendingDispatch
         case failDispatch (Just DependencyTimeout) fixedTime dispatch of
-          Left err -> expectationFailure ("Unexpected Left: " ++ show err)
+          Left domainError -> expectationFailure ("Unexpected Left: " ++ show domainError)
           Right (failed, _) ->
             failDispatch (Just DependencyUnavailable) fixedTime failed `shouldSatisfy` isLeft
