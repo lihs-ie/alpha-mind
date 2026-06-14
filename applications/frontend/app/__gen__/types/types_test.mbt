@@ -2,6 +2,44 @@
 ///| Verifies to_json/from_json symmetry for all island Props types
 
 ///|
+test "AuditRowProps round-trip" {
+  let json_str = "{ \"identifier\": \"\", \"occurred_at\": \"\", \"event_type\": \"\", \"service\": \"\", \"result\": \"\", \"trace\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : AuditRowProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : AuditRowProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "audit_row ComponentRef url" {
+  let json_str = "{ \"identifier\": \"\", \"occurred_at\": \"\", \"event_type\": \"\", \"service\": \"\", \"result\": \"\", \"trace\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : AuditRowProps = @json.from_json(json)
+  let cref = audit_row(props)
+  assert_true(cref.url.has_suffix("audit_row.js"))
+}
+
+///|
+test "AuditSearchProps round-trip" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_logs\": [] }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : AuditSearchProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : AuditSearchProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "audit_search ComponentRef url" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_logs\": [] }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : AuditSearchProps = @json.from_json(json)
+  let cref = audit_search(props)
+  assert_true(cref.url.has_suffix("audit_search.js"))
+}
+
+///|
 test "DashboardOperationsProps round-trip" {
   let json_str = "{ \"bff_base_url\": \"\", \"initial_runtime_state\": \"\", \"initial_kill_switch_enabled\": false }"
   let json : Json = @json.parse(json_str) catch { _ => panic() }

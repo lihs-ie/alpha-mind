@@ -6,5 +6,5 @@ import {
 options(
   "supported-targets": "js",
   "warn-list": "-29",
-  link: { "js": { "exports": [ "DashboardOperationsProps", "dashboard_operations", "LoginFormProps", "login_form", "OrderRowProps", "order_row", "OrdersActionsProps", "orders_actions", "BlackoutWindowProps", "blackout_window", "StrategyFormProps", "strategy_form" ], "format": "esm" } },
+  link: { "js": { "exports": [ "AuditRowProps", "audit_row", "AuditSearchProps", "audit_search", "DashboardOperationsProps", "dashboard_operations", "LoginFormProps", "login_form", "OrderRowProps", "order_row", "OrdersActionsProps", "orders_actions", "BlackoutWindowProps", "blackout_window", "StrategyFormProps", "strategy_form" ], "format": "esm" } },
 )

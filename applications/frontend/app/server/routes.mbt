@@ -52,6 +52,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-004: 監査ログ (authenticated)
+        @router.SolRoutes::Page(
+          path="/audit",
+          handler=@router.PageHandler(audit_page),
+          title="監査ログ — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]

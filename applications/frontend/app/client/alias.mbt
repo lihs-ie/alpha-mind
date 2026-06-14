@@ -10,6 +10,7 @@ using @element {
   label,
   h1,
   p,
+  pre,
   code,
   text,
   text_of,
