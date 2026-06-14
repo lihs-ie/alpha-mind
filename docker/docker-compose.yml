@@ -169,6 +169,10 @@ services:
       # 手動コマンド (#18) が発行するイベントの topic（asyncapi channel address に準拠）
       PUBSUB_MARKET_COLLECT_TOPIC: "market.collect.requested"
       PUBSUB_INSIGHT_COLLECT_TOPIC: "insight.collect.requested"
+      # 注文アクション (#20) が発行するイベントの topic（asyncapi channel address に準拠）
+      PUBSUB_ORDERS_APPROVED_TOPIC: "orders.approved"
+      PUBSUB_ORDERS_REJECTED_TOPIC: "orders.rejected"
+      PUBSUB_ORDERS_PROPOSED_TOPIC: "orders.proposed"
     depends_on:
       init:
         condition: service_completed_successfully

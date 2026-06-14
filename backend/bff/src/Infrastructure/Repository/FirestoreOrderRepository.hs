@@ -1,18 +1,23 @@
 module Infrastructure.Repository.FirestoreOrderRepository (
   FirestoreOrderRepositoryEnv (..),
   OrderQueryFilter (..),
+  OrderStatusUpdate (..),
   listOrders,
   getOrderByIdentifier,
+  updateOrderStatus,
 )
 where
 
+import Data.HashMap.Strict qualified as HashMap
 import Data.Int (Int64)
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import Domain.Order.Order (
   OrderDetail (..),
   OrderSide (..),
   OrderStatus (..),
   OrderSummary (..),
+  orderStatusToText,
  )
 import Persistence.Firestore (
   CollectionName (..),
@@ -23,6 +28,7 @@ import Persistence.Firestore (
   QueryFilter (..),
   QueryOrder (..),
   SortDirection (..),
+  ToFirestore (..),
   ToFirestoreValue (..),
   requireField,
  )
@@ -173,3 +179,39 @@ parseStatus "REJECTED" = Right Rejected
 parseStatus "EXECUTED" = Right Executed
 parseStatus "FAILED" = Right Failed
 parseStatus unknown = Left ("Unknown order status: " <> unknown)
+
+-- ---------------------------------------------------------------------------
+-- Order status update
+-- ---------------------------------------------------------------------------
+
+-- | Payload for updating an order's status field in Firestore.
+data OrderStatusUpdate = OrderStatusUpdate
+  { newStatus :: OrderStatus
+  , updatedAt :: UTCTime
+  , version :: Int
+  }
+
+instance ToFirestore OrderStatusUpdate where
+  toFirestoreFields statusUpdate =
+    HashMap.fromList
+      [ ("status", toValue (orderStatusToText statusUpdate.newStatus))
+      , ("updatedAt", toValue statusUpdate.updatedAt)
+      , ("version", toValue (fromIntegral statusUpdate.version :: Int64))
+      ]
+
+{- | Overwrite the @status@, @updatedAt@, and @version@ fields of an order
+document.  Uses 'Firestore.upsertDocument' which performs a full document
+write (merges on the server side via Firestore PATCH semantics).
+-}
+updateOrderStatus ::
+  FirestoreOrderRepositoryEnv ->
+  -- | Order identifier (ULID).
+  Text ->
+  OrderStatusUpdate ->
+  IO (Either FirestoreError ())
+updateOrderStatus orderRepositoryEnv orderIdentifier statusUpdate =
+  Firestore.upsertDocument
+    orderRepositoryEnv.firestoreContext
+    (CollectionName "orders")
+    (DocumentId orderIdentifier)
+    statusUpdate

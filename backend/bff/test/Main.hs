@@ -10,6 +10,7 @@ import Presentation.Handler.HypothesesSpec qualified
 import Presentation.Handler.InsightsSpec qualified
 import Presentation.Handler.ModelValidationsSpec qualified
 import Presentation.Handler.OperationsSpec qualified
+import Presentation.Handler.OrdersActionsSpec qualified
 import Presentation.Handler.OrdersSpec qualified
 import Presentation.Handler.SettingsSpec qualified
 import Test.Hspec (hspec)
@@ -27,5 +28,6 @@ main =
     Presentation.Handler.InsightsSpec.spec
     Presentation.Handler.ModelValidationsSpec.spec
     Presentation.Handler.OperationsSpec.spec
+    Presentation.Handler.OrdersActionsSpec.spec
     Presentation.Handler.OrdersSpec.spec
     Presentation.Handler.SettingsSpec.spec

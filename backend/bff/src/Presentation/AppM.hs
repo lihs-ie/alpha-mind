@@ -31,6 +31,9 @@ data AppEnv = AppEnv
   , killSwitchTopicName :: Text
   , marketCollectTopicName :: Text
   , insightCollectTopicName :: Text
+  , ordersApprovedTopicName :: Text
+  , ordersRejectedTopicName :: Text
+  , ordersProposedTopicName :: Text
   }
 
 -- ---------------------------------------------------------------------------
@@ -40,12 +43,15 @@ data AppEnv = AppEnv
 {- | Must-09: Build 'AppEnv' from environment variables.
 
 Required variables:
-  ADMIN_EMAIL                  — plaintext admin email (MVP)
-  ADMIN_PASSWORD               — plaintext admin password (MVP)
-  JWT_SECRET_KEY               — HMAC-SHA256 signing key (at least 32 bytes recommended)
-  PUBSUB_KILL_SWITCH_TOPIC     — Pub/Sub topic name for kill-switch events
-  PUBSUB_MARKET_COLLECT_TOPIC  — Pub/Sub topic for market.collect.requested events
-  PUBSUB_INSIGHT_COLLECT_TOPIC — Pub/Sub topic for insight.collect.requested events
+  ADMIN_EMAIL                   — plaintext admin email (MVP)
+  ADMIN_PASSWORD                — plaintext admin password (MVP)
+  JWT_SECRET_KEY                — HMAC-SHA256 signing key (at least 32 bytes recommended)
+  PUBSUB_KILL_SWITCH_TOPIC      — Pub/Sub topic name for kill-switch events
+  PUBSUB_MARKET_COLLECT_TOPIC   — Pub/Sub topic for market.collect.requested events
+  PUBSUB_INSIGHT_COLLECT_TOPIC  — Pub/Sub topic for insight.collect.requested events
+  PUBSUB_ORDERS_APPROVED_TOPIC  — Pub/Sub topic for orders.approved events
+  PUBSUB_ORDERS_REJECTED_TOPIC  — Pub/Sub topic for orders.rejected events
+  PUBSUB_ORDERS_PROPOSED_TOPIC  — Pub/Sub topic for orders.proposed events (retry)
 Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
@@ -61,6 +67,9 @@ buildAppEnv = do
   killSwitchTopicValue <- requireTextEnv "PUBSUB_KILL_SWITCH_TOPIC"
   marketCollectTopicValue <- requireTextEnv "PUBSUB_MARKET_COLLECT_TOPIC"
   insightCollectTopicValue <- requireTextEnv "PUBSUB_INSIGHT_COLLECT_TOPIC"
+  ordersApprovedTopicValue <- requireTextEnv "PUBSUB_ORDERS_APPROVED_TOPIC"
+  ordersRejectedTopicValue <- requireTextEnv "PUBSUB_ORDERS_REJECTED_TOPIC"
+  ordersProposedTopicValue <- requireTextEnv "PUBSUB_ORDERS_PROPOSED_TOPIC"
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
@@ -103,4 +112,7 @@ buildAppEnv = do
       , killSwitchTopicName = killSwitchTopicValue
       , marketCollectTopicName = marketCollectTopicValue
       , insightCollectTopicName = insightCollectTopicValue
+      , ordersApprovedTopicName = ordersApprovedTopicValue
+      , ordersRejectedTopicName = ordersRejectedTopicValue
+      , ordersProposedTopicName = ordersProposedTopicValue
       }
