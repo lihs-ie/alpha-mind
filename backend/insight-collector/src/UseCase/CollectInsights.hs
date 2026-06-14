@@ -260,7 +260,7 @@ runCollection ::
 runCollection currentTime collectionIdentifier snapshot traceValue approvedPolicies collection dispatch = do
   let InsightCollectionRequestSnapshot{targetDate = snapshotTargetDate} = snapshot
   -- UC-06: ソース別インサイト収集
-  fetchResults <- mapM (\policy -> fetchInsights policy snapshotTargetDate) approvedPolicies
+  fetchResults <- mapM (`fetchInsights` snapshotTargetDate) approvedPolicies
   let (sourceStatuses, allRecords) = aggregateFetchResults approvedPolicies fetchResults
 
   -- 全件失敗判定
