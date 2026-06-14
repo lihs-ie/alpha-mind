@@ -98,6 +98,24 @@ pub(all) enum DomainError {
   ProtectedScreenBlocked(String)
 } derive(Eq, Show)
 
+/// Factory: create a new UiSession in Unauthenticated state.
+pub fn new_session(identifier : String, updated_at : String) -> UiSession {
+  {
+    identifier,
+    user: None,
+    authState: AuthState::Unauthenticated,
+    permissionSnapshot: None,
+    currentScreen: Screen::Scr000,
+    trace: None,
+    updatedAt: updated_at,
+    operationGuardState: {
+      killSwitch: KillSwitchState::Disabled,
+      disabledActions: [],
+    },
+    screenContexts: [],
+  }
+}
+
 /// Returns true if the screen is a protected screen (requires authentication).
 /// SCR-000 (login) is public; SCR-001..SCR-007 are protected.
 pub fn is_protected_screen(screen : Screen) -> Bool {
