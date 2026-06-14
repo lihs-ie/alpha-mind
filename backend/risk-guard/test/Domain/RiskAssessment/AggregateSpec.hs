@@ -359,7 +359,7 @@ instance Functor PureIdempotency where
   fmap f (PureIdempotency g) = PureIdempotency (\s -> let (a, s') = g s in (f a, s'))
 
 instance Applicative PureIdempotency where
-  pure a = PureIdempotency (\s -> (a, s))
+  pure a = PureIdempotency (a,)
   PureIdempotency f <*> PureIdempotency x =
     PureIdempotency (\s -> let (g, s') = f s; (a, s'') = x s' in (g a, s''))
 
@@ -375,5 +375,5 @@ instance Monad PureIdempotency where
 
 instance IdempotencyKeyRepository PureIdempotency where
   find _ _ = PureIdempotency (\alreadyProcessed -> (alreadyProcessed, alreadyProcessed))
-  persist _ _ = PureIdempotency (\_ -> ((), True))
-  terminate _ _ = PureIdempotency (\_ -> ((), False))
+  persist _ _ = PureIdempotency (const ((), True))
+  terminate _ _ = PureIdempotency (const ((), False))
