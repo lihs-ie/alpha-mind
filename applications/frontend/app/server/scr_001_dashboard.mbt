@@ -43,23 +43,21 @@ pub async fn dashboard_page(_props : @router.PageProps) -> @server_dom.ServerNod
     span(style="display:none;", [])
   }
 
-  let page_content = div(
-    style="min-height:100vh;background:var(--color-background,#020617);padding:24px;box-sizing:border-box;",
-    [
-      // Page header
-      div(
-        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;",
-        [
-          h1(
-            style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1.5rem;font-weight:700;margin:0;",
-            [text("ダッシュボード")],
-          ),
-          span(
-            style="color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;",
-            [text("alpha-mind")],
-          ),
-        ],
-      ),
+  // R-03 操作パネルを Organisms の StatusPanel で構築（runtime/kill switch の
+  // 状態バッジ + 操作ボタン/トグル）。実際の POST は下の Island が担う。
+  let status_panel = @organisms.status_panel(
+    runtime_state=summary_result.runtime_state,
+    kill_switch_enabled=summary_result.kill_switch_enabled,
+  )
+
+  // ページ本文を Organisms の PageLayout シェル（AppHeader + Sidebar + main）で
+  // ラップする。現在ページのハイライトは current_path で行う。
+  let page_content = @organisms.page_layout(
+    current_path="/dashboard",
+    page_title="ダッシュボード",
+    user_name="運用者",
+    user_role="admin",
+    body=[
       kill_switch_warning,
       // R-01 KPIカード section header.
       // The runtime-state atom (status badge) is reused here from the atoms
@@ -118,11 +116,13 @@ pub async fn dashboard_page(_props : @router.PageProps) -> @server_dom.ServerNod
           ),
         ],
       ),
-      // R-03 操作パネル
+      // R-03 操作パネル（Organisms StatusPanel: 状態バッジ + 操作コントロール）
       h2(
         style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:600;margin:0 0 16px;letter-spacing:0.05em;text-transform:uppercase;",
         [text("緊急操作パネル")],
       ),
+      status_panel,
+      // 既存の操作 Island（実際の POST /operations/* を担う）。
       @server_dom.client(
         @types.dashboard_operations(operations_props),
         [operations_placeholder],

@@ -57,23 +57,14 @@ pub async fn orders_page(_props : @router.PageProps) -> @server_dom.ServerNode {
   // list so content is visible before JS hydrates.
   let actions_placeholder = render_orders_placeholder(orders, kill_switch_enabled)
 
-  let page_content = div(
-    style="min-height:100vh;background:var(--color-background,#020617);padding:24px;box-sizing:border-box;",
-    [
-      // Page header
-      div(
-        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;",
-        [
-          h1(
-            style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1.5rem;font-weight:700;margin:0;",
-            [text("注文管理")],
-          ),
-          span(
-            style="color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;",
-            [text("alpha-mind")],
-          ),
-        ],
-      ),
+  // ページ本文を Organisms の PageLayout シェル（AppHeader + Sidebar + main）で
+  // ラップする。
+  let page_content = @organisms.page_layout(
+    current_path="/orders",
+    page_title="注文管理",
+    user_name="運用者",
+    user_role="admin",
+    body=[
       h2(
         style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:600;margin:0 0 16px;letter-spacing:0.05em;text-transform:uppercase;",
         [text("注文候補")],
@@ -82,6 +73,21 @@ pub async fn orders_page(_props : @router.PageProps) -> @server_dom.ServerNode {
       @server_dom.client(
         @types.orders_actions(actions_props),
         [actions_placeholder],
+      ),
+      // 承認確認モーダル（Organisms Modal, SSR は閉じた状態）。OrdersActions
+      // Island が承認ボタン押下時に開閉・confirm/cancel を配線する。
+      @organisms.modal(
+        "order-approve-confirm",
+        "注文を承認しますか？",
+        [
+          @server_dom.text(
+            "承認すると執行フローに進みます。この操作は監査ログに記録されます。",
+          ),
+        ],
+        actions=@organisms.modal_confirm_actions(
+          confirm_label="承認する",
+          cancel_label="キャンセル",
+        ),
       ),
     ],
   )
@@ -104,14 +110,22 @@ fn render_orders_placeholder(
   } else {
     span(style="display:none;", [])
   }
-  let table_body = if orders.length() == 0 {
-    div(
-      style="padding:32px;text-align:center;color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;",
-      [text("該当する注文がありません。")],
-    )
-  } else {
-    @server_dom.fragment(orders.map(fn(order) { render_order_row_ssr(order) }))
-  }
+  // 注文一覧テーブルは Organisms の OrderTable で構築（状態バッジ + 状態遷移に
+  // 応じた操作ボタン + kill switch による承認ゲート）。
+  let order_rows = orders.map(fn(order) {
+    (@organisms.OrderRow::{
+      identifier: order.identifier,
+      symbol: order.symbol,
+      side: order.side,
+      qty: ffi_format_qty_ssr(order.qty),
+      status: order.status,
+      created_at: order.created_at,
+    } : @organisms.OrderRow)
+  })
+  let orders_table = @organisms.order_table(
+    order_rows,
+    kill_switch_enabled~,
+  )
   div(
     style="display:flex;flex-direction:column;gap:24px;",
     [
@@ -151,122 +165,10 @@ fn render_orders_placeholder(
           ),
         ],
       ),
-      // Order list table
-      div(
-        style="background:var(--color-surface,#1E293B);border:1px solid rgba(248,250,252,0.08);border-radius:8px;padding:8px;overflow-x:auto;",
-        attrs=[
-          ("role", @luna.attr_static("table")),
-          ("aria-label", @luna.attr_static("注文一覧")),
-        ],
-        [render_order_header_ssr(), table_body],
-      ),
+      // Order list table (Organisms OrderTable)
+      orders_table,
     ],
   )
-}
-
-///|
-/// SSR header row (column headers).
-fn render_order_header_ssr() -> @luna.Node[Unit, String] {
-  let cell = "color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:8px 12px;"
-  div(
-    style="display:grid;grid-template-columns:minmax(220px,2fr) 1fr 0.7fr 1fr 1fr 1.6fr minmax(220px,1.6fr);align-items:center;border-bottom:1px solid rgba(248,250,252,0.12);",
-    attrs=[("role", @luna.attr_static("row"))],
-    [
-      header_cell_ssr(cell, "注文ID"),
-      header_cell_ssr(cell, "銘柄"),
-      header_cell_ssr(cell, "売買"),
-      header_cell_ssr(cell, "数量"),
-      header_cell_ssr(cell, "状態"),
-      header_cell_ssr(cell, "作成日時"),
-      header_cell_ssr(cell, "操作"),
-    ],
-  )
-}
-
-///|
-fn header_cell_ssr(style : String, label : String) -> @luna.Node[Unit, String] {
-  div(
-    style=style,
-    attrs=[("role", @luna.attr_static("columnheader"))],
-    [text(label)],
-  )
-}
-
-///|
-/// SSR row for a single order (badge + state-gated action button labels).
-fn render_order_row_ssr(order : OrderSsrRow) -> @luna.Node[Unit, String] {
-  let cell = "color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;padding:10px 12px;"
-  let mono = "color:var(--color-text,#F8FAFC);font-family:'JetBrains Mono','IBM Plex Sans',monospace;font-size:0.8125rem;padding:10px 12px;"
-  let side_color = if order.side == "BUY" {
-    "color:var(--color-profit,#22C55E);"
-  } else {
-    "color:var(--color-loss,#F87171);"
-  }
-  div(
-    style="display:grid;grid-template-columns:minmax(220px,2fr) 1fr 0.7fr 1fr 1fr 1.6fr minmax(220px,1.6fr);align-items:center;border-bottom:1px solid rgba(248,250,252,0.06);",
-    attrs=[("role", @luna.attr_static("row"))],
-    [
-      div(style=mono, attrs=[("role", @luna.attr_static("cell"))], [
-        text(order.identifier),
-      ]),
-      div(style=mono, attrs=[("role", @luna.attr_static("cell"))], [
-        text(order.symbol),
-      ]),
-      div(
-        style=mono + side_color + "font-weight:600;",
-        attrs=[("role", @luna.attr_static("cell"))],
-        [text(order.side)],
-      ),
-      div(
-        style=mono + "text-align:right;",
-        attrs=[("role", @luna.attr_static("cell"))],
-        [text(ffi_format_qty_ssr(order.qty))],
-      ),
-      div(style=cell, attrs=[("role", @luna.attr_static("cell"))], [
-        span(style=status_badge_style_ssr(order.status), [text(order.status)]),
-      ]),
-      div(style=mono, attrs=[("role", @luna.attr_static("cell"))], [
-        text(order.created_at),
-      ]),
-      div(
-        style="padding:8px 12px;color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.8125rem;",
-        attrs=[("role", @luna.attr_static("cell"))],
-        [text(action_hint_ssr(order.status))],
-      ),
-    ],
-  )
-}
-
-///|
-/// SSR badge style for a status (mirrors the Island colours).
-fn status_badge_style_ssr(status : String) -> String {
-  let base = "display:inline-block;padding:2px 10px;border-radius:999px;font-family:'JetBrains Mono','IBM Plex Sans',monospace;font-size:0.75rem;font-weight:600;letter-spacing:0.04em;"
-  let colors = if status == "EXECUTED" {
-    "background:rgba(34,197,94,0.15);color:var(--color-profit,#22C55E);border:1px solid rgba(34,197,94,0.35);"
-  } else if status == "APPROVED" {
-    "background:rgba(99,102,241,0.15);color:#818CF8;border:1px solid rgba(99,102,241,0.35);"
-  } else if status == "PROPOSED" {
-    "background:rgba(234,179,8,0.12);color:#EAB308;border:1px solid rgba(234,179,8,0.35);"
-  } else if status == "REJECTED" {
-    "background:rgba(248,113,113,0.12);color:var(--color-loss,#F87171);border:1px solid rgba(248,113,113,0.35);"
-  } else if status == "FAILED" {
-    "background:rgba(248,113,113,0.18);color:var(--color-loss,#F87171);border:1px solid rgba(248,113,113,0.5);"
-  } else {
-    "background:rgba(248,250,252,0.08);color:rgba(248,250,252,0.7);border:1px solid rgba(248,250,252,0.15);"
-  }
-  base + colors
-}
-
-///|
-/// SSR action hint text per status (the interactive buttons appear after hydration).
-fn action_hint_ssr(status : String) -> String {
-  if status == "PROPOSED" {
-    "承認 / 却下"
-  } else if status == "FAILED" {
-    "再送"
-  } else {
-    "—"
-  }
 }
 
 ///|

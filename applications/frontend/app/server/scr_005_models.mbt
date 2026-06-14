@@ -50,23 +50,14 @@ pub async fn models_page(_props : @router.PageProps) -> @server_dom.ServerNode {
   // SSR placeholder for the Island (progressive enhancement): renders the same
   // list so content is visible before JS hydrates.
   let actions_placeholder = models_render_placeholder(rows)
-  let page_content = div(
-    style="min-height:100vh;background:var(--color-background,#020617);padding:24px;box-sizing:border-box;",
-    [
-      // Page header
-      div(
-        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;",
-        [
-          h1(
-            style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1.5rem;font-weight:700;margin:0;",
-            [text("モデル検証")],
-          ),
-          span(
-            style="color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;",
-            [text("alpha-mind")],
-          ),
-        ],
-      ),
+  // ページ本文を Organisms の PageLayout シェル（AppHeader + Sidebar + main）で
+  // ラップする。
+  let page_content = @organisms.page_layout(
+    current_path="/models/validation",
+    page_title="モデル検証",
+    user_name="運用者",
+    user_role="admin",
+    body=[
       p(
         style="color:rgba(248,250,252,0.6);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;margin:0 0 24px;",
         [text("モデル評価結果を確認し、昇格/差し戻しを判断します。")],
@@ -87,14 +78,24 @@ pub async fn models_page(_props : @router.PageProps) -> @server_dom.ServerNode {
 fn models_render_placeholder(
   rows : Array[ModelSsrRow]
 ) -> @luna.Node[Unit, String] {
-  let table_body = if rows.length() == 0 {
-    div(
-      style="padding:32px;text-align:center;color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;",
-      [text("候補モデルがありません。")],
-    )
-  } else {
-    @server_dom.fragment(rows.map(fn(row) { models_render_row_ssr(row) }))
-  }
+  // モデル検証一覧は Organisms の汎用 DataTable で構築（列定義 + 行データ +
+  // empty 状態）。状態/劣化フラグはこの SSR 時点ではテキスト表示で、ハイドレー
+  // ション後に Island がリッチ表示へ差し替える。
+  let table_columns : Array[@organisms.TableColumn] = [
+    { label: "モデル版", width: "minmax(200px,2fr)", mono: true },
+    { label: "状態", width: "1fr", mono: false },
+    { label: "劣化フラグ", width: "1fr", mono: false },
+    { label: "作成日時", width: "1.6fr", mono: true },
+  ]
+  let table_rows = rows.map(fn(row) {
+    [row.model_version, models_status_label(row.status), row.degradation_flag, row.created_at]
+  })
+  let models_table = @organisms.data_table(
+    table_columns,
+    table_rows,
+    caption="モデル検証一覧",
+    empty_message="候補モデルがありません。",
+  )
   div(
     style="display:flex;flex-direction:column;gap:24px;",
     [
@@ -121,126 +122,25 @@ fn models_render_placeholder(
           ),
         ],
       ),
-      // Model list table (R-01)
-      div(
-        style="background:var(--color-surface,#1E293B);border:1px solid rgba(248,250,252,0.08);border-radius:8px;padding:8px;overflow-x:auto;",
-        attrs=[
-          ("role", @luna.attr_static("table")),
-          ("aria-label", @luna.attr_static("モデル検証一覧")),
-        ],
-        [models_render_header_ssr(), table_body],
-      ),
+      // Model list table (R-01, Organisms DataTable)
+      models_table,
     ],
   )
 }
 
 ///|
-/// SSR header row (column headers).
-fn models_render_header_ssr() -> @luna.Node[Unit, String] {
-  let cell = "color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;padding:8px 12px;"
-  div(
-    style=models_grid_style_ssr() +
-      "border-bottom:1px solid rgba(248,250,252,0.12);",
-    attrs=[("role", @luna.attr_static("row"))],
-    [
-      models_header_cell_ssr(cell, "モデル版"),
-      models_header_cell_ssr(cell, "状態"),
-      models_header_cell_ssr(cell, "劣化フラグ"),
-      models_header_cell_ssr(cell, "作成日時"),
-      models_header_cell_ssr(cell, "操作"),
-    ],
-  )
-}
-
-///|
-fn models_header_cell_ssr(
-  style : String,
-  label : String
-) -> @luna.Node[Unit, String] {
-  div(style=style, attrs=[("role", @luna.attr_static("columnheader"))], [
-    text(label),
-  ])
-}
-
-///|
-/// Shared CSS grid template for SSR header and rows.
-fn models_grid_style_ssr() -> String {
-  "display:grid;grid-template-columns:minmax(200px,2fr) 1fr 1fr 1.6fr minmax(200px,1.4fr);align-items:center;"
-}
-
-///|
-/// SSR badge style for a model status (mirrors the Island colours).
-fn models_status_badge_style_ssr(status : String) -> String {
-  let base = "display:inline-block;padding:2px 10px;border-radius:999px;font-family:'JetBrains Mono','IBM Plex Sans',monospace;font-size:0.75rem;font-weight:600;letter-spacing:0.04em;"
-  let colors = if status == "approved" {
-    "background:rgba(34,197,94,0.15);color:var(--color-profit,#22C55E);border:1px solid rgba(34,197,94,0.35);"
-  } else if status == "candidate" {
-    "background:rgba(234,179,8,0.12);color:#EAB308;border:1px solid rgba(234,179,8,0.35);"
-  } else if status == "rejected" {
-    "background:rgba(248,113,113,0.12);color:var(--color-loss,#F87171);border:1px solid rgba(248,113,113,0.35);"
-  } else {
-    "background:rgba(248,250,252,0.08);color:rgba(248,250,252,0.7);border:1px solid rgba(248,250,252,0.15);"
-  }
-  base + colors
-}
-
-///|
-/// SSR badge style for a degradation flag.
-fn models_flag_badge_style_ssr(flag : String) -> String {
-  let base = "display:inline-block;padding:2px 10px;border-radius:999px;font-family:'JetBrains Mono','IBM Plex Sans',monospace;font-size:0.75rem;font-weight:600;letter-spacing:0.04em;"
-  let colors = if flag == "warn" {
-    "background:rgba(234,179,8,0.12);color:#EAB308;border:1px solid rgba(234,179,8,0.35);"
-  } else if flag == "block" {
-    "background:rgba(248,113,113,0.18);color:var(--color-loss,#F87171);border:1px solid rgba(248,113,113,0.5);"
-  } else {
-    "background:rgba(248,250,252,0.08);color:rgba(248,250,252,0.7);border:1px solid rgba(248,250,252,0.15);"
-  }
-  base + colors
-}
-
-///|
-/// SSR action hint per status (interactive buttons appear after hydration).
-fn models_action_hint_ssr(status : String) -> String {
+/// Human-readable model-status label used in the SSR table.
+/// Mirrors the badge mapping (candidate→候補, approved→承認, rejected→却下).
+fn models_status_label(status : String) -> String {
   if status == "candidate" {
-    "昇格 / 差し戻し"
+    "候補"
+  } else if status == "approved" {
+    "承認"
+  } else if status == "rejected" {
+    "却下"
   } else {
-    "—"
+    status
   }
-}
-
-///|
-/// SSR row for a single model-validation entry.
-fn models_render_row_ssr(row : ModelSsrRow) -> @luna.Node[Unit, String] {
-  let cell = "color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:0.875rem;padding:10px 12px;"
-  let mono = "color:var(--color-text,#F8FAFC);font-family:'JetBrains Mono','IBM Plex Sans',monospace;font-size:0.8125rem;padding:10px 12px;"
-  div(
-    style=models_grid_style_ssr() +
-      "border-bottom:1px solid rgba(248,250,252,0.06);",
-    attrs=[("role", @luna.attr_static("row"))],
-    [
-      div(style=mono, attrs=[("role", @luna.attr_static("cell"))], [
-        text(row.model_version),
-      ]),
-      div(style=cell, attrs=[("role", @luna.attr_static("cell"))], [
-        span(style=models_status_badge_style_ssr(row.status), [
-          text(row.status),
-        ]),
-      ]),
-      div(style=cell, attrs=[("role", @luna.attr_static("cell"))], [
-        span(style=models_flag_badge_style_ssr(row.degradation_flag), [
-          text(row.degradation_flag),
-        ]),
-      ]),
-      div(style=mono, attrs=[("role", @luna.attr_static("cell"))], [
-        text(row.created_at),
-      ]),
-      div(
-        style="padding:8px 12px;color:rgba(248,250,252,0.5);font-family:'IBM Plex Sans',sans-serif;font-size:0.8125rem;",
-        attrs=[("role", @luna.attr_static("cell"))],
-        [text(models_action_hint_ssr(row.status))],
-      ),
-    ],
-  )
 }
 
 ///|
