@@ -30,6 +30,20 @@ pub(all) struct LoginFormProps {
 } derive(ToJson, FromJson)
 
 ///| Props type from @client
+pub(all) struct ModelValidationRowProps {
+  model_version : String
+  status : String
+  degradation_flag : String
+  created_at : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
+pub(all) struct ModelsActionsProps {
+  bff_base_url : String
+  initial_models : Array[ModelValidationRowProps]
+} derive(ToJson, FromJson)
+
+///| Props type from @client
 pub(all) struct OrderRowProps {
   identifier : String
   symbol : String
@@ -108,6 +122,24 @@ pub fn login_form(
 }
 
 ///|
+///| Create ComponentRef for model_validation_row component
+pub fn model_validation_row(
+  props : ModelValidationRowProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[ModelValidationRowProps] {
+  { url: "/static/model_validation_row.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for models_actions component
+pub fn models_actions(
+  props : ModelsActionsProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[ModelsActionsProps] {
+  { url: "/static/models_actions.js", props, wc: false, trigger }
+}
+
+///|
 ///| Create ComponentRef for order_row component
 pub fn order_row(
   props : OrderRowProps,
@@ -171,6 +203,10 @@ pub let route_orders : String = "/orders"
 /// Route path: /audit
 pub let route_audit : String = "/audit"
 
+///|
+/// Route path: /models/validation
+pub let route_models_validation : String = "/models/validation"
+
 // =============================================================================
 // Link Builder Functions
 // =============================================================================
@@ -209,5 +245,11 @@ pub fn link_orders() -> String {
 /// Link builder for route: /audit
 pub fn link_audit() -> String {
   "/audit"
+}
+
+///|
+/// Link builder for route: /models/validation
+pub fn link_models_validation() -> String {
+  "/models/validation"
 }
 
