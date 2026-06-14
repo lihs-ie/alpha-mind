@@ -23,6 +23,8 @@ Endpoints:
   * @GET /models/validation/{modelVersion}@   — single model validation detail (JWT required)
   * @POST /operations/runtime@                — change runtime state (JWT required)
   * @POST /operations/kill-switch@            — toggle kill switch (JWT required)
+  * @POST /commands/run-cycle@                — trigger market collect cycle (JWT required)
+  * @POST /commands/run-insight-cycle@        — trigger insight collect cycle (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -41,6 +43,13 @@ import Presentation.Handler.Audit (
   getAuditLogsHandler,
  )
 import Presentation.Handler.Auth (LoginRequest, LoginResponse, loginHandler)
+import Presentation.Handler.Commands (
+  CommandAccepted,
+  RunCycleRequest,
+  RunInsightCycleRequest,
+  handleRunCycle,
+  handleRunInsightCycle,
+ )
 import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
 import Presentation.Handler.Hypotheses (
   HypothesisDetailResponse,
@@ -85,6 +94,7 @@ import Servant (
   Header,
   JSON,
   Post,
+  PostAccepted,
   Proxy (..),
   QueryParam,
   ReqBody,
@@ -202,6 +212,18 @@ type OperationsAPI =
       :> ReqBody '[JSON] KillSwitchRequest
       :> Post '[JSON] OperationResult
 
+type CommandsAPI =
+  "commands"
+    :> "run-cycle"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] RunCycleRequest
+    :> PostAccepted '[JSON] CommandAccepted
+    :<|> "commands"
+      :> "run-insight-cycle"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] RunInsightCycleRequest
+      :> PostAccepted '[JSON] CommandAccepted
+
 type BffAPI =
   BffPublicAPI
     :<|> BffProtectedAPI
@@ -212,6 +234,7 @@ type BffAPI =
     :<|> HypothesesAPI
     :<|> ModelsValidationAPI
     :<|> OperationsAPI
+    :<|> CommandsAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -238,6 +261,8 @@ bffApiProxy = Proxy
   * @GET /models/validation/{modelVersion}@  → 'getModelValidationByVersionHandler'
   * @POST /operations/runtime@               → 'handleChangeRuntime'
   * @POST /operations/kill-switch@           → 'handleToggleKillSwitch'
+  * @POST /commands/run-cycle@               → 'handleRunCycle'
+  * @POST /commands/run-insight-cycle@       → 'handleRunInsightCycle'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
@@ -250,3 +275,4 @@ bffServer appEnvironment =
     :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)
     :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
     :<|> (handleChangeRuntime appEnvironment :<|> handleToggleKillSwitch appEnvironment)
+    :<|> (handleRunCycle appEnvironment :<|> handleRunInsightCycle appEnvironment)

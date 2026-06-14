@@ -166,6 +166,9 @@ services:
       OIDC_CLIENT_SECRET: "local-oidc-client-secret-placeholder"
       # operations 制御 (#17) が kill-switch CloudEvent を publish する topic
       PUBSUB_KILL_SWITCH_TOPIC: "operation.kill_switch.changed"
+      # 手動コマンド (#18) が発行するイベントの topic（asyncapi channel address に準拠）
+      PUBSUB_MARKET_COLLECT_TOPIC: "market.collect.requested"
+      PUBSUB_INSIGHT_COLLECT_TOPIC: "insight.collect.requested"
     depends_on:
       init:
         condition: service_completed_successfully
