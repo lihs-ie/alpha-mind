@@ -164,6 +164,8 @@ services:
       RISK_GUARD_BASE_URL: http://risk-guard:8080
       # OIDCは localでは無効化（プレースホルダー）
       OIDC_CLIENT_SECRET: "local-oidc-client-secret-placeholder"
+      # operations 制御 (#17) が kill-switch CloudEvent を publish する topic
+      PUBSUB_KILL_SWITCH_TOPIC: "operation.kill_switch.changed"
     depends_on:
       init:
         condition: service_completed_successfully

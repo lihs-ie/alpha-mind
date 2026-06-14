@@ -7,6 +7,7 @@ import Data.Aeson.KeyMap qualified as KeyMap
 import Data.ByteString.Lazy (ByteString)
 import Infrastructure.JWT.JwtIssuer (JwtIssuerEnv (..))
 import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositoryEnv (..))
+import Messaging.PubSub (PubSubPublisher (..))
 import Network.HTTP.Types (status200, status401)
 import Network.Wai (Application, defaultRequest)
 import Network.Wai qualified as Wai
@@ -20,6 +21,15 @@ import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 -- ---------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------
+
+testPubSubPublisher :: PubSubPublisher
+testPubSubPublisher =
+  PubSubPublisher
+    { manager = error "PubSub manager not used in tests"
+    , projectId = "test-project"
+    , baseURL = "https://pubsub.googleapis.com/v1/"
+    , accessToken = pure ""
+    }
 
 testAppEnv :: AppEnv
 testAppEnv =
@@ -42,6 +52,8 @@ testAppEnv =
           , databaseId = "(default)"
           }
     , serviceName = "bff"
+    , pubSubPublisher = testPubSubPublisher
+    , killSwitchTopicName = "test-kill-switch-topic"
     }
 
 testApp :: Application

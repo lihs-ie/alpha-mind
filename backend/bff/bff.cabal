@@ -23,10 +23,12 @@ library
     Domain.Hypothesis.Record
     Domain.Insight.Record
     Domain.ModelValidation.Record
+    Domain.Operation.Control
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
@@ -43,12 +45,15 @@ library
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
     Presentation.Handler.ModelValidations
+    Presentation.Handler.Operations
     Presentation.Handler.Orders
     Presentation.Handler.Settings
   build-depends:
     aeson                ^>=2.2,
     bytestring           ^>=0.12,
     gogol-firestore      ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
     jose-jwt             ^>=0.10.0,
     mtl                  ^>=2.3.1,
@@ -73,10 +78,12 @@ executable bff
     Domain.Hypothesis.Record
     Domain.Insight.Record
     Domain.ModelValidation.Record
+    Domain.Operation.Control
     Domain.Order.Order
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
     Infrastructure.Repository.FirestoreInsightRepository
@@ -93,6 +100,7 @@ executable bff
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
     Presentation.Handler.ModelValidations
+    Presentation.Handler.Operations
     Presentation.Handler.Orders
     Presentation.Handler.Settings
   build-depends:
@@ -100,6 +108,8 @@ executable bff
     bff,
     bytestring           ^>=0.12,
     gogol-firestore      ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
     http-types           ^>=0.12,
     jose-jwt             ^>=0.10.0,
     mtl                  ^>=2.3.1,
@@ -121,6 +131,7 @@ test-suite bff-test
     bff,
     bytestring     ^>=0.12,
     hspec          ^>=2.11.16,
+    http-client    ^>=0.7,
     http-types     ^>=0.12,
     servant-server ^>=0.20,
     shared,
@@ -130,11 +141,13 @@ test-suite bff-test
     wai-extra      ^>=3.1
   other-modules:
     Domain.Auth.CredentialSpec
+    Domain.Operation.ControlSpec
     Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
     Presentation.Handler.DashboardSpec
     Presentation.Handler.HypothesesSpec
     Presentation.Handler.InsightsSpec
     Presentation.Handler.ModelValidationsSpec
+    Presentation.Handler.OperationsSpec
     Presentation.Handler.OrdersSpec
     Presentation.Handler.SettingsSpec
