@@ -27,19 +27,32 @@ library
     Infrastructure.ACL.AlpacaMarketDataSourceT
     Infrastructure.ACL.JQuantsMarketDataSourceT
     Infrastructure.ACL.NisshokinCsvSourceAdapter
+    Infrastructure.Idempotency.CollectionIdempotency
+    Infrastructure.Logging.CloudLoggingCollectionAuditWriter
+    Infrastructure.Normalization.MarketDataNormalizer
+    Infrastructure.Publisher.PubSubCollectionEventPublisher
+    Infrastructure.Repository.FirestoreCollectionDispatchRepository
+    Infrastructure.Repository.FirestoreMarketCollectionRepository
+    Infrastructure.Repository.GcsMarketDataRepository
+    Infrastructure.Wire.ReasonCodeWire
     UseCase.CollectMarketData
     UseCase.RecordCollectionAudit
   build-depends:
-    aeson           >=2.2 && <3,
-    bytestring      ^>=0.12,
-    http-client     ^>=0.7,
-    http-client-tls ^>=0.3,
-    http-types      ^>=0.12,
+    aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    gogol-storage        ^>=1.0.0,
+    http-client          ^>=0.7,
+    http-client-tls      ^>=0.3,
+    http-types           ^>=0.12,
+    mtl                  ^>=2.3.1,
     shared,
-    text            ^>=2.1.4,
-    time            ^>=1.14,
-    transformers    ^>=0.6.1.2,
-    ulid            ^>=0.3.3
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    transformers         ^>=0.6.1.2,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21
 
 executable data-collector
   import:         shared
@@ -59,15 +72,19 @@ test-suite data-collector-test
   hs-source-dirs: test
   build-depends:
     data-collector,
-    aeson       >=2.2 && <3,
-    bytestring  ^>=0.12,
-    containers  ^>=0.7,
-    hspec       ^>=2.11.16,
-    http-client ^>=0.7,
-    http-types  ^>=0.12,
-    text        ^>=2.1.4,
-    time        ^>=1.14,
-    ulid        ^>=0.3.3
+    aeson                ^>=2.2,
+    base64               ^>=1.0,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    hspec                ^>=2.11.16,
+    http-client          ^>=0.7,
+    http-types           ^>=0.12,
+    shared,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21
   other-modules:
     Domain.MarketCollection.AggregateSpec
     Domain.MarketCollection.CollectionDispatchSpec
@@ -78,4 +95,12 @@ test-suite data-collector-test
     Infrastructure.ACL.AlpacaMarketDataSourceTSpec
     Infrastructure.ACL.JQuantsMarketDataSourceTSpec
     Infrastructure.ACL.NisshokinCsvSourceAdapterSpec
+    Infrastructure.Idempotency.CollectionIdempotencySpec
+    Infrastructure.Logging.CloudLoggingCollectionAuditWriterSpec
+    Infrastructure.Normalization.MarketDataNormalizerSpec
+    Infrastructure.Publisher.PubSubCollectionEventPublisherSpec
+    Infrastructure.Repository.FirestoreCodecSpec
+    Infrastructure.Repository.FirestoreCollectionDispatchRepositorySpec
+    Infrastructure.Repository.FirestoreMarketCollectionRepositorySpec
+    Infrastructure.Repository.GcsMarketDataRepositorySpec
     UseCase.CollectMarketDataSpec
