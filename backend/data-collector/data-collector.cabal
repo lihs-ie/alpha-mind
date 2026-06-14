@@ -24,12 +24,22 @@ library
     Domain.MarketCollection.MarketDataSource
     Domain.MarketCollection.ReasonCode
     Domain.MarketCollection.SourcePolicySpecificationService
+    Infrastructure.ACL.AlpacaMarketDataSourceT
+    Infrastructure.ACL.JQuantsMarketDataSourceT
+    Infrastructure.ACL.NisshokinCsvSourceAdapter
     UseCase.CollectMarketData
     UseCase.RecordCollectionAudit
   build-depends:
-    text      ^>=2.1.4,
-    time      ^>=1.14,
-    ulid      ^>=0.3.3
+    aeson           >=2.2 && <3,
+    bytestring      ^>=0.12,
+    http-client     ^>=0.7,
+    http-client-tls ^>=0.3,
+    http-types      ^>=0.12,
+    shared,
+    text            ^>=2.1.4,
+    time            ^>=1.14,
+    transformers    ^>=0.6.1.2,
+    ulid            ^>=0.3.3
 
 executable data-collector
   import:         shared
@@ -49,8 +59,12 @@ test-suite data-collector-test
   hs-source-dirs: test
   build-depends:
     data-collector,
+    aeson       >=2.2 && <3,
+    bytestring  ^>=0.12,
     containers  ^>=0.7,
     hspec       ^>=2.11.16,
+    http-client ^>=0.7,
+    http-types  ^>=0.12,
     text        ^>=2.1.4,
     time        ^>=1.14,
     ulid        ^>=0.3.3
@@ -61,4 +75,7 @@ test-suite data-collector-test
     Domain.MarketCollection.ReasonCodeSpec
     Domain.MarketCollection.SourcePolicySpecificationServiceSpec
     Domain.MarketCollectionSpec
+    Infrastructure.ACL.AlpacaMarketDataSourceTSpec
+    Infrastructure.ACL.JQuantsMarketDataSourceTSpec
+    Infrastructure.ACL.NisshokinCsvSourceAdapterSpec
     UseCase.CollectMarketDataSpec
