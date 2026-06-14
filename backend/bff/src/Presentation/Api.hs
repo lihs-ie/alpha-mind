@@ -11,6 +11,8 @@ Endpoints:
   * @GET /dashboard/summary@      — returns aggregated dashboard state (JWT required)
   * @GET /orders@                 — paginated list of orders (JWT required)
   * @GET /orders/{identifier}@    — single order detail (JWT required)
+  * @GET /audit@                  — paginated list of audit logs (JWT required)
+  * @GET /audit/{identifier}@     — single audit log detail (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -22,6 +24,12 @@ where
 
 import Data.Text (Text)
 import Presentation.AppM (AppEnv)
+import Presentation.Handler.Audit (
+  AuditDetailResponse,
+  AuditListResponse,
+  getAuditLogByIdentifierHandler,
+  getAuditLogsHandler,
+ )
 import Presentation.Handler.Auth (LoginRequest, LoginResponse, loginHandler)
 import Presentation.Handler.Dashboard (DashboardSummaryResponse, getDashboardSummaryHandler)
 import Presentation.Handler.Orders (
@@ -75,7 +83,22 @@ type OrdersAPI =
       :> Header "Authorization" Text
       :> Get '[JSON] OrderDetailResponse
 
-type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI
+type AuditAPI =
+  "audit"
+    :> Header "Authorization" Text
+    :> QueryParam "trace" Text
+    :> QueryParam "eventType" Text
+    :> QueryParam "from" Text
+    :> QueryParam "to" Text
+    :> QueryParam "limit" Int
+    :> QueryParam "cursor" Text
+    :> Get '[JSON] AuditListResponse
+    :<|> "audit"
+      :> Capture "identifier" Text
+      :> Header "Authorization" Text
+      :> Get '[JSON] AuditDetailResponse
+
+type BffAPI = BffPublicAPI :<|> BffProtectedAPI :<|> OrdersAPI :<|> AuditAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -90,10 +113,12 @@ bffApiProxy = Proxy
   * @GET /dashboard/summary@      → 'getDashboardSummaryHandler'
   * @GET /orders@                 → 'getOrdersHandler'
   * @GET /orders/{identifier}@    → 'getOrderByIdentifierHandler'
+  * @GET /audit@                  → 'getAuditLogsHandler'
+  * @GET /audit/{identifier}@     → 'getAuditLogByIdentifierHandler'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
   loginHandler appEnvironment
     :<|> getDashboardSummaryHandler appEnvironment
-    :<|> getOrdersHandler appEnvironment
-    :<|> getOrderByIdentifierHandler appEnvironment
+    :<|> (getOrdersHandler appEnvironment :<|> getOrderByIdentifierHandler appEnvironment)
+    :<|> (getAuditLogsHandler appEnvironment :<|> getAuditLogByIdentifierHandler appEnvironment)
