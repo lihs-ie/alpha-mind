@@ -1,0 +1,52 @@
+[project]
+name = "hypothesis-lab"
+version = "0.1.0"
+description = "Hypothesis Lab service for alpha-mind"
+requires-python = ">=3.14"
+dependencies = [
+    "flask>=3.1,<4",
+    "numpy>=2.4,<3",
+    "pandas>=3.0,<4",
+    "python-ulid>=3.1,<4",
+    "google-cloud-firestore>=2.23,<3",
+    "google-cloud-storage>=3.9,<4",
+    "google-cloud-pubsub>=2.35,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0,<10",
+    "mypy>=1.19,<2",
+    "ruff>=0.15,<1",
+    "pyyaml>=6.0,<7",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "../common/python/src", "."]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+markers = [
+    "integration: tests that require emulators or external infrastructure",
+]
+
+[tool.mypy]
+python_version = "3.14"
+mypy_path = "src:../common/python/src"
+explicit_package_bases = true
+strict = true
+warn_return_any = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["ulid.*", "google.cloud.*", "google.api_core.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+src = ["src", "../common/python/src"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
