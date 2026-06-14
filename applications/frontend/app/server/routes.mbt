@@ -61,6 +61,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-005: モデル検証 (authenticated)
+        @router.SolRoutes::Page(
+          path="/models/validation",
+          handler=@router.PageHandler(models_page),
+          title="モデル検証 — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]

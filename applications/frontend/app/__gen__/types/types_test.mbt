@@ -78,6 +78,44 @@ test "login_form ComponentRef url" {
 }
 
 ///|
+test "ModelValidationRowProps round-trip" {
+  let json_str = "{ \"model_version\": \"\", \"status\": \"\", \"degradation_flag\": \"\", \"created_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : ModelValidationRowProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : ModelValidationRowProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "model_validation_row ComponentRef url" {
+  let json_str = "{ \"model_version\": \"\", \"status\": \"\", \"degradation_flag\": \"\", \"created_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : ModelValidationRowProps = @json.from_json(json)
+  let cref = model_validation_row(props)
+  assert_true(cref.url.has_suffix("model_validation_row.js"))
+}
+
+///|
+test "ModelsActionsProps round-trip" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_models\": [] }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : ModelsActionsProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : ModelsActionsProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "models_actions ComponentRef url" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_models\": [] }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : ModelsActionsProps = @json.from_json(json)
+  let cref = models_actions(props)
+  assert_true(cref.url.has_suffix("models_actions.js"))
+}
+
+///|
 test "OrderRowProps round-trip" {
   let json_str = "{ \"identifier\": \"\", \"symbol\": \"\", \"side\": \"\", \"qty\": 0, \"status\": \"\", \"created_at\": \"\" }"
   let json : Json = @json.parse(json_str) catch { _ => panic() }
