@@ -9,6 +9,10 @@ import Domain.OrderProposal.Service.ProposalEligibilityPolicySpec qualified
 import Domain.OrderProposal.Specification.ComplianceReviewGateSpecificationSpec qualified
 import Domain.OrderProposal.Specification.ProposalBatchConsistencySpecificationSpec qualified
 import Domain.OrderProposal.Specification.SignalIntegritySpecificationSpec qualified
+import Infrastructure.Publisher.PubSubPortfolioEventPublisherSpec qualified
+import Infrastructure.Repository.FirestoreIdempotencyRepositorySpec qualified
+import Infrastructure.Repository.FirestoreOrderProposalRepositorySpec qualified
+import Infrastructure.Repository.FirestoreProposalDispatchRepositorySpec qualified
 import Test.Hspec (hspec)
 import UseCase.PortfolioPlanningServiceSpec qualified
 import UseCase.ProposalAuditWriterSpec qualified
@@ -25,5 +29,9 @@ main =
     Domain.OrderProposal.Service.OrderSizingPolicySpec.spec
     Domain.OrderProposal.Factory.OrderProposalFactorySpec.spec
     Domain.OrderProposal.Factory.ProposalDispatchFactorySpec.spec
+    Infrastructure.Publisher.PubSubPortfolioEventPublisherSpec.spec
+    Infrastructure.Repository.FirestoreIdempotencyRepositorySpec.spec
+    Infrastructure.Repository.FirestoreOrderProposalRepositorySpec.spec
+    Infrastructure.Repository.FirestoreProposalDispatchRepositorySpec.spec
     UseCase.PortfolioPlanningServiceSpec.spec
     UseCase.ProposalAuditWriterSpec.spec
