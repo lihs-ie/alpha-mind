@@ -2,6 +2,22 @@
 ///| Re-exports Props structs from client packages
 
 ///| Props type from @client
+pub(all) struct AuditRowProps {
+  identifier : String
+  occurred_at : String
+  event_type : String
+  service : String
+  result : String
+  trace : String
+} derive(ToJson, FromJson)
+
+///| Props type from @client
+pub(all) struct AuditSearchProps {
+  bff_base_url : String
+  initial_logs : Array[AuditRowProps]
+} derive(ToJson, FromJson)
+
+///| Props type from @client
 pub(all) struct DashboardOperationsProps {
   bff_base_url : String
   initial_runtime_state : String
@@ -54,6 +70,24 @@ pub(all) struct StrategyFormProps {
 // =============================================================================
 // ComponentRef Factory Functions
 // =============================================================================
+
+///|
+///| Create ComponentRef for audit_row component
+pub fn audit_row(
+  props : AuditRowProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[AuditRowProps] {
+  { url: "/static/audit_row.js", props, wc: false, trigger }
+}
+
+///|
+///| Create ComponentRef for audit_search component
+pub fn audit_search(
+  props : AuditSearchProps,
+  trigger~ : @luna.Trigger = @luna.TriggerType::Load,
+) -> @luna.ComponentRef[AuditSearchProps] {
+  { url: "/static/audit_search.js", props, wc: false, trigger }
+}
 
 ///|
 ///| Create ComponentRef for dashboard_operations component
@@ -133,6 +167,10 @@ pub let route_settings_strategy : String = "/settings/strategy"
 /// Route path: /orders
 pub let route_orders : String = "/orders"
 
+///|
+/// Route path: /audit
+pub let route_audit : String = "/audit"
+
 // =============================================================================
 // Link Builder Functions
 // =============================================================================
@@ -165,5 +203,11 @@ pub fn link_settings_strategy() -> String {
 /// Link builder for route: /orders
 pub fn link_orders() -> String {
   "/orders"
+}
+
+///|
+/// Link builder for route: /audit
+pub fn link_audit() -> String {
+  "/audit"
 }
 
