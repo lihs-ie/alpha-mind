@@ -38,14 +38,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Time (getCurrentTime)
 import Data.ULID qualified as ULID
-import Domain.RiskAssessment.Factory (OrdersProposedPayload (..))
-import Infrastructure.Repository.FirestoreRiskSettingsRepository (
-  loadCompliancePolicy,
-  loadKillSwitchState,
-  loadRiskExposure,
-  loadRiskLimits,
- )
-import Presentation.AppM (AppEnv (..), runAppM)
+import Presentation.AppM (AppEnv (..), loadSettings, runAppM)
 import Presentation.Subscriber.PubSubKillSwitchSubscriber (
   KillSwitchPushResult (..),
   handleKillSwitchChanged,
@@ -72,7 +65,7 @@ import Servant (
   (:>),
  )
 import Text.Read (readMaybe)
-import UseCase.CheckOrderRisk (CheckOrderRiskResult (..), checkOrderRisk)
+import UseCase.CheckOrderRisk (CheckOrderRiskResult (..), OrdersProposedPayload (..), checkOrderRisk)
 
 -- ---------------------------------------------------------------------------
 -- API type (Must-03)
@@ -210,10 +203,7 @@ approveHandler appEnv identifierText _approveRequest = do
     Just orderIdentifier -> do
       traceUlid <- liftIO ULID.getULID
       currentTime <- liftIO getCurrentTime
-      killSwitchEnabled <- liftIO $ loadKillSwitchState appEnv.settingsEnv
-      riskLimits <- liftIO $ loadRiskLimits appEnv.settingsEnv
-      compliancePolicy <- liftIO $ loadCompliancePolicy appEnv.settingsEnv
-      riskExposure <- liftIO $ loadRiskExposure appEnv.settingsEnv
+      (killSwitchEnabled, riskLimits, compliancePolicy, riskExposure) <- liftIO $ loadSettings appEnv
       let manualPayload =
             OrdersProposedPayload
               { identifier = orderIdentifier
@@ -261,9 +251,7 @@ rejectHandler appEnv identifierText rejectRequest = do
           traceUlid <- liftIO ULID.getULID
           currentTime <- liftIO getCurrentTime
           -- For manual rejection, enable kill switch to force rejection path
-          riskLimits <- liftIO $ loadRiskLimits appEnv.settingsEnv
-          compliancePolicy <- liftIO $ loadCompliancePolicy appEnv.settingsEnv
-          riskExposure <- liftIO $ loadRiskExposure appEnv.settingsEnv
+          (_, riskLimits, compliancePolicy, riskExposure) <- liftIO $ loadSettings appEnv
           let manualPayload =
                 OrdersProposedPayload
                   { identifier = orderIdentifier

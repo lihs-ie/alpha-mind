@@ -41,21 +41,19 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as TextEncoding
 import Data.Time (UTCTime, getCurrentTime)
 import Data.ULID (ULID)
-import Domain.RiskAssessment.Factory (OrdersProposedPayload (..))
-import Domain.RiskAssessment.ValueObjects (CompliancePolicy, RiskExposure, RiskLimits)
-import Infrastructure.Repository.FirestoreRiskSettingsRepository (
-  FirestoreRiskSettingsEnv,
-  loadCompliancePolicy,
-  loadKillSwitchState,
-  loadRiskExposure,
-  loadRiskLimits,
- )
 import Messaging.CloudEvent (CloudEvent (..))
 import Messaging.PubSub (decodePubSubPush)
-import Presentation.AppM (AppEnv (..), runAppM)
+import Presentation.AppM (AppEnv (..), loadSettings, runAppM)
 import Resilience.Retry (defaultRetryPolicyConfig, withRetry)
 import Servant (Handler, ServerError (..), err500, throwError)
-import UseCase.CheckOrderRisk (CheckOrderRiskResult (..), checkOrderRisk)
+import UseCase.CheckOrderRisk (
+  CheckOrderRiskResult (..),
+  CompliancePolicy,
+  OrdersProposedPayload (..),
+  RiskExposure,
+  RiskLimits,
+  checkOrderRisk,
+ )
 
 -- ---------------------------------------------------------------------------
 -- Result type
@@ -141,18 +139,9 @@ processOrderRiskMessageWith loadSettings runUseCase body =
   isRetryableCheckResult (CheckOrderRiskFailed _ True) = True
   isRetryableCheckResult _ = False
 
--- | Load settings from Firestore using the real environment.
-loadSettingsFromFirestore :: FirestoreRiskSettingsEnv -> IO (Bool, RiskLimits, CompliancePolicy, RiskExposure)
-loadSettingsFromFirestore settingsEnvironment = do
-  killSwitchEnabled <- loadKillSwitchState settingsEnvironment
-  riskLimits <- loadRiskLimits settingsEnvironment
-  compliancePolicy <- loadCompliancePolicy settingsEnvironment
-  riskExposure <- loadRiskExposure settingsEnvironment
-  pure (killSwitchEnabled, riskLimits, compliancePolicy, riskExposure)
-
 {- | Process a Pub/Sub push body, returning an 'OrderRiskPushResult'.
 
- Uses the real 'runAppM'-based runner and loads settings from Firestore.
+ Uses the real 'runAppM'-based runner and loads settings from Firestore via 'loadSettings'.
 -}
 processOrderRiskMessage ::
   AppEnv ->
@@ -160,7 +149,7 @@ processOrderRiskMessage ::
   IO OrderRiskPushResult
 processOrderRiskMessage appEnv =
   processOrderRiskMessageWith
-    (loadSettingsFromFirestore appEnv.settingsEnv)
+    (loadSettings appEnv)
     ( \currentTime killSwitchEnabled riskLimits compliancePolicy riskExposure payload ->
         runAppM appEnv $
           checkOrderRisk

@@ -22,6 +22,9 @@ module Presentation.AppM (
 
   -- * Environment construction
   buildAppEnv,
+
+  -- * Settings loader (for presentation layer — avoids direct infra imports)
+  loadSettings,
 ) where
 
 import Config.Env (optionalTextEnv, requireTextEnv)
@@ -36,6 +39,7 @@ import Domain.RiskAssessment.Aggregate (
 import Domain.RiskAssessment.Aggregate qualified as AssessmentRepository
 import Domain.RiskAssessment.Port.IdempotencyKeyRepository (IdempotencyKeyRepository (..))
 import Domain.RiskAssessment.Port.IdempotencyKeyRepository qualified as IdempotencyRepository
+import Domain.RiskAssessment.ValueObjects (CompliancePolicy, RiskExposure, RiskLimits)
 import Infrastructure.Publisher.PubSubRiskEventPublisher (
   PubSubRiskEventPublisherEnv (..),
   runPubSubRiskEventPublisherT,
@@ -49,7 +53,13 @@ import Infrastructure.Repository.FirestoreRiskAssessmentRepository (
   FirestoreRiskAssessmentEnv (..),
   runFirestoreRiskAssessmentRepositoryT,
  )
-import Infrastructure.Repository.FirestoreRiskSettingsRepository (FirestoreRiskSettingsEnv (..))
+import Infrastructure.Repository.FirestoreRiskSettingsRepository (
+  FirestoreRiskSettingsEnv (..),
+  loadCompliancePolicy,
+  loadKillSwitchState,
+  loadRiskExposure,
+  loadRiskLimits,
+ )
 import Messaging.PubSub (PubSubPublisher (..))
 import Network.HTTP.Client.TLS (newTlsManager)
 import Persistence.Firestore (FirestoreContext (..))
@@ -203,3 +213,20 @@ buildAppEnv = do
       , publisherEnv = publisherEnvironment
       , serviceName = "risk-guard"
       }
+
+-- ---------------------------------------------------------------------------
+-- Settings loader (for presentation layer — avoids direct infra imports)
+-- ---------------------------------------------------------------------------
+
+{- | Load risk settings from Firestore using the settings environment in 'AppEnv'.
+
+ This function is provided so that presentation-layer modules can load settings
+ without directly importing 'Infrastructure.Repository.FirestoreRiskSettingsRepository'.
+-}
+loadSettings :: AppEnv -> IO (Bool, RiskLimits, CompliancePolicy, RiskExposure)
+loadSettings appEnv = do
+  killSwitchEnabled <- loadKillSwitchState appEnv.settingsEnv
+  riskLimits <- loadRiskLimits appEnv.settingsEnv
+  compliancePolicy <- loadCompliancePolicy appEnv.settingsEnv
+  riskExposure <- loadRiskExposure appEnv.settingsEnv
+  pure (killSwitchEnabled, riskLimits, compliancePolicy, riskExposure)
