@@ -5,11 +5,11 @@
  'AppM' is a flat @ReaderT AppEnv IO@ that provides all eight port instances
  required by 'collectInsights':
 
-   * 'InsightDispatchRepository'        → STUB: no infrastructure implementation yet
+   * 'InsightDispatchRepository'        → FirestoreInsightDispatchRepositoryT
    * 'InsightCollectionRepository'      → FirestoreInsightCollectionRepositoryT
    * 'SourcePolicyRepository'           → FirestoreSourcePolicyRepositoryT
    * 'InsightRecordRepository'          → FirestoreInsightRecordRepositoryT
-   * 'InsightArtifactRepository'        → STUB: no infrastructure implementation yet
+   * 'InsightArtifactRepository'        → GcsInsightArtifactRepositoryT
    * 'ExternalSourcePort'               → XExternalSourceT / YouTubeExternalSourceT /
                                            PaperExternalSourceT / GitHubExternalSourceT
    * 'InsightCollectionEventPublisher'  → PubSubInsightEventPublisherT
@@ -57,6 +57,10 @@ import Infrastructure.Repository.FirestoreInsightCollectionRepository (
   FirestoreInsightCollectionEnv (..),
   runFirestoreInsightCollectionRepositoryT,
  )
+import Infrastructure.Repository.FirestoreInsightDispatchRepository (
+  FirestoreInsightDispatchEnv (..),
+  runFirestoreInsightDispatchRepositoryT,
+ )
 import Infrastructure.Repository.FirestoreInsightRecordRepository (
   FirestoreInsightRecordEnv (..),
   runFirestoreInsightRecordRepositoryT,
@@ -65,11 +69,19 @@ import Infrastructure.Repository.FirestoreSourcePolicyRepository (
   FirestoreSourcePolicyEnv (..),
   runFirestoreSourcePolicyRepositoryT,
  )
+import Infrastructure.Repository.GcsInsightArtifactRepository (
+  GcsInsightArtifactEnv (..),
+  mkProductionDeleteFn,
+  mkProductionDownloadFn,
+  mkProductionUploadFn,
+  runGcsInsightArtifactRepositoryT,
+ )
 import Messaging.PubSub (PubSubPublisher (..))
 import Network.HTTP.Client (httpLbs)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Observability.Logging (LogContext (..), LogEnv, initLogger, logInfoWith)
 import Persistence.Firestore (FirestoreContext (..))
+import Storage.GCS (defaultGcsContext)
 import UseCase.CollectInsights (InsightCollectionEventPublisher (..))
 import UseCase.RecordInsightAudit (InsightAuditPort (..))
 
@@ -81,6 +93,7 @@ data AppEnv = AppEnv
   { firestoreContext :: FirestoreContext
   , logEnv :: LogEnv
   , pubSubEnv :: PubSubInsightEventPublisherEnv
+  , gcsInsightArtifactEnv :: GcsInsightArtifactEnv
   , xEnv :: XEnv
   , youTubeEnv :: YouTubeEnv
   , paperEnv :: PaperEnv
@@ -100,18 +113,27 @@ runAppM appEnv action = runReaderT (unAppM action) appEnv
 
 -- ---------------------------------------------------------------------------
 -- InsightDispatchRepository instance
--- STUB: no infrastructure implementation yet
+-- Delegates to FirestoreInsightDispatchRepositoryT.
 -- ---------------------------------------------------------------------------
 
 instance InsightDispatchRepository AppM where
-  -- STUB: no infrastructure implementation yet
-  findDispatch _collectionIdentifier = liftIO (pure Nothing)
+  findDispatch collectionIdentifier = AppM $ do
+    appEnv <- ask
+    let firestoreEnv = FirestoreInsightDispatchEnv{firestoreContext = appEnv.firestoreContext}
+        action = findDispatch collectionIdentifier
+    liftIO $ runFirestoreInsightDispatchRepositoryT firestoreEnv action
 
-  -- STUB: no infrastructure implementation yet
-  persistDispatch _dispatch = liftIO (pure ())
+  persistDispatch dispatch = AppM $ do
+    appEnv <- ask
+    let firestoreEnv = FirestoreInsightDispatchEnv{firestoreContext = appEnv.firestoreContext}
+        action = persistDispatch dispatch
+    liftIO $ runFirestoreInsightDispatchRepositoryT firestoreEnv action
 
-  -- STUB: no infrastructure implementation yet
-  terminateDispatch' _collectionIdentifier = liftIO (pure ())
+  terminateDispatch' collectionIdentifier = AppM $ do
+    appEnv <- ask
+    let firestoreEnv = FirestoreInsightDispatchEnv{firestoreContext = appEnv.firestoreContext}
+        action = terminateDispatch' collectionIdentifier
+    liftIO $ runFirestoreInsightDispatchRepositoryT firestoreEnv action
 
 -- ---------------------------------------------------------------------------
 -- InsightCollectionRepository instance
@@ -193,18 +215,27 @@ instance InsightRecordRepository AppM where
 
 -- ---------------------------------------------------------------------------
 -- InsightArtifactRepository instance
--- STUB: no infrastructure implementation yet
+-- Delegates to GcsInsightArtifactRepositoryT.
 -- ---------------------------------------------------------------------------
 
 instance InsightArtifactRepository AppM where
-  -- STUB: no infrastructure implementation yet
-  persistArtifact _artifact = liftIO (pure ())
+  persistArtifact artifact = AppM $ do
+    appEnv <- ask
+    let gcsEnvironment = appEnv.gcsInsightArtifactEnv
+        action = persistArtifact artifact
+    liftIO $ runGcsInsightArtifactRepositoryT gcsEnvironment action
 
-  -- STUB: no infrastructure implementation yet
-  findArtifact _collectionIdentifier = liftIO (pure Nothing)
+  findArtifact collectionIdentifier = AppM $ do
+    appEnv <- ask
+    let gcsEnvironment = appEnv.gcsInsightArtifactEnv
+        action = findArtifact collectionIdentifier
+    liftIO $ runGcsInsightArtifactRepositoryT gcsEnvironment action
 
-  -- STUB: no infrastructure implementation yet
-  terminateArtifact _collectionIdentifier = liftIO (pure ())
+  terminateArtifact collectionIdentifier = AppM $ do
+    appEnv <- ask
+    let gcsEnvironment = appEnv.gcsInsightArtifactEnv
+        action = terminateArtifact collectionIdentifier
+    liftIO $ runGcsInsightArtifactRepositoryT gcsEnvironment action
 
 -- ---------------------------------------------------------------------------
 -- ExternalSourcePort instance
@@ -280,6 +311,7 @@ instance InsightAuditPort AppM where
  Optional:
    FIRESTORE_DATABASE_ID (default "(default)")
    INSIGHT_SKILL_VERSION (default "v1.0.0")
+   INSIGHT_GCS_BUCKET_NAME (default "alpha-mind-insight-data")
 -}
 buildAppEnv :: IO AppEnv
 buildAppEnv = do
@@ -361,11 +393,25 @@ buildAppEnv = do
           , httpExecute = executeHttpWithManager
           }
 
+  -- GCS (InsightArtifact)
+  maybeInsightGcsBucketName <- optionalTextEnv "INSIGHT_GCS_BUCKET_NAME"
+  let insightGcsBucketName = fromMaybe "alpha-mind-insight-data" maybeInsightGcsBucketName
+      gcsContextValue = defaultGcsContext
+      gcsInsightArtifactEnvironment =
+        GcsInsightArtifactEnv
+          { gcsContext = gcsContextValue
+          , bucketName = insightGcsBucketName
+          , uploadFn = mkProductionUploadFn gcsContextValue
+          , downloadFn = mkProductionDownloadFn gcsContextValue
+          , deleteFn = mkProductionDeleteFn gcsContextValue
+          }
+
   pure
     AppEnv
       { firestoreContext = firestoreCtx
       , logEnv = logEnvironment
       , pubSubEnv = pubSubEnvironment
+      , gcsInsightArtifactEnv = gcsInsightArtifactEnvironment
       , xEnv = xEnvironment
       , youTubeEnv = youTubeEnvironment
       , paperEnv = paperEnvironment
