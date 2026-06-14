@@ -23,5 +23,4 @@ fromSignalGeneratedEvent ::
   SignalSnapshot ->
   Trace ->
   (ProposalDispatch, [ProposalDispatchEvent])
-fromSignalGeneratedEvent inputIdentifier signalSnap traceValue =
-  startDispatch inputIdentifier signalSnap traceValue
+fromSignalGeneratedEvent = startDispatch

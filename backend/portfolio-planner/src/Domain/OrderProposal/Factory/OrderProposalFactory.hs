@@ -36,7 +36,7 @@ fromSignalSnapshot ::
   Trace ->
   UTCTime ->
   Either DomainError (OrderProposal, [OrderProposalEvent])
-fromSignalSnapshot inputIdentifier sym inputSide inputQty signalSnap stratSnap traceValue createdTime =
+fromSignalSnapshot inputIdentifier sym inputSide inputQty signalSnap =
   createProposal
     inputIdentifier
     sym
@@ -44,6 +44,3 @@ fromSignalSnapshot inputIdentifier sym inputSide inputQty signalSnap stratSnap t
     inputQty
     signalSnap
     Nothing
-    stratSnap
-    traceValue
-    createdTime
