@@ -34,7 +34,8 @@ pub(all) enum UiDomainEvent {
 
 /// Repository port: UiSession persistence interface.
 /// Implementations live in the infra layer (#73).
-pub trait UiSessionRepository {
+/// pub(open) allows external packages (infra, usecase tests) to implement this trait.
+pub(open) trait UiSessionRepository {
   find(Self, String) -> @session.UiSession?
   persist(Self, @session.UiSession) -> Unit
   terminate(Self, String) -> Unit
@@ -42,7 +43,8 @@ pub trait UiSessionRepository {
 
 /// Repository port: ReadModelProjection persistence interface.
 /// Implementations live in the infra layer (#73).
-pub trait ProjectionRepository {
+/// pub(open) allows external packages (infra, usecase tests) to implement this trait.
+pub(open) trait ProjectionRepository {
   find_by_screen(Self, @projection.ProjectionScreen) -> @projection.ReadModelProjection?
   persist(Self, @projection.ReadModelProjection) -> Unit
   terminate(Self, String) -> Unit

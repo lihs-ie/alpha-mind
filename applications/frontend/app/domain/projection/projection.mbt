@@ -80,6 +80,39 @@ pub struct ReadModelProjection {
   updatedAt : String
 } derive(Show)
 
+/// Factory: create a ViewItem with the given identifier.
+pub fn new_view_item(identifier : String) -> ViewItem {
+  { identifier }
+}
+
+/// Factory: create a QueryCriteria with the given parameters.
+pub fn new_query_criteria(
+  from : String?,
+  to : String?,
+  status : String?,
+  cursor : String?,
+  limit : Int?
+) -> QueryCriteria {
+  { from, to, status, cursor, limit }
+}
+
+/// Factory: create a new ReadModelProjection in Initial state.
+pub fn new_projection(
+  identifier : String,
+  screen : ProjectionScreen,
+  updated_at : String
+) -> ReadModelProjection {
+  {
+    identifier,
+    screen,
+    status: ProjectionStatus::Initial,
+    items: [],
+    summary: None,
+    pagination: None,
+    updatedAt: updated_at,
+  }
+}
+
 /// Transition: begin loading the projection.
 pub fn start_loading(
   projection : ReadModelProjection,
