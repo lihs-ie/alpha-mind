@@ -59,6 +59,44 @@ test "dashboard_operations ComponentRef url" {
 }
 
 ///|
+test "HypothesisRowProps round-trip" {
+  let json_str = "{ \"identifier\": \"\", \"symbol\": \"\", \"instrument_type\": \"\", \"status\": \"\", \"title\": \"\", \"updated_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : HypothesisRowProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : HypothesisRowProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "hypothesis_row ComponentRef url" {
+  let json_str = "{ \"identifier\": \"\", \"symbol\": \"\", \"instrument_type\": \"\", \"status\": \"\", \"title\": \"\", \"updated_at\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : HypothesisRowProps = @json.from_json(json)
+  let cref = hypothesis_row(props)
+  assert_true(cref.url.has_suffix("hypothesis_row.js"))
+}
+
+///|
+test "HypothesesActionsProps round-trip" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_hypotheses\": [], \"initial_next_cursor\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : HypothesesActionsProps = @json.from_json(json)
+  let roundtrip = props.to_json()
+  let restored : HypothesesActionsProps = @json.from_json(roundtrip)
+  assert_eq(props.to_json().stringify(), restored.to_json().stringify())
+}
+
+///|
+test "hypotheses_actions ComponentRef url" {
+  let json_str = "{ \"bff_base_url\": \"\", \"initial_hypotheses\": [], \"initial_next_cursor\": \"\" }"
+  let json : Json = @json.parse(json_str) catch { _ => panic() }
+  let props : HypothesesActionsProps = @json.from_json(json)
+  let cref = hypotheses_actions(props)
+  assert_true(cref.url.has_suffix("hypotheses_actions.js"))
+}
+
+///|
 test "InsightRowProps round-trip" {
   let json_str = "{ \"identifier\": \"\", \"source_type\": \"\", \"summary\": \"\", \"source_url\": \"\", \"collected_at\": \"\", \"signal_class\": \"\", \"so_what_score\": 0 }"
   let json : Json = @json.parse(json_str) catch { _ => panic() }

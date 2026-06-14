@@ -79,6 +79,15 @@ pub fn routes() -> Array[@router.SolRoutes] {
           revalidate=None,
           cache=None,
         ),
+        // SCR-007: 仮説ラボ (authenticated)
+        @router.SolRoutes::Page(
+          path="/hypotheses",
+          handler=@router.PageHandler(hypotheses_page),
+          title="仮説ラボ — alpha-mind",
+          meta=[],
+          revalidate=None,
+          cache=None,
+        ),
       ],
     ),
   ]
