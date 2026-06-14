@@ -255,7 +255,8 @@ documentToCollection document = do
         Nothing -> Left "collected document missing storagePath"
         Just path -> do
           let rowCountInt = maybe 0 fromIntegral document.rowCount
-          case recordCollectionSuccess path sourceStatus rowCountInt (document.updatedAt) baseCollection of
+          let updatedAtValue = document.updatedAt
+          case recordCollectionSuccess path sourceStatus rowCountInt updatedAtValue baseCollection of
             Left domainError -> Left (Text.pack (show domainError))
             Right (collection, _) -> Right collection
     "failed" -> do
