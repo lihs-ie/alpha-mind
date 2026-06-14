@@ -65,6 +65,8 @@ testAppEnv =
     , serviceName = "bff"
     , pubSubPublisher = testPubSubPublisher
     , killSwitchTopicName = "test-kill-switch-topic"
+    , marketCollectTopicName = "test-market-collect-topic"
+    , insightCollectTopicName = "test-insight-collect-topic"
     }
 
 testApp :: Application

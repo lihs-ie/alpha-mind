@@ -28,6 +28,7 @@ library
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Publisher.PubSubCommandsPublisher
     Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
@@ -41,6 +42,7 @@ library
     Presentation.AppM
     Presentation.Handler.Audit
     Presentation.Handler.Auth
+    Presentation.Handler.Commands
     Presentation.Handler.Dashboard
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
@@ -83,6 +85,7 @@ executable bff
     Domain.Settings.Strategy
     Infrastructure.JWT.JwtIssuer
     Infrastructure.JWT.JwtVerifier
+    Infrastructure.Publisher.PubSubCommandsPublisher
     Infrastructure.Publisher.PubSubOperationsPublisher
     Infrastructure.Repository.FirestoreAuditRepository
     Infrastructure.Repository.FirestoreHypothesisRepository
@@ -96,6 +99,7 @@ executable bff
     Presentation.AppM
     Presentation.Handler.Audit
     Presentation.Handler.Auth
+    Presentation.Handler.Commands
     Presentation.Handler.Dashboard
     Presentation.Handler.Hypotheses
     Presentation.Handler.Insights
@@ -144,6 +148,7 @@ test-suite bff-test
     Domain.Operation.ControlSpec
     Presentation.Handler.AuditSpec
     Presentation.Handler.AuthSpec
+    Presentation.Handler.CommandsSpec
     Presentation.Handler.DashboardSpec
     Presentation.Handler.HypothesesSpec
     Presentation.Handler.InsightsSpec

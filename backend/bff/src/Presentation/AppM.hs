@@ -29,6 +29,8 @@ data AppEnv = AppEnv
   , serviceName :: Text
   , pubSubPublisher :: PubSubPublisher
   , killSwitchTopicName :: Text
+  , marketCollectTopicName :: Text
+  , insightCollectTopicName :: Text
   }
 
 -- ---------------------------------------------------------------------------
@@ -38,10 +40,12 @@ data AppEnv = AppEnv
 {- | Must-09: Build 'AppEnv' from environment variables.
 
 Required variables:
-  ADMIN_EMAIL              — plaintext admin email (MVP)
-  ADMIN_PASSWORD           — plaintext admin password (MVP)
-  JWT_SECRET_KEY           — HMAC-SHA256 signing key (at least 32 bytes recommended)
-  PUBSUB_KILL_SWITCH_TOPIC — Pub/Sub topic name for kill-switch events
+  ADMIN_EMAIL                  — plaintext admin email (MVP)
+  ADMIN_PASSWORD               — plaintext admin password (MVP)
+  JWT_SECRET_KEY               — HMAC-SHA256 signing key (at least 32 bytes recommended)
+  PUBSUB_KILL_SWITCH_TOPIC     — Pub/Sub topic name for kill-switch events
+  PUBSUB_MARKET_COLLECT_TOPIC  — Pub/Sub topic for market.collect.requested events
+  PUBSUB_INSIGHT_COLLECT_TOPIC — Pub/Sub topic for insight.collect.requested events
 Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
@@ -55,6 +59,8 @@ buildAppEnv = do
   adminPasswordValue <- requireTextEnv "ADMIN_PASSWORD"
   secretKeyValue <- requireTextEnv "JWT_SECRET_KEY"
   killSwitchTopicValue <- requireTextEnv "PUBSUB_KILL_SWITCH_TOPIC"
+  marketCollectTopicValue <- requireTextEnv "PUBSUB_MARKET_COLLECT_TOPIC"
+  insightCollectTopicValue <- requireTextEnv "PUBSUB_INSIGHT_COLLECT_TOPIC"
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
@@ -95,4 +101,6 @@ buildAppEnv = do
       , serviceName = "bff"
       , pubSubPublisher = pubSubPublisherValue
       , killSwitchTopicName = killSwitchTopicValue
+      , marketCollectTopicName = marketCollectTopicValue
+      , insightCollectTopicName = insightCollectTopicValue
       }

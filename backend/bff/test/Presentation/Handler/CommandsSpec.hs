@@ -1,4 +1,4 @@
-module Presentation.Handler.OperationsSpec (spec) where
+module Presentation.Handler.CommandsSpec (spec) where
 
 import Data.Aeson (Value, decode, encode, object, (.=))
 import Data.Aeson qualified as Aeson
@@ -16,7 +16,7 @@ import Domain.Auth.Credential (
 import Infrastructure.JWT.JwtIssuer (JwtIssuerEnv (..), issueToken)
 import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositoryEnv (..))
 import Messaging.PubSub (PubSubPublisher (..))
-import Network.HTTP.Types (status400, status401, status403)
+import Network.HTTP.Types (status401, status403, status503)
 import Network.Wai (Application, defaultRequest)
 import Network.Wai qualified as Wai
 import Network.Wai.Test (SRequest (..), SResponse (..), runSession, setPath, srequest)
@@ -72,22 +72,22 @@ testAppEnv =
 testApp :: Application
 testApp = serve bffApiProxy (bffServer testAppEnv)
 
--- | Admin user with operations:write permission.
-adminWithOperationsWrite :: AuthenticatedUser
-adminWithOperationsWrite =
+-- | Admin user with commands:run permission.
+adminWithCommandsRun :: AuthenticatedUser
+adminWithCommandsRun =
   AuthenticatedUser
     { identifier = "admin-001"
     , email = EmailAddress "admin@example.com"
     , role = Admin
     , permissions =
-        [ AuthPermission "operations:write"
+        [ AuthPermission "commands:run"
         , AuthPermission "dashboard:read"
         ]
     }
 
--- | Viewer missing operations:write permission.
-viewerWithoutOperationsWrite :: AuthenticatedUser
-viewerWithoutOperationsWrite =
+-- | Viewer missing commands:run permission.
+viewerWithoutCommandsRun :: AuthenticatedUser
+viewerWithoutCommandsRun =
   AuthenticatedUser
     { identifier = "viewer-001"
     , email = EmailAddress "viewer@example.com"
@@ -102,8 +102,8 @@ issueTestToken authenticatedUser = do
     Left errorText -> error ("Failed to issue test token: " <> show errorText)
     Right tokenText -> pure tokenText
 
-runtimeRequest :: Maybe Text -> ByteString -> SRequest
-runtimeRequest maybeToken requestBody =
+runCycleRequest :: Maybe Text -> ByteString -> SRequest
+runCycleRequest maybeToken requestBody =
   SRequest
     { simpleRequest =
         setPath
@@ -118,12 +118,12 @@ runtimeRequest maybeToken requestBody =
                     Just tokenText ->
                       [("Authorization", "Bearer " <> encodeUtf8 tokenText)]
             }
-          "/operations/runtime"
+          "/commands/run-cycle"
     , simpleRequestBody = requestBody
     }
 
-killSwitchRequest :: Maybe Text -> ByteString -> SRequest
-killSwitchRequest maybeToken requestBody =
+runInsightCycleRequest :: Maybe Text -> ByteString -> SRequest
+runInsightCycleRequest maybeToken requestBody =
   SRequest
     { simpleRequest =
         setPath
@@ -138,7 +138,7 @@ killSwitchRequest maybeToken requestBody =
                     Just tokenText ->
                       [("Authorization", "Bearer " <> encodeUtf8 tokenText)]
             }
-          "/operations/kill-switch"
+          "/commands/run-insight-cycle"
     , simpleRequestBody = requestBody
     }
 
@@ -146,24 +146,27 @@ lookupText :: String -> Value -> Maybe Aeson.Value
 lookupText key (Aeson.Object obj) = KeyMap.lookup (Key.fromString key) obj
 lookupText _ _ = Nothing
 
-startBody :: ByteString
-startBody = encode (object ["action" .= ("START" :: Text)])
+emptyBody :: ByteString
+emptyBody = encode (object ([] :: [(Aeson.Key, Aeson.Value)]))
 
-invalidActionBody :: ByteString
-invalidActionBody = encode (object ["action" .= ("RESTART" :: Text)])
-
-enableKillSwitchBody :: ByteString
-enableKillSwitchBody = encode (object ["enabled" .= True])
+insightCycleBody :: ByteString
+insightCycleBody =
+  encode
+    ( object
+        [ "mode" .= ("manual" :: Text)
+        , "sourceTypes" .= (["x", "youtube"] :: [Text])
+        ]
+    )
 
 -- ---------------------------------------------------------------------------
 -- Spec
 -- ---------------------------------------------------------------------------
 
 spec :: Spec
-spec = describe "Presentation.Handler.Operations" $ do
-  describe "POST /operations/runtime" $ do
+spec = describe "Presentation.Handler.Commands" $ do
+  describe "POST /commands/run-cycle" $ do
     it "returns 401 when Authorization header is missing" $ do
-      response <- runSession (srequest (runtimeRequest Nothing startBody)) testApp
+      response <- runSession (srequest (runCycleRequest Nothing emptyBody)) testApp
       simpleStatus response `shouldBe` status401
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -175,7 +178,7 @@ spec = describe "Presentation.Handler.Operations" $ do
 
     it "returns 401 when Authorization header has invalid token" $ do
       let invalidToken = "this.is.not.a.valid.jwt" :: Text
-      response <- runSession (srequest (runtimeRequest (Just invalidToken) startBody)) testApp
+      response <- runSession (srequest (runCycleRequest (Just invalidToken) emptyBody)) testApp
       simpleStatus response `shouldBe` status401
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -185,9 +188,9 @@ spec = describe "Presentation.Handler.Operations" $ do
             _ -> False
         Nothing -> False
 
-    it "returns 403 when token lacks operations:write permission" $ do
-      tokenText <- issueTestToken viewerWithoutOperationsWrite
-      response <- runSession (srequest (runtimeRequest (Just tokenText) startBody)) testApp
+    it "returns 403 when token lacks commands:run permission" $ do
+      tokenText <- issueTestToken viewerWithoutCommandsRun
+      response <- runSession (srequest (runCycleRequest (Just tokenText) emptyBody)) testApp
       simpleStatus response `shouldBe` status403
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -197,21 +200,24 @@ spec = describe "Presentation.Handler.Operations" $ do
             _ -> False
         Nothing -> False
 
-    it "returns 400 when action is an invalid value" $ do
-      tokenText <- issueTestToken adminWithOperationsWrite
-      response <- runSession (srequest (runtimeRequest (Just tokenText) invalidActionBody)) testApp
-      simpleStatus response `shouldBe` status400
+    -- Note: with valid token, the handler proceeds to check Firestore for kill-switch state.
+    -- Without a real Firestore emulator, this returns 503 DEPENDENCY_UNAVAILABLE, which
+    -- verifies the auth gate is passed and the kill-switch check is reached.
+    it "returns 503 DEPENDENCY_UNAVAILABLE when Firestore is unreachable (valid token, post-auth)" $ do
+      tokenText <- issueTestToken adminWithCommandsRun
+      response <- runSession (srequest (runCycleRequest (Just tokenText) emptyBody)) testApp
+      simpleStatus response `shouldBe` status503
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
         Just bodyValue ->
           case lookupText "reasonCode" bodyValue of
-            Just (Aeson.String reasonCode) -> reasonCode == "REQUEST_VALIDATION_FAILED"
+            Just (Aeson.String reasonCode) -> reasonCode == "DEPENDENCY_UNAVAILABLE"
             _ -> False
         Nothing -> False
 
-  describe "POST /operations/kill-switch" $ do
+  describe "POST /commands/run-insight-cycle" $ do
     it "returns 401 when Authorization header is missing" $ do
-      response <- runSession (srequest (killSwitchRequest Nothing enableKillSwitchBody)) testApp
+      response <- runSession (srequest (runInsightCycleRequest Nothing insightCycleBody)) testApp
       simpleStatus response `shouldBe` status401
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -223,7 +229,7 @@ spec = describe "Presentation.Handler.Operations" $ do
 
     it "returns 401 when Authorization header has invalid token" $ do
       let invalidToken = "this.is.not.a.valid.jwt" :: Text
-      response <- runSession (srequest (killSwitchRequest (Just invalidToken) enableKillSwitchBody)) testApp
+      response <- runSession (srequest (runInsightCycleRequest (Just invalidToken) insightCycleBody)) testApp
       simpleStatus response `shouldBe` status401
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -233,9 +239,9 @@ spec = describe "Presentation.Handler.Operations" $ do
             _ -> False
         Nothing -> False
 
-    it "returns 403 when token lacks operations:write permission" $ do
-      tokenText <- issueTestToken viewerWithoutOperationsWrite
-      response <- runSession (srequest (killSwitchRequest (Just tokenText) enableKillSwitchBody)) testApp
+    it "returns 403 when token lacks commands:run permission" $ do
+      tokenText <- issueTestToken viewerWithoutCommandsRun
+      response <- runSession (srequest (runInsightCycleRequest (Just tokenText) insightCycleBody)) testApp
       simpleStatus response `shouldBe` status403
       let maybeBody = decode (simpleBody response) :: Maybe Value
       maybeBody `shouldSatisfy` \case
@@ -245,8 +251,17 @@ spec = describe "Presentation.Handler.Operations" $ do
             _ -> False
         Nothing -> False
 
-    it "returns 400 when enabled field is missing" $ do
-      tokenText <- issueTestToken adminWithOperationsWrite
-      let missingEnabledBody = encode (object ([] :: [(Aeson.Key, Aeson.Value)]))
-      response <- runSession (srequest (killSwitchRequest (Just tokenText) missingEnabledBody)) testApp
-      simpleStatus response `shouldBe` status400
+    -- Note: with valid token, the handler proceeds to check Firestore for kill-switch state.
+    -- Without a real Firestore emulator, this returns 503 DEPENDENCY_UNAVAILABLE, which
+    -- verifies the auth gate is passed and the kill-switch check is reached.
+    it "returns 503 DEPENDENCY_UNAVAILABLE when Firestore is unreachable (valid token, post-auth)" $ do
+      tokenText <- issueTestToken adminWithCommandsRun
+      response <- runSession (srequest (runInsightCycleRequest (Just tokenText) insightCycleBody)) testApp
+      simpleStatus response `shouldBe` status503
+      let maybeBody = decode (simpleBody response) :: Maybe Value
+      maybeBody `shouldSatisfy` \case
+        Just bodyValue ->
+          case lookupText "reasonCode" bodyValue of
+            Just (Aeson.String reasonCode) -> reasonCode == "DEPENDENCY_UNAVAILABLE"
+            _ -> False
+        Nothing -> False
