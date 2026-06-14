@@ -49,21 +49,24 @@ class TestDependencyContainer:
     def test_missing_backtested_topic_uses_default(self) -> None:
         env = self._make_env_vars()
         del env["HYPOTHESIS_BACKTESTED_TOPIC"]
-        with patch.dict(os.environ, env, clear=True):
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("HYPOTHESIS_BACKTESTED_TOPIC", None)
             container = DependencyContainer()
         assert container._hypothesis_backtested_topic == "event-hypothesis-backtested-v1"
 
     def test_missing_promoted_topic_uses_default(self) -> None:
         env = self._make_env_vars()
         del env["HYPOTHESIS_PROMOTED_TOPIC"]
-        with patch.dict(os.environ, env, clear=True):
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("HYPOTHESIS_PROMOTED_TOPIC", None)
             container = DependencyContainer()
         assert container._hypothesis_promoted_topic == "event-hypothesis-promoted-v1"
 
     def test_missing_rejected_topic_uses_default(self) -> None:
         env = self._make_env_vars()
         del env["HYPOTHESIS_REJECTED_TOPIC"]
-        with patch.dict(os.environ, env, clear=True):
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("HYPOTHESIS_REJECTED_TOPIC", None)
             container = DependencyContainer()
         assert container._hypothesis_rejected_topic == "event-hypothesis-rejected-v1"
 
