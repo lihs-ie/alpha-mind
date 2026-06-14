@@ -61,10 +61,18 @@ pub async fn dashboard_page(_props : @router.PageProps) -> @server_dom.ServerNod
         ],
       ),
       kill_switch_warning,
-      // R-01 KPIカード section header
-      h2(
-        style="color:var(--color-text,#F8FAFC);font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:600;margin:0 0 16px;letter-spacing:0.05em;text-transform:uppercase;",
-        [text("運用状態")],
+      // R-01 KPIカード section header.
+      // The runtime-state atom (status badge) is reused here from the atoms
+      // layer (#83) so the live SSR render path exercises the atoms package.
+      div(
+        style="display:flex;align-items:center;gap:12px;margin:0 0 16px;",
+        [
+          @atoms.heading_atom(
+            "運用状態",
+            level=@atoms.HeadingLevel::H2,
+          ),
+          @atoms.status_badge_atom(summary_result.runtime_state),
+        ],
       ),
       div(
         style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px;",

@@ -26,6 +26,10 @@
     {
       "path": "alpha-mind/frontend-sol/__gen__/types",
       "alias": "types"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/server/atoms",
+      "alias": "atoms"
     }
   ],
   "warn-list": "-35-67"
