@@ -1,3 +1,7 @@
+# NOTE: agent-orchestrator の起動には buildAppEnv 必須の runtime env
+# (SERVICE_VERSION / PUBSUB_TOPIC_HYPOTHESIS / SKILL_EXECUTOR_ENDPOINT) が要る。
+# これらは base ./docker-compose.yml の agent-orchestrator サービス定義で供給され、
+# extends 経由で継承される（不足すると起動時例外で health smoke が 'not running' になる）。
 services:
   agent-orchestrator:
     extends:
