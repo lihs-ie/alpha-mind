@@ -25,19 +25,28 @@ library
     Domain.RiskAssessment.Service.KillSwitchPolicy
     Domain.RiskAssessment.Service.RiskScreeningPolicy
     Domain.RiskAssessment.ValueObjects
+    Infrastructure.Publisher.PubSubRiskEventPublisher
+    Infrastructure.Repository.FirestoreIdempotencyKeyRepository
+    Infrastructure.Repository.FirestoreKillSwitchStateRepository
+    Infrastructure.Repository.FirestoreRiskAssessmentRepository
+    Infrastructure.Repository.FirestoreRiskSettingsRepository
+    Infrastructure.Wire.ReasonCodeWire
     UseCase.CheckOrderRisk
     UseCase.SyncKillSwitch
   build-depends:
-    aeson          ^>=2.2,
-    bytestring     ^>=0.12,
-    containers     ^>=0.7,
-    mtl            ^>=2.3.1,
-    servant-server ^>=0.20,
+    aeson                ^>=2.2,
+    bytestring           ^>=0.12,
+    containers           ^>=0.7,
+    gogol-firestore      ^>=1.0.0,
+    gogol-pubsub         ^>=1.0.0,
+    mtl                  ^>=2.3.1,
+    servant-server       ^>=0.20,
     shared,
-    text           ^>=2.1.4,
-    time           ^>=1.14,
-    transformers   ^>=0.6.1.2,
-    ulid           ^>=0.3.3
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    transformers         ^>=0.6.1.2,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21
 
 executable risk-guard
   import:         shared
@@ -57,14 +66,21 @@ test-suite risk-guard-test
   hs-source-dirs: test
   build-depends:
     risk-guard,
-    hspec          ^>=2.11.16,
-    mtl            ^>=2.3.1,
-    text           ^>=2.1.4,
-    time           ^>=1.14,
-    ulid           ^>=0.3.3
+    aeson                ^>=2.2,
+    gogol-firestore      ^>=1.0.0,
+    hspec                ^>=2.11.16,
+    mtl                  ^>=2.3.1,
+    shared,
+    text                 ^>=2.1.4,
+    time                 ^>=1.14,
+    ulid                 ^>=0.3.3,
+    unordered-containers ^>=0.2.21
   other-modules:
     Domain.RiskAssessment.AggregateSpec
     Domain.RiskAssessment.ReasonCodeSpec
     Domain.RiskAssessment.Service.RiskScreeningPolicySpec
+    Infrastructure.Publisher.PubSubRiskEventPublisherSpec
+    Infrastructure.Repository.FirestoreIdempotencyKeyRepositorySpec
+    Infrastructure.Repository.FirestoreRiskAssessmentRepositorySpec
     UseCase.CheckOrderRiskSpec
     UseCase.SyncKillSwitchSpec
