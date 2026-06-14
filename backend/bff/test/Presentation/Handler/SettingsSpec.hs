@@ -14,6 +14,7 @@ import Domain.Auth.Credential (
  )
 import Infrastructure.JWT.JwtIssuer (JwtIssuerEnv (..), issueToken)
 import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositoryEnv (..))
+import Messaging.PubSub (PubSubPublisher (..))
 import Network.HTTP.Types (status401, status403)
 import Network.Wai (Application, defaultRequest)
 import Network.Wai qualified as Wai
@@ -37,6 +38,15 @@ testJwtIssuerEnv =
     , expirySeconds = 3600
     }
 
+testPubSubPublisher :: PubSubPublisher
+testPubSubPublisher =
+  PubSubPublisher
+    { manager = error "PubSub manager not used in tests"
+    , projectId = "test-project"
+    , baseURL = "https://pubsub.googleapis.com/v1/"
+    , accessToken = pure ""
+    }
+
 testAppEnv :: AppEnv
 testAppEnv =
   AppEnv
@@ -52,6 +62,8 @@ testAppEnv =
           , databaseId = "(default)"
           }
     , serviceName = "bff"
+    , pubSubPublisher = testPubSubPublisher
+    , killSwitchTopicName = "test-kill-switch-topic"
     }
 
 testApp :: Application

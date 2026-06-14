@@ -57,11 +57,25 @@ findUserByEmail repositoryEnv queryEmail =
               , email = queryEmail
               , role = Admin
               , permissions =
-                  [ AuthPermission "orders:read"
+                  [ AuthPermission "dashboard:read"
+                  , AuthPermission "operations:write"
+                  , AuthPermission "commands:run"
+                  , AuthPermission "orders:read"
                   , AuthPermission "orders:approve"
                   , AuthPermission "orders:reject"
+                  , AuthPermission "orders:retry"
+                  , AuthPermission "settings:read"
                   , AuthPermission "settings:write"
+                  , AuthPermission "compliance:read"
+                  , AuthPermission "compliance:write"
                   , AuthPermission "audit:read"
+                  , AuthPermission "insights:read"
+                  , AuthPermission "insights:write"
+                  , AuthPermission "hypotheses:read"
+                  , AuthPermission "hypotheses:retest"
+                  , AuthPermission "hypotheses:decide"
+                  , AuthPermission "models:read"
+                  , AuthPermission "models:decide"
                   ]
               }
         )

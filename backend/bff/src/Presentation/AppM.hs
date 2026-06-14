@@ -13,6 +13,8 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import Infrastructure.JWT.JwtIssuer (JwtIssuerEnv (..))
 import Infrastructure.Repository.FirestoreUserRepository (FirestoreUserRepositoryEnv (..))
+import Messaging.PubSub (PubSubPublisher (..))
+import Network.HTTP.Client.TLS (newTlsManager)
 import Persistence.Firestore (FirestoreContext (..))
 
 -- ---------------------------------------------------------------------------
@@ -25,6 +27,8 @@ data AppEnv = AppEnv
   , userRepositoryEnv :: FirestoreUserRepositoryEnv
   , firestoreContext :: FirestoreContext
   , serviceName :: Text
+  , pubSubPublisher :: PubSubPublisher
+  , killSwitchTopicName :: Text
   }
 
 -- ---------------------------------------------------------------------------
@@ -34,9 +38,10 @@ data AppEnv = AppEnv
 {- | Must-09: Build 'AppEnv' from environment variables.
 
 Required variables:
-  ADMIN_EMAIL           — plaintext admin email (MVP)
-  ADMIN_PASSWORD        — plaintext admin password (MVP)
-  JWT_SECRET_KEY        — HMAC-SHA256 signing key (at least 32 bytes recommended)
+  ADMIN_EMAIL              — plaintext admin email (MVP)
+  ADMIN_PASSWORD           — plaintext admin password (MVP)
+  JWT_SECRET_KEY           — HMAC-SHA256 signing key (at least 32 bytes recommended)
+  PUBSUB_KILL_SWITCH_TOPIC — Pub/Sub topic name for kill-switch events
 Optional:
   JWT_ISSUER_URL        — iss claim (default \"https://bff.alpha-mind.local\")
   JWT_AUDIENCE_URL      — aud claim (default \"https://bff.alpha-mind.local\")
@@ -49,6 +54,7 @@ buildAppEnv = do
   adminEmailValue <- requireTextEnv "ADMIN_EMAIL"
   adminPasswordValue <- requireTextEnv "ADMIN_PASSWORD"
   secretKeyValue <- requireTextEnv "JWT_SECRET_KEY"
+  killSwitchTopicValue <- requireTextEnv "PUBSUB_KILL_SWITCH_TOPIC"
   maybeIssuerUrl <- optionalTextEnv "JWT_ISSUER_URL"
   maybeAudienceUrl <- optionalTextEnv "JWT_AUDIENCE_URL"
   maybeExpirySeconds <- optionalTextEnv "JWT_EXPIRY_SECONDS"
@@ -59,6 +65,14 @@ buildAppEnv = do
       expirySecondsValue = maybe 3600 (read . Text.unpack) maybeExpirySeconds
       projectIdValue = fromMaybe "alpha-mind-local" maybeProjectId
       databaseIdValue = fromMaybe "(default)" maybeDatabaseId
+  httpManager <- newTlsManager
+  let pubSubPublisherValue =
+        PubSubPublisher
+          { manager = httpManager
+          , projectId = projectIdValue
+          , baseURL = "https://pubsub.googleapis.com/v1/"
+          , accessToken = pure ""
+          }
   pure
     AppEnv
       { jwtIssuerEnv =
@@ -79,4 +93,6 @@ buildAppEnv = do
             , databaseId = databaseIdValue
             }
       , serviceName = "bff"
+      , pubSubPublisher = pubSubPublisherValue
+      , killSwitchTopicName = killSwitchTopicValue
       }

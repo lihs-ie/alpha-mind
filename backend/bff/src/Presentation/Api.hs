@@ -21,6 +21,8 @@ Endpoints:
   * @GET /hypotheses/{identifier}@            — single hypothesis detail (JWT required)
   * @GET /models/validation@                  — paginated list of model validations (JWT required)
   * @GET /models/validation/{modelVersion}@   — single model validation detail (JWT required)
+  * @POST /operations/runtime@                — change runtime state (JWT required)
+  * @POST /operations/kill-switch@            — toggle kill switch (JWT required)
 -}
 module Presentation.Api (
   BffAPI,
@@ -57,6 +59,13 @@ import Presentation.Handler.ModelValidations (
   ModelValidationListResponse,
   getModelValidationByVersionHandler,
   getModelValidationsHandler,
+ )
+import Presentation.Handler.Operations (
+  KillSwitchRequest,
+  OperationResult,
+  RuntimeOperationRequest,
+  handleChangeRuntime,
+  handleToggleKillSwitch,
  )
 import Presentation.Handler.Orders (
   OrderDetailResponse,
@@ -181,6 +190,18 @@ type ModelsValidationAPI =
       :> Header "Authorization" Text
       :> Get '[JSON] ModelValidationDetailResponse
 
+type OperationsAPI =
+  "operations"
+    :> "runtime"
+    :> Header "Authorization" Text
+    :> ReqBody '[JSON] RuntimeOperationRequest
+    :> Post '[JSON] OperationResult
+    :<|> "operations"
+      :> "kill-switch"
+      :> Header "Authorization" Text
+      :> ReqBody '[JSON] KillSwitchRequest
+      :> Post '[JSON] OperationResult
+
 type BffAPI =
   BffPublicAPI
     :<|> BffProtectedAPI
@@ -190,6 +211,7 @@ type BffAPI =
     :<|> InsightsAPI
     :<|> HypothesesAPI
     :<|> ModelsValidationAPI
+    :<|> OperationsAPI
 
 bffApiProxy :: Proxy BffAPI
 bffApiProxy = Proxy
@@ -214,6 +236,8 @@ bffApiProxy = Proxy
   * @GET /hypotheses/{identifier}@           → 'getHypothesisByIdentifierHandler'
   * @GET /models/validation@                 → 'getModelValidationsHandler'
   * @GET /models/validation/{modelVersion}@  → 'getModelValidationByVersionHandler'
+  * @POST /operations/runtime@               → 'handleChangeRuntime'
+  * @POST /operations/kill-switch@           → 'handleToggleKillSwitch'
 -}
 bffServer :: AppEnv -> Server BffAPI
 bffServer appEnvironment =
@@ -225,3 +249,4 @@ bffServer appEnvironment =
     :<|> (getInsightsHandler appEnvironment :<|> getInsightByIdentifierHandler appEnvironment)
     :<|> (getHypothesesHandler appEnvironment :<|> getHypothesisByIdentifierHandler appEnvironment)
     :<|> (getModelValidationsHandler appEnvironment :<|> getModelValidationByVersionHandler appEnvironment)
+    :<|> (handleChangeRuntime appEnvironment :<|> handleToggleKillSwitch appEnvironment)
