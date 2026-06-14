@@ -1,0 +1,25 @@
+{
+  "supported-targets": "js",
+  "import": [
+    {
+      "path": "alpha-mind/frontend-sol/domain/session",
+      "alias": "session"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/domain/command",
+      "alias": "command"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/domain/projection",
+      "alias": "projection"
+    },
+    {
+      "path": "alpha-mind/frontend-sol/infrastructure",
+      "alias": "infra"
+    },
+    {
+      "path": "mizchi/js/core",
+      "alias": "core"
+    }
+  ]
+}

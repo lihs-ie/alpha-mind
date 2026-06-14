@@ -96,6 +96,15 @@ pub fn new_query_criteria(
   { from, to, status, cursor, limit }
 }
 
+/// Factory: create a Pagination value object.
+pub fn new_pagination(
+  cursor : String?,
+  limit : Int,
+  has_next : Bool
+) -> Pagination {
+  { cursor, limit, hasNext: has_next }
+}
+
 /// Factory: create a new ReadModelProjection in Initial state.
 pub fn new_projection(
   identifier : String,
