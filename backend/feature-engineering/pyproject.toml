@@ -11,7 +11,7 @@ dependencies = [
     "lightgbm>=4.6,<5",
     "python-ulid>=3.1,<4",
     "google-cloud-firestore>=2.23,<3",
-    "google-cloud-storage>=3.9,<4",
+    "google-cloud-storage>=3.10.1,<4",
     "google-cloud-pubsub>=2.35,<3",
 ]
 
