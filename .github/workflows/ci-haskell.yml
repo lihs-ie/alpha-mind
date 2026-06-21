@@ -19,7 +19,7 @@ jobs:
       haskell: ${{ steps.filter.outputs.haskell }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Detect file changes
         uses: dorny/paths-filter@v4
@@ -45,7 +45,7 @@ jobs:
     if: needs.detect-changes.outputs.haskell == 'true'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Haskell
         id: setup-haskell
@@ -88,7 +88,7 @@ jobs:
       HLINT_VERSION: "3.8"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Cache fourmolu binary
         id: cache-fourmolu

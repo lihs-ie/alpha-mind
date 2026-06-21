@@ -100,7 +100,7 @@ jobs:
         service: ${{ fromJson(needs.prepare.outputs.haskell_services) }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -157,7 +157,7 @@ jobs:
         service: ${{ fromJson(needs.prepare.outputs.python_services) }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
@@ -204,7 +204,7 @@ jobs:
       SOL_COMMIT: bdc573edcfd50aa455d1b17ca8964cee1a69e443
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v3
