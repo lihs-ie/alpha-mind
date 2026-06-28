@@ -71,7 +71,7 @@ jobs:
 
       - name: Cache MoonBit SDK
         id: cache-moonbit-sdk
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.moon
           key: moonbit-sdk-${{ runner.os }}
@@ -85,7 +85,7 @@ jobs:
         run: echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
       - name: Cache MoonBit packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: applications/frontend/.mooncakes
           key: mooncakes-${{ hashFiles('applications/frontend/moon.mod.json') }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: Cache Sol CLI build output
         id: cache-sol-cli
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # node_modules must be cached alongside _build: the built cli.js
           # imports runtime deps (e.g. colorette) from references/sol.mbt/
