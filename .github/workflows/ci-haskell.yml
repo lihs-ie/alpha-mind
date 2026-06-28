@@ -52,7 +52,7 @@ jobs:
         uses: ./.github/actions/setup-haskell
 
       - name: Cache cabal store
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
           key: cabal-store-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project') }}
@@ -60,7 +60,7 @@ jobs:
             cabal-store-${{ runner.os }}-
 
       - name: Cache dist-newstyle
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: backend/dist-newstyle
           key: dist-newstyle-${{ runner.os }}-${{ hashFiles('backend/**/*.cabal', 'backend/cabal.project', 'backend/**/*.hs') }}
@@ -92,14 +92,14 @@ jobs:
 
       - name: Cache fourmolu binary
         id: cache-fourmolu
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.local/bin/fourmolu
           key: fourmolu-bin-${{ runner.os }}-${{ env.FOURMOLU_VERSION }}
 
       - name: Cache HLint binary
         id: cache-hlint
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.local/bin/hlint
           key: hlint-${{ runner.os }}-${{ env.HLINT_VERSION }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Cache cabal store (lint)
         if: steps.cache-fourmolu.outputs.cache-hit != 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
           key: cabal-store-lint-${{ runner.os }}-fourmolu-${{ env.FOURMOLU_VERSION }}

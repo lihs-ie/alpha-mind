@@ -180,7 +180,7 @@ jobs:
           mkdir -p backend/${{ matrix.service }}/.pytest_cache
 
       - name: Cache mypy cache
-        uses: actions/cache@v5.0.3
+        uses: actions/cache@v6
         with:
           path: backend/${{ matrix.service }}/.mypy_cache
           key: mypy-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}
@@ -188,7 +188,7 @@ jobs:
             mypy-${{ runner.os }}-${{ matrix.service }}-
 
       - name: Cache pytest cache
-        uses: actions/cache@v5.0.3
+        uses: actions/cache@v6
         with:
           path: backend/${{ matrix.service }}/.pytest_cache
           key: pytest-${{ runner.os }}-${{ matrix.service }}-${{ hashFiles(format('backend/{0}/src/**/*.py', matrix.service), format('backend/{0}/tests/**/*.py', matrix.service), format('backend/{0}/pyproject.toml', matrix.service), format('backend/{0}/requirements.txt', matrix.service)) }}
